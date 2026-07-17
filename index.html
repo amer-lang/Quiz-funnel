@@ -1,1125 +1,1547 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ecom Websites - Get Your Done-For-You Store</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%);
-      min-height: 100vh;
-    }
-    
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-      min-height: 100vh;
-      background: #fff;
-      box-shadow: 0 0 40px rgba(0,0,0,0.1);
-    }
-    
-    /* Header */
-    .header {
-      padding: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #e5e7eb;
-      position: sticky;
-      top: 0;
-      background: #fff;
-      z-index: 50;
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      color: #0f172a;
-      font-size: 1.1rem;
-    }
-    
-    .logo svg {
-      width: 22px;
-      height: 22px;
-      color: #3b82f6;
-    }
-    
-    .progress {
-      width: 100px;
-      height: 6px;
-      background: #e5e7eb;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #22c55e);
-      transition: width 0.3s ease;
-    }
-    
-    /* Main */
-    .main {
-      padding: 24px 20px;
-      min-height: calc(100vh - 140px);
-    }
-    
-    .step { display: none; animation: fadeIn 0.3s ease; }
-    .step.active { display: block; }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Typography */
-    .badge {
-      display: inline-block;
-      padding: 6px 14px;
-      background: rgba(59,130,246,0.1);
-      border-radius: 20px;
-      font-size: 0.75rem;
-      color: #3b82f6;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    
-    .title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 8px;
-      text-align: center;
-      line-height: 1.3;
-    }
-    
-    .subtitle {
-      text-align: center;
-      color: #64748b;
-      margin-bottom: 24px;
-      font-size: 0.95rem;
-    }
-    
-    .step-number {
-      display: block;
-      width: fit-content;
-      margin: 0 auto 12px;
-      padding: 6px 14px;
-      background: rgba(59,130,246,0.1);
-      border-radius: 20px;
-      font-size: 0.75rem;
-      color: #3b82f6;
-      font-weight: 600;
-    }
-    
-    /* Quiz Options */
-    .options { display: flex; flex-direction: column; gap: 12px; }
-    
-    .option {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 16px;
-      background: #fff;
-      border: 2px solid #e5e7eb;
-      border-radius: 14px;
-      cursor: pointer;
-      font-size: 0.95rem;
-      position: relative;
-      transition: all 0.2s ease;
-      text-align: left;
-      width: 100%;
-    }
-    
-    .option:hover {
-      border-color: #3b82f6;
-      transform: translateX(4px);
-    }
-    
-    .option-icon {
-      width: 46px;
-      height: 46px;
-      background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(34,197,94,0.1));
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      flex-shrink: 0;
-    }
-    
-    .option-text { flex: 1; font-weight: 500; }
-    
-    /* Buttons */
-    .btn {
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: 14px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin-top: 8px;
-    }
-    
-    .btn:hover { transform: translateY(-2px); }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    
-    .btn-blue {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: #fff;
-    }
-    
-    .btn-green {
-      background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: #fff;
-    }
-    
-    /* Back Button */
-    .back-btn {
-      padding: 12px 24px;
-      background: #f1f5f9;
-      border: none;
-      border-radius: 12px;
-      color: #64748b;
-      font-weight: 500;
-      cursor: pointer;
-      margin: 20px;
-    }
-    
-    .back-btn:hover { background: #e2e8f0; }
-    
-    /* Qualify Header */
-    .qualify-header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    
-    .qualify-emoji {
-      font-size: 3rem;
-      display: block;
-      margin-bottom: 8px;
-    }
-    
-    .gradient-title {
-      background: linear-gradient(135deg, #3b82f6, #22c55e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .qualify-text {
-      color: #64748b;
-      font-size: 0.95rem;
-    }
-    
-    /* Video Section */
-    .video-section { text-align: center; }
-    
-    .video-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: #fff;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-    
-    .video-container { margin-bottom: 16px; }
-    
-    .video-placeholder {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: linear-gradient(145deg, #1e293b, #0f172a);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-      overflow: hidden;
-    }
-    
-    .video-placeholder:hover { transform: scale(1.02); }
-    
-    .play-button {
-      width: 70px;
-      height: 70px;
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 30px rgba(59,130,246,0.5);
-      transition: transform 0.2s ease;
-      z-index: 1;
-    }
-    
-    .video-placeholder:hover .play-button {
-      transform: scale(1.1);
-    }
-    
-    .play-button svg {
-      width: 30px;
-      height: 30px;
-      fill: #fff;
-      margin-left: 4px;
-    }
-    
-    .video-duration {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(0,0,0,0.7);
-      color: #fff;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .video-highlights {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    
-    .highlight-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 12px 16px;
-      background: #f8fafc;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #334155;
-    }
-    
-    .highlight-icon { font-size: 1.2rem; }
-    
-    /* Value Proposition */
-    .value-prop {
-      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(22,163,74,0.08));
-      border: 2px solid rgba(34,197,94,0.2);
-      border-radius: 16px;
-      padding: 20px;
-      text-align: center;
-      margin: 20px 0;
-    }
-    
-    .value-prop-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #15803d;
-      margin-bottom: 8px;
-    }
-    
-    .value-prop-text {
-      font-size: 0.9rem;
-      color: #166534;
-    }
-    
-    /* Shopify CTA */
-    .shopify-cta {
-      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(22,163,74,0.08));
-      border: 2px solid rgba(34,197,94,0.2);
-      border-radius: 16px;
-      padding: 20px;
-      text-align: center;
-      margin-top: 8px;
-    }
-    
-    .shopify-badge {
-      display: inline-block;
-      padding: 6px 14px;
-      background: rgba(34,197,94,0.1);
-      border-radius: 20px;
-      color: #15803d;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    
-    .shopify-cta-text {
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 12px;
-    }
-    
-    .shopify-perks {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 16px;
-      font-size: 0.8rem;
-      color: #15803d;
-      font-weight: 500;
-    }
-    
-    .shopify-note {
-      margin-top: 12px;
-      font-size: 0.75rem;
-      color: #94a3b8;
-      text-align: center;
-    }
-    
-    /* Bundle Button */
-    .bundle-btn {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #fef3c7, #fde68a);
-      border: 3px solid #f59e0b;
-      border-radius: 16px;
-      cursor: pointer;
-      position: relative;
-      text-align: center;
-      margin-bottom: 12px;
-      transition: all 0.2s ease;
-    }
-    
-    .bundle-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(245,158,11,0.3);
-    }
-    
-    .bundle-btn.selected {
-      background: linear-gradient(135deg, #fde68a, #fcd34d);
-      border-color: #d97706;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.3);
-    }
-    
-    .bundle-badge {
-      position: absolute;
-      top: -10px;
-      right: 12px;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 700;
-    }
-    
-    .bundle-title {
-      font-weight: 700;
-      font-size: 1rem;
-      color: #92400e;
-    }
-    
-    .bundle-subtitle {
-      font-size: 0.8rem;
-      color: #b45309;
-      margin-top: 4px;
-    }
-    
-    .or-divider {
-      display: flex;
-      align-items: center;
-      margin: 16px 0;
-      color: #94a3b8;
-      font-size: 0.8rem;
-    }
-    
-    .or-divider::before,
-    .or-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #e5e7eb;
-    }
-    
-    .or-divider span { padding: 0 12px; }
-    
-    /* Niche Grid */
-    .niche-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    
-    .niche {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 14px 8px;
-      background: #fff;
-      border: 2px solid #e5e7eb;
-      border-radius: 14px;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s ease;
-    }
-    
-    .niche:hover { border-color: #3b82f6; }
-    
-    .niche.selected {
-      border-color: #3b82f6;
-      background: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(34,197,94,0.05));
-    }
-    
-    .niche-emoji { font-size: 1.6rem; margin-bottom: 6px; }
-    .niche-name { font-size: 0.7rem; font-weight: 600; color: #334155; }
-    
-    .check {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 20px;
-      height: 20px;
-      background: linear-gradient(135deg, #3b82f6, #22c55e);
-      border-radius: 50%;
-      color: #fff;
-      font-size: 0.65rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-    }
-    
-    .selection-summary {
-      text-align: center;
-      padding: 12px;
-      margin-bottom: 12px;
-      font-size: 0.85rem;
-      color: #475569;
-      background: #f8fafc;
-      border-radius: 10px;
-    }
-    
-    /* Form */
-    .form-group {
-      margin-bottom: 16px;
-    }
-    
-    .form-label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #334155;
-      margin-bottom: 6px;
-    }
-    
-    .form-input {
-      width: 100%;
-      padding: 14px;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      font-size: 1rem;
-      transition: border-color 0.2s;
-    }
-    
-    .form-input:focus {
-      outline: none;
-      border-color: #3b82f6;
-    }
-    
-    .form-hint {
-      font-size: 0.75rem;
-      color: #94a3b8;
-      margin-top: 4px;
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 12px;
-    }
-    
-    .form-row .form-group { flex: 1; }
-    
-    /* Confirmation */
-    .confirmation {
-      text-align: center;
-      padding: 20px 0;
-    }
-    
-    .confirm-icon {
-      font-size: 4rem;
-      margin-bottom: 16px;
-      animation: rocketBounce 2s ease-in-out infinite;
-    }
-    
-    @keyframes rocketBounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    
-    .confirm-title {
-      font-size: 1.8rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #3b82f6, #22c55e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 12px;
-    }
-    
-    .confirm-text {
-      color: #64748b;
-      font-size: 1rem;
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-    
-    .confirm-box {
-      background: #f8fafc;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 24px;
-    }
-    
-    .confirm-box-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-    }
-    
-    .confirm-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 0.95rem;
-    }
-    
-    .confirm-item:last-child { border-bottom: none; }
-    
-    .confirm-item-icon { font-size: 1.2rem; }
-    
-    .timeline {
-      text-align: left;
-      margin-bottom: 24px;
-    }
-    
-    .timeline-item {
-      display: flex;
-      gap: 14px;
-      padding: 12px 0;
-      position: relative;
-    }
-    
-    .timeline-item:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      left: 15px;
-      top: 40px;
-      bottom: 0;
-      width: 2px;
-      background: #e5e7eb;
-    }
-    
-    .timeline-dot {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, #3b82f6, #22c55e);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      color: #fff;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-    
-    .timeline-content {
-      flex: 1;
-    }
-    
-    .timeline-title {
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 2px;
-    }
-    
-    .timeline-text {
-      font-size: 0.85rem;
-      color: #64748b;
-    }
-    
-    .email-note {
-      background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(34,197,94,0.08));
-      border: 2px solid rgba(59,130,246,0.2);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .email-note-icon { font-size: 1.5rem; }
-    
-    .email-note-text {
-      font-size: 0.85rem;
-      color: #334155;
-    }
-    
-    .email-note-text strong {
-      color: #3b82f6;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ecom Websites — Launch Your AI-Built Store</title>
+<meta name="description" content="Our AI finds you a trending winning product, connects the supplier, and builds you a one-product store built to convert. See it before you pay.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   BRAND TOKENS — swap these to retheme the whole funnel
+   ============================================================ */
+:root{
+  --bg:#070B15;
+  --bg-2:#0B1120;
+  --card:#0F172A;
+  --card-2:#131D33;
+  --line:rgba(255,255,255,.09);
+  --line-strong:rgba(255,255,255,.16);
+  --text:#F5F8FF;
+  --muted:#93A0BC;
+  --blue:#3B82F6;
+  --blue-deep:#1D4ED8;
+  --green:#22C55E;
+  --green-deep:#16A34A;
+  --gold:#FFC93C;
+  --gold-deep:#F59E0B;
+  --red:#EF4444;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  --shadow-pop:0 18px 50px -12px rgba(59,130,246,.45);
+  --shadow-gold:0 18px 50px -12px rgba(245,158,11,.5);
+  --radius:20px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  min-height:100dvh;
+  overflow-x:hidden;
+}
+/* ambient glow field */
+body::before,body::after{
+  content:'';position:fixed;border-radius:50%;filter:blur(110px);z-index:0;pointer-events:none;
+}
+body::before{width:520px;height:520px;top:-180px;left:-160px;background:rgba(59,130,246,.16)}
+body::after{width:520px;height:520px;bottom:-200px;right:-160px;background:rgba(34,197,94,.13)}
+
+button{font-family:inherit}
+
+.shell{
+  position:relative;z-index:2;
+  max-width:520px;margin:0 auto;
+  min-height:100vh;min-height:100dvh;
+  display:flex;flex-direction:column;
+  padding:0 20px calc(24px + env(safe-area-inset-bottom));
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:18px 0 14px;position:sticky;top:0;z-index:40;
+  background:linear-gradient(180deg,var(--bg) 78%,transparent);
+}
+.brand{display:flex;align-items:center;gap:8px;user-select:none}
+.brand-img{height:30px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+.hero-img{display:block;margin:0 auto 22px;max-width:min(300px,72%);height:auto;filter:drop-shadow(0 8px 22px rgba(0,0,0,.5));animation:floaty 5s ease-in-out infinite}
+.brand-word{
+  font-family:'Lilita One','Arial Black',sans-serif;font-weight:900;
+  font-size:1.06rem;letter-spacing:.03em;line-height:1;
+  color:#fff;
+  -webkit-text-stroke:3px #000;
+  paint-order:stroke fill;
+  text-shadow:2px 3px 0 #000, 0 4px 10px rgba(0,0,0,.5);
+  transform:rotate(-1.5deg);
+}
+.brand-coin{font-size:1.05rem;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));animation:coinSpin 3.2s ease-in-out infinite}
+@keyframes coinSpin{0%,100%{transform:rotateY(0)}50%{transform:rotateY(180deg)}}
+
+.hud{display:flex;align-items:center;gap:10px}
+.streak{
+  display:flex;align-items:center;gap:4px;
+  font-weight:800;font-size:.8rem;color:var(--gold);
+  background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.28);
+  padding:5px 10px;border-radius:999px;
+  opacity:0;transform:scale(.6);transition:.35s cubic-bezier(.34,1.56,.64,1);
+}
+.streak.on{opacity:1;transform:scale(1)}
+.streak.bump{animation:streakBump .45s cubic-bezier(.34,1.8,.64,1)}
+@keyframes streakBump{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(-4deg)}100%{transform:scale(1)}}
+
+.track{width:86px;height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}
+.track-fill{
+  height:100%;width:4%;border-radius:99px;
+  background:var(--grad-brand);
+  box-shadow:0 0 12px rgba(34,197,94,.8);
+  transition:width .7s cubic-bezier(.22,1,.36,1);
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.stage{flex:1;display:flex;flex-direction:column;position:relative}
+.screen{
+  display:none;flex:1;flex-direction:column;justify-content:center;
+  padding:12px 0 28px;
+}
+.screen.active{display:flex;animation:screenIn .55s cubic-bezier(.22,1,.36,1)}
+.screen.leaving{animation:screenOut .28s ease forwards}
+@keyframes screenIn{from{opacity:0;transform:translateX(46px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes screenOut{to{opacity:0;transform:translateX(-40px) scale(.985)}}
+
+.kicker{
+  display:inline-flex;align-items:center;gap:7px;align-self:center;
+  padding:7px 14px;border-radius:999px;
+  font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:#8EC5FF;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);
+  margin-bottom:18px;
+}
+.kicker.gold{color:var(--gold);background:rgba(255,201,60,.1);border-color:rgba(255,201,60,.3)}
+.kicker.green{color:#7CF0A9;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3)}
+.kicker .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blip 1.4s ease infinite}
+@keyframes blip{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+
+h1,h2{text-align:center;font-weight:800;letter-spacing:-.02em;line-height:1.14}
+h1{font-size:clamp(1.9rem,7.6vw,2.5rem);margin-bottom:14px}
+h2{font-size:clamp(1.5rem,6.2vw,1.9rem);margin-bottom:12px}
+.grad-text{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.gold-text{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;color:var(--muted);font-size:1rem;line-height:1.6;margin:0 auto 26px;max-width:420px}
+.sub strong{color:var(--text)}
+.sub .hl{color:var(--gold);font-weight:700}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.cta{
+  position:relative;width:100%;padding:19px 22px;border:none;border-radius:var(--radius);
+  font-size:1.08rem;font-weight:800;letter-spacing:.01em;color:#fff;cursor:pointer;
+  background:var(--grad-brand);box-shadow:var(--shadow-pop);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s;
+  overflow:hidden;
+}
+.cta::after{ /* sheen sweep */
+  content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);
+  animation:sheen 2.8s ease infinite;
+}
+@keyframes sheen{0%,55%{left:-80%}100%{left:130%}}
+.cta:hover{transform:translateY(-3px) scale(1.015)}
+.cta:active{transform:scale(.965)}
+.cta.gold{background:var(--grad-money);color:#241500;box-shadow:var(--shadow-gold)}
+.cta.pulse{animation:ctaPulse 1.9s ease infinite}
+@keyframes ctaPulse{0%,100%{box-shadow:var(--shadow-pop),0 0 0 0 rgba(34,197,94,.5)}55%{box-shadow:var(--shadow-pop),0 0 0 16px rgba(34,197,94,0)}}
+.cta-note{margin-top:13px;text-align:center;font-size:.8rem;color:var(--muted)}
+.cta-note b{color:#7CF0A9}
+
+.ghost-btn{
+  margin-top:12px;width:100%;padding:14px;border-radius:16px;cursor:pointer;
+  background:transparent;border:1px solid var(--line-strong);color:var(--muted);
+  font-weight:600;font-size:.9rem;transition:.2s;
+}
+.ghost-btn:hover{color:var(--text);border-color:rgba(255,255,255,.32)}
+
+.backlink{
+  position:absolute;top:2px;left:0;z-index:5;
+  background:none;border:none;color:var(--muted);font-size:.85rem;font-weight:600;
+  cursor:pointer;padding:8px 10px 8px 0;display:none;align-items:center;gap:5px;
+}
+.backlink:hover{color:var(--text)}
+
+/* ============================================================
+   OPTION CARDS
+   ============================================================ */
+.opts{display:flex;flex-direction:column;gap:12px}
+.opt{
+  position:relative;display:flex;align-items:center;gap:15px;text-align:left;
+  width:100%;padding:16px 18px;border-radius:18px;cursor:pointer;
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:2px solid var(--line);color:var(--text);
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1),border-color .16s,box-shadow .16s;
+  overflow:hidden;
+}
+.opt:hover{transform:translateY(-2px) scale(1.012);border-color:rgba(59,130,246,.65);box-shadow:0 10px 30px -10px rgba(59,130,246,.35)}
+.opt:active{transform:scale(.97)}
+.opt.picked{
+  border-color:var(--green);
+  background:linear-gradient(135deg,rgba(34,197,94,.16),rgba(59,130,246,.12));
+  box-shadow:0 0 0 4px rgba(34,197,94,.18),0 14px 34px -10px rgba(34,197,94,.45);
+  animation:pickedPop .5s cubic-bezier(.34,1.8,.64,1);
+}
+@keyframes pickedPop{0%{transform:scale(1)}45%{transform:scale(1.045)}100%{transform:scale(1)}}
+.opt-ico{
+  width:50px;height:50px;flex-shrink:0;border-radius:14px;font-size:1.5rem;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(59,130,246,.16),rgba(34,197,94,.16));
+  border:1px solid var(--line);
+}
+.opt-body{flex:1;min-width:0}
+.opt-title{font-weight:700;font-size:.99rem}
+.opt-sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+.opt-title,.opt-sub{display:block}
+.opt-check{
+  width:26px;height:26px;flex-shrink:0;border-radius:50%;
+  border:2px solid var(--line-strong);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.72rem;font-weight:800;color:transparent;transition:.2s;
+}
+.opt.picked .opt-check{background:var(--green);border-color:var(--green);color:#fff;animation:checkPop .4s cubic-bezier(.34,2,.64,1)}
+@keyframes checkPop{0%{transform:scale(0) rotate(-90deg)}100%{transform:scale(1) rotate(0)}}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast{
+  position:fixed;left:50%;bottom:34px;z-index:90;
+  transform:translate(-50%,80px) scale(.8);opacity:0;
+  display:flex;align-items:center;gap:9px;
+  background:linear-gradient(135deg,#123B26,#0E2A3F);
+  border:1px solid rgba(34,197,94,.45);
+  color:#CFFADF;font-weight:700;font-size:.9rem;
+  padding:13px 22px;border-radius:999px;
+  box-shadow:0 16px 44px -8px rgba(0,0,0,.65),0 0 0 4px rgba(34,197,94,.1);
+  pointer-events:none;white-space:nowrap;
+  transition:.42s cubic-bezier(.34,1.56,.64,1);
+}
+.toast.show{transform:translate(-50%,0) scale(1);opacity:1}
+
+/* ============================================================
+   LANDING
+   ============================================================ */
+.float-coin{position:absolute;z-index:0;font-size:1.5rem;opacity:.5;pointer-events:none;animation:floaty 6s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-22px) rotate(10deg)}}
+
+.hero-logo{
+  font-family:'Lilita One','Arial Black',sans-serif;font-weight:900;text-align:center;
+  font-size:clamp(1.5rem,6vw,1.9rem);color:#fff;letter-spacing:.04em;
+  -webkit-text-stroke:5px #000;
+  paint-order:stroke fill;
+  text-shadow:3px 4px 0 #000,0 8px 22px rgba(0,0,0,.55);
+  transform:rotate(-2deg);margin-bottom:22px;user-select:none;
+}
+.hero-logo .coin{font-size:.85em;-webkit-text-stroke:0;display:inline-block;animation:coinSpin 3.2s ease-in-out infinite}
+
+.proof-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.proof{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:14px;padding:11px 15px;min-width:96px;
+}
+.proof b{font-size:1.02rem;font-weight:800}
+.proof b.gold{color:var(--gold)}
+.proof b.green{color:#7CF0A9}
+.proof b.blue{color:#8EC5FF}
+.proof span{font-size:.66rem;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+
+.avatars{display:flex;justify-content:center;align-items:center;gap:9px;margin-top:18px}
+.av-stack{display:flex}
+.av{
+  width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);
+  display:flex;align-items:center;justify-content:center;font-size:.85rem;
+  background:linear-gradient(135deg,#1E3A8A,#155E38);margin-left:-9px;
+}
+.av:first-child{margin-left:0}
+.avatars p{font-size:.78rem;color:var(--muted)}
+.avatars b{color:var(--text)}
+
+/* ============================================================
+   INTRO — 5 dots
+   ============================================================ */
+.qdots{display:flex;justify-content:center;gap:13px;margin:6px 0 30px}
+.qdot{
+  width:46px;height:46px;border-radius:15px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:1rem;color:var(--muted);
+  background:var(--card);border:2px solid var(--line);
+  opacity:.4;transform:scale(.82);transition:.4s cubic-bezier(.34,1.56,.64,1);
+}
+.qdot.lit{
+  opacity:1;transform:scale(1);color:#fff;
+  background:var(--grad-brand);border-color:transparent;
+  box-shadow:0 8px 22px -6px rgba(59,130,246,.6);
+}
+.mini-note{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:26px;font-size:.84rem;color:var(--muted);
+}
+.mini-note .zap{color:var(--gold)}
+
+/* ============================================================
+   DROPSHIP EXPLAINER
+   ============================================================ */
+.flow{display:flex;flex-direction:column;gap:0;margin-bottom:22px}
+.flow-step{
+  display:flex;gap:15px;align-items:flex-start;
+  opacity:0;transform:translateY(18px);transition:.5s cubic-bezier(.22,1,.36,1);
+}
+.flow-step.in{opacity:1;transform:none}
+.flow-rail{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.flow-num{
+  width:44px;height:44px;border-radius:50%;font-size:1.2rem;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(34,197,94,.2));
+  border:2px solid var(--line-strong);
+}
+.flow-line{width:2px;flex:1;min-height:26px;background:linear-gradient(180deg,var(--line-strong),transparent)}
+.flow-card{
+  flex:1;background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;
+}
+.flow-card b{display:block;font-size:.95rem;margin-bottom:3px}
+.flow-card p{font-size:.83rem;color:var(--muted);line-height:1.55}
+.flow-card .money{color:#7CF0A9;font-weight:800}
+.flow-card .cost{color:#FCA5A5;font-weight:800}
+.flow-card .profit{color:var(--gold);font-weight:800}
+
+.profit-strip{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  background:rgba(255,201,60,.08);border:1px dashed rgba(255,201,60,.4);
+  border-radius:16px;padding:14px;margin-bottom:22px;
+  font-weight:800;font-size:1.02rem;flex-wrap:wrap;
+}
+.profit-strip .eq{color:var(--muted);font-weight:600}
+.profit-strip .final{color:var(--gold);font-size:1.15rem}
+
+/* ============================================================
+   REALITY CHECK
+   ============================================================ */
+.big-stat{text-align:center;margin:10px 0 6px}
+.big-stat .huge{
+  font-size:clamp(4rem,20vw,5.6rem);font-weight:800;letter-spacing:-.04em;line-height:1;
+  background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 10px 30px rgba(245,158,11,.35));
+}
+.big-stat .huge-label{font-size:1.05rem;font-weight:700;color:var(--text);margin-top:2px}
+.big-stat .huge-sub{font-size:.82rem;color:var(--muted);margin-top:6px}
+
+.scale-box{
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;margin:20px 0 8px;
+}
+.scale-title{font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;text-align:center}
+.scale-bar{position:relative;height:26px;border-radius:99px;background:linear-gradient(90deg,#1E3A8A,#155E38);overflow:visible;margin-bottom:10px}
+.scale-you{
+  position:absolute;left:6%;top:-6px;bottom:-6px;width:3px;border-radius:3px;
+  background:var(--gold);box-shadow:0 0 14px 2px rgba(255,201,60,.8);
+}
+.scale-you::after{
+  content:'you 👀';position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+  font-size:.68rem;font-weight:800;color:var(--gold);white-space:nowrap;
+}
+.scale-legend{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);font-weight:600}
+.fact-rows{display:flex;flex-direction:column;gap:10px;margin:16px 0 22px}
+.fact{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  border-radius:14px;padding:12px 15px;font-size:.87rem;color:var(--muted);
+  opacity:0;transform:translateX(-14px);transition:.45s cubic-bezier(.22,1,.36,1);
+}
+.fact.in{opacity:1;transform:none}
+.fact b{color:var(--text)}
+.fact .f-ico{font-size:1.25rem}
+
+.verdict{
+  display:none;margin:0 auto 24px;width:fit-content;
+  padding:12px 26px;border-radius:14px;
+  border:3px solid var(--green);color:#7CF0A9;
+  font-weight:800;font-size:1.06rem;letter-spacing:.06em;
+  transform:rotate(-3deg);
+  background:rgba(34,197,94,.1);
+  box-shadow:0 0 0 5px rgba(34,197,94,.12),0 14px 40px -10px rgba(34,197,94,.5);
+}
+.verdict.stamp{display:block;animation:stampIn .55s cubic-bezier(.34,1.9,.64,1)}
+@keyframes stampIn{0%{transform:rotate(-3deg) scale(2.6);opacity:0}60%{transform:rotate(-3deg) scale(.94);opacity:1}100%{transform:rotate(-3deg) scale(1)}}
+
+/* ============================================================
+   BLUEPRINT
+   ============================================================ */
+.bp{display:flex;flex-direction:column;margin-bottom:8px}
+.bp-step{
+  display:flex;gap:15px;opacity:0;transform:translateY(22px) scale(.97);
+  transition:.55s cubic-bezier(.34,1.4,.64,1);
+}
+.bp-step.in{opacity:1;transform:none}
+.bp-rail{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.bp-dot{
+  width:46px;height:46px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.25rem;
+  background:var(--grad-brand);box-shadow:0 8px 22px -6px rgba(59,130,246,.55);
+}
+.bp-step:nth-child(3) .bp-dot{background:var(--grad-money);box-shadow:0 8px 22px -6px rgba(245,158,11,.55)}
+.bp-line{width:2px;flex:1;min-height:22px;background:var(--line-strong)}
+.bp-card{
+  flex:1;margin-bottom:16px;padding:16px 18px;border-radius:18px;
+  background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line);
+}
+.bp-card b{display:block;font-size:1rem;margin-bottom:4px}
+.bp-card p{font-size:.85rem;color:var(--muted);line-height:1.55}
+.bp-card .tag{
+  display:inline-block;margin-top:9px;padding:4px 11px;border-radius:999px;
+  font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  background:rgba(34,197,94,.13);color:#7CF0A9;border:1px solid rgba(34,197,94,.3);
+}
+.bp-card .tag.gold{background:rgba(255,201,60,.1);color:var(--gold);border-color:rgba(255,201,60,.3)}
+
+.free-banner{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);
+  border-radius:16px;padding:14px 16px;margin-bottom:22px;
+}
+.free-banner .fb-ico{font-size:1.6rem}
+.free-banner p{font-size:.85rem;color:#C9E9D6;line-height:1.5}
+.free-banner b{color:#7CF0A9}
+
+/* ============================================================
+   AI SCAN
+   ============================================================ */
+.scan-wrap{text-align:center}
+.ai-orb{
+  width:118px;height:118px;margin:0 auto 24px;border-radius:50%;position:relative;
+  background:radial-gradient(circle at 32% 30%,rgba(142,197,255,.95),rgba(59,130,246,.75) 42%,rgba(29,78,216,.9) 75%);
+  box-shadow:0 0 60px 6px rgba(59,130,246,.55),inset 0 0 34px rgba(255,255,255,.25);
+  animation:orbPulse 1.6s ease-in-out infinite;
+  display:flex;align-items:center;justify-content:center;font-size:2.6rem;
+}
+.ai-orb::before,.ai-orb::after{
+  content:'';position:absolute;inset:-14px;border-radius:50%;
+  border:2px solid rgba(59,130,246,.4);animation:orbRing 2s ease-out infinite;
+}
+.ai-orb::after{animation-delay:1s}
+@keyframes orbPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes orbRing{0%{opacity:.9;transform:scale(.86)}100%{opacity:0;transform:scale(1.5)}}
+.ai-orb.done{background:radial-gradient(circle at 32% 30%,#A7F3C9,#22C55E 45%,#15803D 80%);box-shadow:0 0 60px 8px rgba(34,197,94,.6),inset 0 0 34px rgba(255,255,255,.3);animation:none}
+.ai-orb.done::before,.ai-orb.done::after{display:none}
+
+.odometer{
+  font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(1.9rem,9vw,2.5rem);
+  letter-spacing:-.02em;margin-bottom:2px;
+  background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.odometer-label{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:22px;min-height:1.2em}
+
+.scan-bar{height:14px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden;margin-bottom:24px;position:relative}
+.scan-fill{
+  height:100%;width:0%;border-radius:99px;background:var(--grad-brand);
+  box-shadow:0 0 18px rgba(34,197,94,.9);
+  transition:width .6s cubic-bezier(.22,1,.36,1);
+  position:relative;overflow:hidden;
+}
+.scan-fill::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
+  background-size:200% 100%;animation:barsheen 1.1s linear infinite;
+}
+@keyframes barsheen{0%{background-position:180% 0}100%{background-position:-80% 0}}
+
+.scan-log{display:flex;flex-direction:column;gap:9px;text-align:left;min-height:230px}
+.scan-line{
+  display:flex;align-items:center;gap:11px;
+  background:rgba(255,255,255,.035);border:1px solid var(--line);
+  border-radius:13px;padding:12px 15px;font-size:.87rem;font-weight:600;color:var(--muted);
+  opacity:0;transform:translateY(14px);transition:.4s cubic-bezier(.22,1,.36,1);
+}
+.scan-line.in{opacity:1;transform:none}
+.scan-line .st{
+  width:22px;height:22px;flex-shrink:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;
+  border:2px solid rgba(59,130,246,.55);color:transparent;
+}
+.scan-line.doing .st{border-top-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-line.ok{color:var(--text);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.07)}
+.scan-line.ok .st{background:var(--green);border-color:var(--green);color:#fff;animation:checkPop .35s cubic-bezier(.34,2,.64,1)}
+.scan-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
+.scan-chip{
+  font-size:.72rem;font-weight:700;padding:5px 11px;border-radius:999px;
+  background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);color:#8EC5FF;
+  opacity:0;transform:scale(.6);transition:.35s cubic-bezier(.34,1.8,.64,1);
+}
+.scan-chip.in{opacity:1;transform:scale(1)}
+.scan-chip.hit{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45);color:#7CF0A9}
+
+/* ============================================================
+   PRODUCT CARD DEMO
+   ============================================================ */
+.demo-wrap{position:relative;margin:6px 0 16px}
+.demo-tag{
+  position:absolute;top:-11px;left:50%;transform:translateX(-50%);z-index:3;
+  background:var(--grad-money);color:#241500;
+  font-size:.66rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 14px;border-radius:999px;box-shadow:0 6px 18px rgba(245,158,11,.45);
+  white-space:nowrap;
+}
+.demo-card{
+  position:relative;border-radius:22px;overflow:hidden;
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line-strong);
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
+}
+.demo-card.swap-out{animation:swapOut .28s ease forwards}
+.demo-card.swap-in{animation:swapIn .38s cubic-bezier(.22,1,.36,1)}
+@keyframes swapOut{to{opacity:0;transform:translateX(-70%) rotate(-7deg)}}
+@keyframes swapIn{from{opacity:0;transform:translateX(70%) rotate(6deg)}to{opacity:1;transform:none}}
+.demo-img{
+  position:relative;aspect-ratio:16/9.4;
+  background:
+    radial-gradient(circle at 68% 34%,rgba(255,201,60,.5),transparent 46%),
+    radial-gradient(circle at 25% 70%,rgba(59,130,246,.55),transparent 55%),
+    linear-gradient(135deg,#101A31,#0B2036);
+  display:flex;align-items:center;justify-content:center;
+}
+.demo-img .emoji{font-size:4.2rem;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));animation:floaty 4.2s ease-in-out infinite}
+.demo-badge{
+  position:absolute;top:12px;left:12px;
+  display:flex;align-items:center;gap:6px;
+  background:rgba(239,68,68,.92);color:#fff;
+  font-size:.7rem;font-weight:800;letter-spacing:.05em;
+  padding:6px 12px;border-radius:999px;box-shadow:0 6px 18px rgba(239,68,68,.5);
+}
+.demo-badge-right{
+  position:absolute;top:12px;right:12px;
+  background:rgba(7,11,21,.75);backdrop-filter:blur(6px);color:#7CF0A9;
+  font-size:.7rem;font-weight:800;padding:6px 12px;border-radius:999px;
+  border:1px solid rgba(34,197,94,.4);
+}
+.demo-body{padding:16px 18px 18px}
+.demo-name{font-weight:800;font-size:1.08rem;margin-bottom:2px}
+.demo-cat{font-size:.76rem;color:var(--muted);margin-bottom:14px}
+.demo-rows{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+.demo-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;border-radius:12px;font-size:.86rem;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+  transition:.3s;
+}
+.demo-row .lbl{display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:600}
+.demo-row .val{font-weight:800;font-variant-numeric:tabular-nums}
+.demo-row.hot{
+  border-color:rgba(255,201,60,.55);background:rgba(255,201,60,.09);
+  box-shadow:0 0 0 4px rgba(255,201,60,.1);
+}
+.demo-row.hot .val{color:var(--gold);font-size:1.02rem}
+.demo-row.spot{
+  border-color:rgba(59,130,246,.7);background:rgba(59,130,246,.12);
+  box-shadow:0 0 0 4px rgba(59,130,246,.15);animation:rowGlow 1.2s ease infinite;
+}
+@keyframes rowGlow{0%,100%{box-shadow:0 0 0 4px rgba(59,130,246,.15)}50%{box-shadow:0 0 0 8px rgba(59,130,246,.05)}}
+/* red skip / blue build buttons — replica of the real picker */
+.act-row{display:flex;gap:10px;align-items:stretch}
+.act-red{
+  flex-shrink:0;width:72px;padding:10px 6px;border-radius:14px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:rgba(239,68,68,.13);border:2px solid var(--red);color:#F87171;
+  font-weight:800;transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s;
+}
+.act-red .x{font-size:1.35rem;line-height:1}
+.act-red small{font-size:.55rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.act-red:hover{transform:scale(1.05);box-shadow:0 8px 24px -6px rgba(239,68,68,.5)}
+.act-red:active{transform:scale(.92)}
+.act-red.nudge{animation:nudgeRed 1.3s ease infinite}
+@keyframes nudgeRed{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}55%{box-shadow:0 0 0 12px rgba(239,68,68,0)}}
+.act-blue{
+  flex:1;padding:14px;border:none;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;
+  font-weight:800;font-size:.95rem;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s;
+}
+.act-blue:hover{transform:scale(1.02);box-shadow:0 10px 28px -8px rgba(59,130,246,.6)}
+.act-blue:active{transform:scale(.95)}
+.act-blue.nudge{animation:nudgeBlue 1.3s ease infinite}
+@keyframes nudgeBlue{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.55)}55%{box-shadow:0 0 0 12px rgba(59,130,246,0)}}
+.built-panel{
+  display:none;text-align:center;padding:22px 18px;border-radius:18px;margin-bottom:16px;
+  background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.35);
+}
+.built-panel.show{display:block;animation:screenIn .45s cubic-bezier(.22,1,.36,1)}
+.built-panel .bp-emoji{font-size:2.4rem;display:block;margin-bottom:8px}
+.built-panel b{color:#7CF0A9}
+.built-panel p{font-size:.9rem;color:#C9E9D6;line-height:1.6}
+.walk-box{
+  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.3);
+  border-radius:16px;padding:16px 18px;margin-bottom:16px;min-height:96px;
+}
+.walk-step-label{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8EC5FF;margin-bottom:6px}
+.walk-text{font-size:.92rem;line-height:1.6;color:var(--text)}
+.walk-text b{color:var(--gold)}
+.walk-text .red-b{color:#F87171}
+.walk-text .blue-b{color:#8EC5FF}
+
+/* ============================================================
+   FX LAYERS
+   ============================================================ */
+#fx{position:fixed;inset:0;z-index:80;pointer-events:none}
+.flash{
+  position:fixed;inset:0;z-index:70;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at 50% 60%,rgba(255,201,60,.28),transparent 60%);
+}
+.flash.go{animation:flashGo .5s ease}
+@keyframes flashGo{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+
+/* small helpers */
+.center{text-align:center}
+.spacer{height:14px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.15s !important}
+}
+</style>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-          <polyline points="16 7 22 7 22 13"></polyline>
-        </svg>
-        <span>Ecom Websites</span>
-      </div>
-      <div class="progress">
-        <div class="progress-fill" id="progressBar" style="width: 10%"></div>
-      </div>
-    </header>
 
-    <main class="main">
-      <!-- Quiz Question 1 -->
-      <div class="step active" id="step0">
-        <span class="badge">Question 1 of 4</span>
-        <h2 class="title">Have you ever sold products online before?</h2>
-        <div class="options">
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">🌱</span>
-            <span class="option-text">No, I'm completely new</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">🤔</span>
-            <span class="option-text">I've tried but struggled</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">💪</span>
-            <span class="option-text">Yes, I have experience</span>
-          </button>
-        </div>
-      </div>
+<canvas id="fx"></canvas>
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"><span id="toastIco">✓</span><span id="toastTxt"></span></div>
 
-      <!-- Quiz Question 2 -->
-      <div class="step" id="step1">
-        <span class="badge">Question 2 of 4</span>
-        <h2 class="title">What's your main goal?</h2>
-        <div class="options">
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">💰</span>
-            <span class="option-text">Build a side income</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">🚀</span>
-            <span class="option-text">Replace my job</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">📈</span>
-            <span class="option-text">Scale existing business</span>
-          </button>
-        </div>
+<div class="shell">
+
+  <!-- ======================= HEADER ======================= -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="Ecom Websites" class="brand-img" onerror="this.remove();document.getElementById('brandFallback').style.display='flex'">
+      <span id="brandFallback" style="display:none;align-items:center;gap:8px"><span class="brand-coin">🪙</span><span class="brand-word">ECOM WEBSITES</span></span>
+    </div>
+    <div class="hud">
+      <div class="streak" id="streak">🔥 <span id="streakN">x1</span></div>
+      <div class="track"><div class="track-fill" id="bar"></div></div>
+    </div>
+  </header>
+
+  <main class="stage">
+    <button class="backlink" id="backBtn" onclick="goBack()">← back</button>
+
+    <!-- ======================= 0 · LANDING ======================= -->
+    <section class="screen active" id="s-landing">
+      <span class="float-coin" style="top:6%;left:6%;animation-delay:0s">🪙</span>
+      <span class="float-coin" style="top:12%;right:8%;animation-delay:1.2s;font-size:1.1rem">💰</span>
+      <span class="float-coin" style="bottom:20%;left:10%;animation-delay:2s;font-size:1.2rem">🪙</span>
+      <span class="float-coin" style="bottom:14%;right:7%;animation-delay:.6s">💸</span>
+
+      <img src="logo.png" alt="Ecom Websites" class="hero-img" onerror="this.remove();document.getElementById('heroFallback').style.display='block'">
+      <div class="hero-logo" id="heroFallback" style="display:none">ECOM WEBSITES <span class="coin">🪙</span></div>
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> AI store builder · live now</div>
+      <h1>Are You Ready To Launch Your <span class="grad-text">eCommerce Store?</span></h1>
+      <p class="sub">Our AI scans <strong>10,000,000+ products</strong> to find what's trending <em>right now</em>, locks in the supplier, and builds you a <strong>one-product store built to convert</strong>. You see it <span class="hl">before you pay a cent</span>.</p>
+
+      <div class="proof-row">
+        <div class="proof"><b class="blue">10M+</b><span>products scanned</span></div>
+        <div class="proof"><b class="green">2,400+</b><span>stores built</span></div>
+        <div class="proof"><b class="gold">$1</b><span>to go live</span></div>
       </div>
 
-      <!-- Quiz Question 3 -->
-      <div class="step" id="step2">
-        <span class="badge">Question 3 of 4</span>
-        <h2 class="title">When do you want to launch?</h2>
-        <div class="options">
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">⚡</span>
-            <span class="option-text">As soon as possible!</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">📅</span>
-            <span class="option-text">Within the next week</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">🗓️</span>
-            <span class="option-text">Sometime this month</span>
-          </button>
+      <button class="cta pulse" onclick="fromLanding(event)">Let's Get To Work 💰</button>
+      <p class="cta-note">Takes <b>under 60 seconds</b> · no card needed to see your store</p>
+
+      <div class="avatars">
+        <div class="av-stack">
+          <div class="av">🧔</div><div class="av">👩</div><div class="av">👨‍🦱</div><div class="av">👩‍🦰</div>
         </div>
+        <p><b>319 people</b> started a store this week</p>
+      </div>
+    </section>
+
+    <!-- ======================= 1 · INTRO ======================= -->
+    <section class="screen" id="s-intro">
+      <div class="kicker" style="align-self:center"><span class="dot"></span> AI calibration</div>
+      <h2>Before the AI hunts down your winning products…</h2>
+      <p class="sub">It needs <strong>5 quick answers</strong> from you. Every answer sharpens the search — so the products it finds are matched to <strong>you</strong>, not to everyone else.</p>
+
+      <div class="qdots">
+        <div class="qdot" id="qd1">1</div>
+        <div class="qdot" id="qd2">2</div>
+        <div class="qdot" id="qd3">3</div>
+        <div class="qdot" id="qd4">4</div>
+        <div class="qdot" id="qd5">5</div>
       </div>
 
-      <!-- Quiz Question 4 -->
-      <div class="step" id="step3">
-        <span class="badge">Question 4 of 4</span>
-        <h2 class="title">Time you can dedicate weekly?</h2>
-        <div class="options">
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">⏰</span>
-            <span class="option-text">A few hours</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">📊</span>
-            <span class="option-text">10-20 hours</span>
-          </button>
-          <button class="option" onclick="nextStep()">
-            <span class="option-icon">🔥</span>
-            <span class="option-text">20+ hours</span>
-          </button>
-        </div>
-      </div>
+      <div class="mini-note"><span class="zap">⚡</span> Under a minute · every answer trains the AI</div>
 
-      <!-- Qualify + Video -->
-      <div class="step" id="step4">
-        <div class="qualify-header">
-          <span class="qualify-emoji">🎉</span>
-          <h2 class="title gradient-title">You Qualify!</h2>
-          <p class="qualify-text">You're a perfect fit for a Done-For-You store</p>
-        </div>
-        
-        <div class="video-section">
-          <div class="video-badge">👋 Watch: How It Works</div>
-          <div class="video-container">
-            <div class="video-placeholder" onclick="playVideo()">
-              <!-- Replace with actual video embed -->
-              <div class="play-button">
-                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              </div>
-              <span class="video-duration">1:24</span>
-            </div>
-          </div>
-          
-          <div class="video-highlights">
-            <div class="highlight-item">
-              <span class="highlight-icon">⚡</span>
-              <span>Done in 24-48hrs</span>
-            </div>
-            <div class="highlight-item">
-              <span class="highlight-icon">🎨</span>
-              <span>Premium Design</span>
-            </div>
-            <div class="highlight-item">
-              <span class="highlight-icon">📦</span>
-              <span>Products Ready</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="value-prop">
-          <div class="value-prop-title">👀 See Your Store Before You Pay</div>
-          <div class="value-prop-text">We'll build your store first. You only pay if you love it.</div>
-        </div>
-        
-        <button class="btn btn-blue" onclick="nextStep()">Let's Get Started →</button>
-      </div>
+      <button class="cta" onclick="go('s-q1',{fx:'ripple'})">Let's Do It ⚡</button>
+    </section>
 
-      <!-- Shopify -->
-      <div class="step" id="step5">
-        <span class="step-number">Step 1 of 3</span>
-        <h2 class="title">First, Create Your Shopify Store</h2>
-        <p class="subtitle">This is where your store will live</p>
-        
-        <div class="shopify-cta">
-          <div class="shopify-badge">🛍️ Official Shopify Partner</div>
-          <p class="shopify-cta-text">Start your free Shopify account</p>
-          <div class="shopify-perks">
-            <span>✓ 3-day free trial</span>
-            <span>✓ Then $1/mo for 3 months</span>
-          </div>
-          <a href="https://shopify.pxf.io/YOUR-AFFILIATE-LINK" target="_blank" class="btn btn-green" onclick="setTimeout(() => nextStep(), 500)">
-            Start My Free Shopify Trial →
-          </a>
-          <p class="shopify-note">No credit card required • Cancel anytime</p>
-        </div>
-      </div>
-
-      <!-- Niche Selection -->
-      <div class="step" id="step6">
-        <span class="step-number">Step 2 of 3</span>
-        <h2 class="title">Choose Your Store(s)</h2>
-        <p class="subtitle">Which niche(s) do you want us to build?</p>
-        
-        <button class="bundle-btn" id="bundleBtn" onclick="handleSelectAll()">
-          <div class="bundle-badge">🔥 MOST POPULAR</div>
-          <div class="bundle-title">Get ALL 12 Stores</div>
-          <div class="bundle-subtitle">Maximize your income potential</div>
+    <!-- ======================= 2 · Q1 GOAL ======================= -->
+    <section class="screen" id="s-q1">
+      <div class="kicker" style="align-self:center">Question 1 of 5</div>
+      <h2>What's your main goal with eCommerce?</h2>
+      <p class="sub">Be honest — the AI weighs products differently for each answer.</p>
+      <div class="opts">
+        <button class="opt" onclick="answer(this,'goal','Side income','💵')">
+          <span class="opt-ico">💵</span>
+          <span class="opt-body"><span class="opt-title">Build a side income</span><span class="opt-sub">An extra $1–3k/month on top of my job</span></span>
+          <span class="opt-check">✓</span>
         </button>
-        
-        <div class="or-divider"><span>or pick your favorites</span></div>
-        
-        <div class="niche-grid" id="nicheGrid"></div>
-        
-        <div id="selectionSummary" class="selection-summary" style="display: none;"></div>
-        
-        <button class="btn btn-blue" id="nicheNextBtn" onclick="nextStep()" disabled>Continue →</button>
-      </div>
-
-      <!-- Collect Info -->
-      <div class="step" id="step7">
-        <span class="step-number">Step 3 of 3</span>
-        <h2 class="title">Where Should We Send Your Store?</h2>
-        <p class="subtitle">We'll email you when it's ready to preview</p>
-        
-        <div class="form-group">
-          <label class="form-label">Email Address *</label>
-          <input type="email" class="form-input" id="emailInput" placeholder="your@email.com" oninput="validateForm()">
-        </div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">First Name *</label>
-            <input type="text" class="form-input" id="firstNameInput" placeholder="John" oninput="validateForm()">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Last Name</label>
-            <input type="text" class="form-input" id="lastNameInput" placeholder="Doe">
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Your Shopify Store URL</label>
-          <input type="text" class="form-input" id="shopifyUrlInput" placeholder="yourstore.myshopify.com">
-          <p class="form-hint">Don't have it yet? No problem — you can send it later!</p>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Phone (Optional)</label>
-          <input type="tel" class="form-input" id="phoneInput" placeholder="(555) 123-4567">
-        </div>
-        
-        <button class="btn btn-green" id="submitBtn" onclick="submitForm()" disabled>Build My Store! 🚀</button>
-      </div>
-
-      <!-- Confirmation -->
-      <div class="step" id="step8">
-        <div class="confirmation">
-          <div class="confirm-icon">🚀</div>
-          <h2 class="confirm-title">We're Building Your Store!</h2>
-          <p class="confirm-text">Get excited — your custom store is being crafted by our team right now.</p>
-          
-          <div class="confirm-box">
-            <div class="confirm-box-title">Your Order</div>
-            <div id="confirmItems"></div>
-          </div>
-          
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot">1</div>
-              <div class="timeline-content">
-                <div class="timeline-title">Building Your Store</div>
-                <div class="timeline-text">Our team is setting up your store now</div>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">2</div>
-              <div class="timeline-content">
-                <div class="timeline-title">Preview Email (24-48 hrs)</div>
-                <div class="timeline-text">You'll receive a link to preview your store</div>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot">3</div>
-              <div class="timeline-content">
-                <div class="timeline-title">Pay Only If You Love It</div>
-                <div class="timeline-text">No pressure — only pay when you're ready</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="email-note">
-            <span class="email-note-icon">📧</span>
-            <span class="email-note-text">Check your inbox! We sent a confirmation to <strong id="confirmEmail"></strong></span>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <button class="back-btn" id="backBtn" onclick="goBack()" style="display: none;">← Back</button>
-  </div>
-
-  <script>
-    // State
-    let currentStep = 0;
-    let selectedNiches = [];
-    let isAllStoresSelected = false;
-    let userInfo = {};
-    
-    const totalSteps = 9;
-    
-    // Niches
-    const niches = [
-      { id: 'fitness', name: 'Fitness', emoji: '🏋️' },
-      { id: 'clothing', name: 'Clothing', emoji: '👔' },
-      { id: 'pets', name: 'Pets', emoji: '🐶' },
-      { id: 'cosmetics', name: 'Cosmetics', emoji: '💄' },
-      { id: 'home', name: 'Home', emoji: '🏠' },
-      { id: 'electronics', name: 'Electronics', emoji: '💡' },
-      { id: 'babies', name: 'Babies', emoji: '👶' },
-      { id: 'jewelry', name: 'Jewelry', emoji: '💍' },
-      { id: 'supplements', name: 'Supplements', emoji: '💊' },
-      { id: 'gaming', name: 'Gaming', emoji: '🎮' },
-      { id: 'skincare', name: 'Skincare', emoji: '🧴' },
-      { id: 'general', name: 'General', emoji: '🛒' }
-    ];
-    
-    // Initialize niche grid
-    function initNicheGrid() {
-      const grid = document.getElementById('nicheGrid');
-      grid.innerHTML = niches.map(n => `
-        <button class="niche" id="niche-${n.id}" onclick="toggleNiche('${n.id}')">
-          <span class="niche-emoji">${n.emoji}</span>
-          <span class="niche-name">${n.name}</span>
+        <button class="opt" onclick="answer(this,'goal','Replace my 9–5','🔓')">
+          <span class="opt-ico">🔓</span>
+          <span class="opt-body"><span class="opt-title">Fire my boss</span><span class="opt-sub">Fully replace my 9–5 paycheck</span></span>
+          <span class="opt-check">✓</span>
         </button>
-      `).join('');
-    }
-    
-    // Update progress bar
-    function updateProgress() {
-      const progress = ((currentStep + 1) / totalSteps) * 100;
-      document.getElementById('progressBar').style.width = progress + '%';
-    }
-    
-    // Go to step
-    function goToStep(step) {
-      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-      document.getElementById('step' + step).classList.add('active');
-      currentStep = step;
-      updateProgress();
-      
-      // Show/hide back button (hide on first and last step)
-      document.getElementById('backBtn').style.display = (step > 0 && step < 8) ? 'block' : 'none';
-    }
-    
-    // Next step
-    function nextStep() {
-      goToStep(currentStep + 1);
-    }
-    
-    // Go back
-    function goBack() {
-      if (currentStep > 0) {
-        goToStep(currentStep - 1);
+        <button class="opt" onclick="answer(this,'goal','Freedom & travel','🏝️')">
+          <span class="opt-ico">🏝️</span>
+          <span class="opt-body"><span class="opt-title">Total freedom</span><span class="opt-sub">Make money from anywhere in the world</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'goal','Build an empire','👑')">
+          <span class="opt-ico">👑</span>
+          <span class="opt-body"><span class="opt-title">Build an empire</span><span class="opt-sub">Scale this thing to 6–7 figures</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================= 3 · Q2 EXPERIENCE ======================= -->
+    <section class="screen" id="s-q2">
+      <div class="kicker" style="align-self:center">Question 2 of 5</div>
+      <h2>Have you tried eCommerce before?</h2>
+      <p class="sub">No wrong answers — the AI adapts to your level.</p>
+      <div class="opts">
+        <button class="opt" onclick="answer(this,'exp','Total beginner','🌱')">
+          <span class="opt-ico">🌱</span>
+          <span class="opt-body"><span class="opt-title">Nope — total beginner</span><span class="opt-sub">Perfect. The AI does the heavy lifting</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'exp','Tried before','😤')">
+          <span class="opt-ico">😤</span>
+          <span class="opt-body"><span class="opt-title">Tried, didn't work out</span><span class="opt-sub">You didn't have an AI back then. Now you do</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'exp','Experienced','📦')">
+          <span class="opt-ico">📦</span>
+          <span class="opt-body"><span class="opt-title">Yes, I've sold online</span><span class="opt-sub">Great — time to add rocket fuel</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================= 4 · Q3 TIME ======================= -->
+    <section class="screen" id="s-q3">
+      <div class="kicker" style="align-self:center">Question 3 of 5</div>
+      <h2>How much time can you give your new store?</h2>
+      <p class="sub">Spoiler: the store mostly runs itself. But the AI wants to know.</p>
+      <div class="opts">
+        <button class="opt" onclick="answer(this,'time','~1 hour a day','☕')">
+          <span class="opt-ico">☕</span>
+          <span class="opt-body"><span class="opt-title">About 1 hour a day</span><span class="opt-sub">More than enough to run a one-product store</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'time','A few evenings a week','🌙')">
+          <span class="opt-ico">🌙</span>
+          <span class="opt-body"><span class="opt-title">A few evenings a week</span><span class="opt-sub">Nights &amp; weekends — the classic path</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'time','Whatever it takes','🔥')">
+          <span class="opt-ico">🔥</span>
+          <span class="opt-body"><span class="opt-title">Whatever it takes</span><span class="opt-sub">All-in energy. The AI loves this</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================= 5 · Q4 DROPSHIPPING ======================= -->
+    <section class="screen" id="s-q4">
+      <div class="kicker" style="align-self:center">Question 4 of 5</div>
+      <h2>Do you know what dropshipping is?</h2>
+      <p class="sub">It's the engine behind your store — takes 20 seconds to master.</p>
+      <div class="opts">
+        <button class="opt" onclick="answer(this,'ds','Knows dropshipping','🎓',{next:'s-q5'})">
+          <span class="opt-ico">🎓</span>
+          <span class="opt-body"><span class="opt-title">Yep, I know how it works</span><span class="opt-sub">Customer orders → supplier ships → I keep profit</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'ds','Wants refresher','🤔',{next:'s-dropship'})">
+          <span class="opt-ico">🤔</span>
+          <span class="opt-body"><span class="opt-title">Kind of… refresh me</span><span class="opt-sub">Quick 20-second recap</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'ds','New to dropshipping','🆕',{next:'s-dropship'})">
+          <span class="opt-ico">🆕</span>
+          <span class="opt-body"><span class="opt-title">No idea — teach me</span><span class="opt-sub">Explain it like I'm 5 🍼</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================= 5b · DROPSHIP EXPLAINER ======================= -->
+    <section class="screen" id="s-dropship">
+      <div class="kicker green" style="align-self:center">⚡ 20-second masterclass</div>
+      <h2>Dropshipping, explained <span class="grad-text">like you're 5</span></h2>
+      <p class="sub">You sell the product. Someone else stores it, packs it and ships it. Watch:</p>
+
+      <div class="flow">
+        <div class="flow-step" id="ds1">
+          <div class="flow-rail"><div class="flow-num">🛒</div><div class="flow-line"></div></div>
+          <div class="flow-card"><b>1 · A customer buys from YOUR store</b>
+            <p>They pay <span class="money">$39.99</span> for the product, straight into your account.</p></div>
+        </div>
+        <div class="flow-step" id="ds2">
+          <div class="flow-rail"><div class="flow-num">📦</div><div class="flow-line"></div></div>
+          <div class="flow-card"><b>2 · Your supplier ships it for you</b>
+            <p>You pay the supplier <span class="cost">$11.20</span> and they send it directly to your customer. <strong>You never touch a box.</strong></p></div>
+        </div>
+        <div class="flow-step" id="ds3">
+          <div class="flow-rail"><div class="flow-num">🤑</div></div>
+          <div class="flow-card"><b>3 · You keep the difference</b>
+            <p>No warehouse. No inventory. No upfront stock. Just <span class="profit">profit per sale</span>.</p></div>
+        </div>
+      </div>
+
+      <div class="profit-strip" id="dsMath" style="opacity:0">
+        <span class="money">$39.99</span><span class="eq">−</span><span class="cost">$11.20</span><span class="eq">=</span><span class="final" id="dsProfit">$0.00</span><span class="eq">profit 🎉</span>
+      </div>
+
+      <button class="cta" onclick="go('s-q5',{fx:'brain'})">Ohhh, got it! 🤯</button>
+    </section>
+
+    <!-- ======================= 6 · Q5 REVENUE ======================= -->
+    <section class="screen" id="s-q5">
+      <div class="kicker" style="align-self:center">Question 5 of 5 — the big one</div>
+      <h2>How much does your <span class="gold-text">dream store</span> make per month?</h2>
+      <p class="sub">Dream honestly. The AI is about to show you exactly what it takes.</p>
+      <div class="opts">
+        <button class="opt" onclick="answer(this,'rev','5000','💰',{next:'s-reality'})">
+          <span class="opt-ico">💰</span>
+          <span class="opt-body"><span class="opt-title">$5,000 / month</span><span class="opt-sub">A serious side income</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'rev','10000','💰',{next:'s-reality'})">
+          <span class="opt-ico">💰💰</span>
+          <span class="opt-body"><span class="opt-title">$10,000 / month</span><span class="opt-sub">Goodbye, day job</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'rev','25000','💰',{next:'s-reality'})">
+          <span class="opt-ico">💰💰💰</span>
+          <span class="opt-body"><span class="opt-title">$25,000 / month</span><span class="opt-sub">Now we're talking</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+        <button class="opt" onclick="answer(this,'rev','50000','🤑',{next:'s-reality'})">
+          <span class="opt-ico">🤑</span>
+          <span class="opt-body"><span class="opt-title">$50,000+ / month</span><span class="opt-sub">Empire mode activated</span></span>
+          <span class="opt-check">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================= 7 · REALITY CHECK ======================= -->
+    <section class="screen" id="s-reality">
+      <div class="kicker gold" style="align-self:center">🧮 Reality check</div>
+      <h2><span id="rcGoal">$10,000</span>/month sounds huge.<br>Here's what it <span class="grad-text">actually takes:</span></h2>
+
+      <div class="big-stat">
+        <div class="huge" id="rcSales">0</div>
+        <div class="huge-label">sales per day. That's it.</div>
+        <div class="huge-sub" id="rcSub">at a typical $65 order on a one-product store</div>
+      </div>
+
+      <div class="scale-box">
+        <div class="scale-title">Your slice of daily online shopping</div>
+        <div class="scale-bar"><div class="scale-you" id="rcYou"></div></div>
+        <div class="scale-legend"><span id="rcPct">0.0000017% — basically invisible</span><span>350M+ daily orders</span></div>
+      </div>
+
+      <div class="fact-rows">
+        <div class="fact" id="f1"><span class="f-ico">⚡</span><span><b id="rcPerSec">$200,000+</b> is spent online <b>every single second</b></span></div>
+        <div class="fact" id="f2"><span class="f-ico">🌍</span><span><b>2.7 billion people</b> shop online. You need <b id="rcNeed">6</b> of them a day</span></div>
+        <div class="fact" id="f3"><span class="f-ico">🛍️</span><span>While you read this, <b id="rcWhile">~$3.4M</b> was spent online</span></div>
+      </div>
+
+      <div class="verdict" id="verdict">✓ VERDICT: 100% DOABLE</div>
+
+      <button class="cta pulse" id="rcCta" style="visibility:hidden" onclick="go('s-blueprint',{fx:'ripple'})">Show Me The Game Plan 🗺️</button>
+    </section>
+
+    <!-- ======================= 8 · BLUEPRINT ======================= -->
+    <section class="screen" id="s-blueprint">
+      <div class="kicker" style="align-self:center"><span class="dot"></span> Your launch plan</div>
+      <h2>Here's your exact path to <span class="grad-text">selling online</span></h2>
+      <p class="sub">Three steps. The AI does two of them.</p>
+
+      <div class="bp">
+        <div class="bp-step" id="bp1">
+          <div class="bp-rail"><div class="bp-dot">🏆</div><div class="bp-line"></div></div>
+          <div class="bp-card">
+            <b>1 · Pick your winning product</b>
+            <p>The AI shows you trending products one at a time — with the <strong>supplier already found</strong>, the suggested sale price, and your potential profit per sale. You pick <strong>ONE</strong>.</p>
+            <span class="tag">You do this — takes 2 min</span>
+          </div>
+        </div>
+        <div class="bp-step" id="bp2">
+          <div class="bp-rail"><div class="bp-dot">🤖</div><div class="bp-line"></div></div>
+          <div class="bp-card">
+            <b>2 · AI builds your store &amp; connects the supplier</b>
+            <p>An insane one-product store, engineered to convert visitors into buyers — product page, branding, checkout, supplier wired in. <strong>You preview the whole thing free.</strong></p>
+            <span class="tag">AI does this</span>
+          </div>
+        </div>
+        <div class="bp-step" id="bp3">
+          <div class="bp-rail"><div class="bp-dot">🚀</div></div>
+          <div class="bp-card">
+            <b>3 · Love it? Claim it &amp; go live</b>
+            <p>Only when you love your store: claim it with a <strong>$1 three-day trial</strong> ($49/mo after) and it goes live on Shopify — ready to take orders.</p>
+            <span class="tag gold">You're officially in business</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="free-banner">
+        <span class="fb-ico">👀</span>
+        <p><b>You see your finished store BEFORE you pay.</b> If it doesn't blow you away, you walk — no charge, no hard feelings.</p>
+      </div>
+
+      <button class="cta gold pulse" onclick="startScan(event)">Fire Up The AI 🤖</button>
+      <p class="cta-note">The AI will match products to <b>your 5 answers</b></p>
+    </section>
+
+    <!-- ======================= 9 · AI SCAN ======================= -->
+    <section class="screen" id="s-scan">
+      <div class="scan-wrap">
+        <div class="ai-orb" id="orb">🤖</div>
+        <div class="odometer" id="odo">0</div>
+        <div class="odometer-label" id="odoLabel">products scanned</div>
+        <div class="scan-bar"><div class="scan-fill" id="scanFill"></div></div>
+        <div class="scan-log" id="scanLog">
+          <div class="scan-line" id="sl0"><span class="st">✓</span><span>Scanning 10,000,000+ products…</span></div>
+          <div class="scan-line" id="sl1"><span class="st">✓</span><span>Analyzing 48,000 viral TikTok &amp; Instagram ads…</span></div>
+          <div class="scan-line" id="sl2"><span class="st">✓</span><span style="flex:1">Matching products to <b>your answers</b>…
+            <span class="scan-chips" id="scanChips"></span></span></div>
+          <div class="scan-line" id="sl3"><span class="st">✓</span><span>Verifying suppliers &amp; shipping times…</span></div>
+          <div class="scan-line" id="sl4"><span class="st">✓</span><span>Calculating your profit per sale…</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 10 · HOW CHOOSING WORKS (interactive replica) ======================= -->
+    <section class="screen" id="s-cards">
+      <div class="kicker green" style="align-self:center"><span class="dot"></span> Products locked &amp; loaded</div>
+      <h2>Your winning products are <span class="grad-text">ready.</span><br>Here's exactly how choosing works:</h2>
+      <p class="sub">This demo works <strong>just like the real thing</strong> — try the buttons 👇</p>
+
+      <div class="demo-wrap" id="demoWrap">
+        <div class="demo-tag">👆 Live demo — tap the buttons</div>
+        <div class="demo-card" id="demoCard">
+          <div class="demo-img">
+            <span class="demo-badge" id="pTrend">🔥 TRENDING +312%</span>
+            <span class="demo-badge-right">✓ Supplier secured</span>
+            <span class="emoji" id="pEmoji">🌅</span>
+          </div>
+          <div class="demo-body">
+            <div class="demo-name" id="pName">Aurora Sunset Lamp</div>
+            <div class="demo-cat" id="pCat">Home &amp; Vibes · 4.8★ supplier rating</div>
+            <div class="demo-rows">
+              <div class="demo-row">
+                <span class="lbl">🏭 Supplier cost <small>(AI found &amp; verified)</small></span>
+                <span class="val" id="pCost">$11.20</span>
+              </div>
+              <div class="demo-row">
+                <span class="lbl">🏷️ Suggested sale price</span>
+                <span class="val" id="pPrice">$39.99</span>
+              </div>
+              <div class="demo-row hot">
+                <span class="lbl">💰 Your potential profit / sale</span>
+                <span class="val" id="pProfit">$28.79</span>
+              </div>
+            </div>
+            <div class="act-row">
+              <button class="act-red nudge" id="btnSkip" onclick="demoSkip()"><span class="x">✕</span><small>Next</small></button>
+              <button class="act-blue" id="btnBuild" onclick="demoBuild(event)">Build My Store With This 🚀</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="built-panel" id="builtPanel">
+        <span class="bp-emoji">🎉</span>
+        <p><b>That's all it takes.</b> On the real page: tap the blue button, drop your email, and the AI starts building your one-product store around your pick — <b>free to preview</b>, live on Shopify with the $1 trial only when you love it.</p>
+      </div>
+
+      <div class="walk-box" id="demoHint">
+        <div class="walk-step-label" id="hintLabel">STEP 1 — THE RED BUTTON</div>
+        <p class="walk-text" id="hintText">Not feeling this product? Tap the <span class="red-b">red ✕ button</span> and the AI instantly deals you the next winning product. Go ahead — try it 👆</p>
+      </div>
+
+      <button class="cta gold pulse" id="revealBtn" style="display:none" onclick="finale(event)">Show Me MY Products 🚀</button>
+      <p class="cta-note" id="cardsNote" style="display:none">Real products · real suppliers · matched to <b>your answers</b></p>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   STATE + NAV
+   ============================================================ */
+const SELL_URL = 'https://sell.ecomwebsites.com';
+const answers = {};
+let history = [];
+let current = 's-landing';
+let streakCount = 0;
+
+const PROGRESS = {
+  's-landing':4,'s-intro':12,'s-q1':24,'s-q2':36,'s-q3':48,'s-q4':58,
+  's-dropship':64,'s-q5':70,'s-reality':78,'s-blueprint':86,'s-scan':93,'s-cards':100
+};
+
+function setBar(id){
+  document.getElementById('bar').style.width = (PROGRESS[id]||4)+'%';
+}
+
+function go(id, opts={}){
+  if(id === current) return;
+  const from = document.getElementById(current);
+  const to = document.getElementById(id);
+  history.push(current);
+  from.classList.add('leaving');
+  playWhoosh();
+  setTimeout(()=>{
+    from.classList.remove('active','leaving');
+    to.classList.add('active');
+    current = id;
+    setBar(id);
+    window.scrollTo({top:0,behavior:'instant'});
+    updateBack();
+    onEnter(id);
+  },260);
+  if(opts.fx==='ripple') flashPulse();
+  if(opts.fx==='brain') emojiBurst('💡', window.innerWidth/2, window.innerHeight/3, 14);
+}
+
+function goBack(){
+  if(!history.length) return;
+  const prev = history.pop();
+  const from = document.getElementById(current);
+  const to = document.getElementById(prev);
+  from.classList.remove('active');
+  to.classList.add('active');
+  current = prev;
+  setBar(prev);
+  updateBack();
+}
+
+function updateBack(){
+  const noBack = ['s-landing','s-scan','s-cards'];
+  document.getElementById('backBtn').style.display =
+    (noBack.includes(current) || !history.length) ? 'none' : 'flex';
+}
+
+/* per-screen entry hooks */
+function onEnter(id){
+  if(id==='s-intro') litDots();
+  if(id==='s-dropship') runDropship();
+  if(id==='s-reality') runReality();
+  if(id==='s-blueprint') runBlueprint();
+  if(id==='s-cards') runCards();
+}
+
+/* ============================================================
+   LANDING → dopamine: coin cannon + flash
+   ============================================================ */
+function fromLanding(e){
+  initAudio(); playCoin();
+  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6);
+  flashPulse();
+  vibrate(18);
+  setTimeout(()=>go('s-intro'),420);
+}
+
+/* ============================================================
+   INTRO — dots light up in sequence
+   ============================================================ */
+let dotsDone = false;
+function litDots(){
+  if(dotsDone) return; dotsDone = true;
+  for(let i=1;i<=5;i++){
+    setTimeout(()=>{
+      document.getElementById('qd'+i).classList.add('lit');
+      playPop(0.5 + i*0.12);
+    }, 300 + i*260);
+  }
+}
+
+/* ============================================================
+   QUESTIONS — unique dopamine per question
+   ============================================================ */
+const NEXT_MAP = {goal:'s-q2', exp:'s-q3', time:'s-q4', ds:'s-q5', rev:'s-reality'};
+const TOASTS = {
+  goal:['🎯','Goal locked in'],
+  exp:['🧠','AI adjusted to your level'],
+  time:['⏰','Schedule synced'],
+  ds:['📦','Engine understood'],
+  rev:['🤑','Dream registered']
+};
+let answering = false;
+
+function answer(el, key, val, emoji, opts={}){
+  if(answering) return; answering = true;
+  initAudio();
+  answers[key] = val;
+
+  // visual pick
+  el.parentElement.querySelectorAll('.opt').forEach(o=>o.classList.remove('picked'));
+  el.classList.add('picked');
+  vibrate(12);
+  playPop(1);
+
+  // unique per-question effect
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  switch(key){
+    case 'goal': sparkBurst(cx, cy, '#3B82F6'); break;                 // Q1: electric sparks
+    case 'exp':  emojiBurst(emoji, cx, cy, 12); break;                 // Q2: emoji explosion
+    case 'time': flashPulse(); sparkBurst(cx, cy, '#22C55E'); break;   // Q3: green surge + edge flash
+    case 'ds':   emojiBurst('🧠', cx, cy, 10); break;                  // Q4: brain burst
+    case 'rev':  coinCannon(cx, cy); playCoin(); break;                // Q5: MONEY
+  }
+
+  // streak
+  bumpStreak();
+
+  // toast
+  const t = TOASTS[key];
+  showToast(t[0], t[1]+' ✓');
+
+  // advance
+  const nxt = opts.next || NEXT_MAP[key];
+  setTimeout(()=>{ answering=false; go(nxt); }, 780);
+}
+
+function bumpStreak(){
+  streakCount++;
+  const s = document.getElementById('streak');
+  document.getElementById('streakN').textContent = 'x'+streakCount;
+  s.classList.add('on');
+  s.classList.remove('bump'); void s.offsetWidth; s.classList.add('bump');
+}
+
+let toastTimer;
+function showToast(ico, txt){
+  const t = document.getElementById('toast');
+  document.getElementById('toastIco').textContent = ico;
+  document.getElementById('toastTxt').textContent = txt;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1500);
+}
+
+/* ============================================================
+   DROPSHIP EXPLAINER — steps draw in, profit counts up
+   ============================================================ */
+let dsRan = false;
+function runDropship(){
+  if(dsRan) return; dsRan = true;
+  ['ds1','ds2','ds3'].forEach((id,i)=>{
+    setTimeout(()=>{
+      document.getElementById(id).classList.add('in');
+      playPop(0.7+i*0.15);
+    }, 320 + i*620);
+  });
+  setTimeout(()=>{
+    const m = document.getElementById('dsMath');
+    m.style.transition = 'opacity .5s'; m.style.opacity = 1;
+    countUp(document.getElementById('dsProfit'), 0, 28.79, 900, v=>'$'+v.toFixed(2));
+    setTimeout(()=>{ playCoin(); emojiBurst('💸', window.innerWidth/2, window.innerHeight*0.62, 8); }, 950);
+  }, 2300);
+}
+
+/* ============================================================
+   REALITY CHECK — personalized math + stamp
+   ============================================================ */
+const REALITY = {
+  '5000':  {sales:3,  pct:'0.0000009%'},
+  '10000': {sales:6,  pct:'0.0000017%'},
+  '25000': {sales:13, pct:'0.0000037%'},
+  '50000': {sales:26, pct:'0.0000074%'}
+};
+let rcRan = false;
+function runReality(){
+  if(rcRan) return; rcRan = true;
+  const rev = answers.rev || '10000';
+  const d = REALITY[rev] || REALITY['10000'];
+  document.getElementById('rcGoal').textContent = '$'+Number(rev).toLocaleString();
+  document.getElementById('rcNeed').textContent = d.sales;
+  document.getElementById('rcPct').textContent = d.pct+' — basically invisible';
+
+  // big count-up
+  setTimeout(()=>{
+    countUp(document.getElementById('rcSales'), 0, d.sales, 1100, v=>Math.round(v));
+    playTick(1100, d.sales);
+  }, 350);
+
+  // facts slide in
+  ['f1','f2','f3'].forEach((id,i)=>{
+    setTimeout(()=>{ document.getElementById(id).classList.add('in'); playPop(0.6+i*0.15); }, 1500+i*450);
+  });
+
+  // "while you read this" live counter
+  let spent = 3400000;
+  setInterval(()=>{
+    spent += 200000;
+    const el = document.getElementById('rcWhile');
+    if(el) el.textContent = '~$'+(spent/1000000).toFixed(1)+'M';
+  }, 1000);
+
+  // verdict stamp + confetti + CTA
+  setTimeout(()=>{
+    document.getElementById('verdict').classList.add('stamp');
+    playTada();
+    confettiBurst(window.innerWidth/2, window.innerHeight*0.55, 90);
+    vibrate([16,60,16]);
+    document.getElementById('rcCta').style.visibility = 'visible';
+  }, 3100);
+}
+
+/* ============================================================
+   BLUEPRINT — steps spring in
+   ============================================================ */
+let bpRan = false;
+function runBlueprint(){
+  if(bpRan) return; bpRan = true;
+  ['bp1','bp2','bp3'].forEach((id,i)=>{
+    setTimeout(()=>{
+      document.getElementById(id).classList.add('in');
+      playPop(0.7+i*0.18);
+      vibrate(8);
+    }, 350 + i*500);
+  });
+}
+
+/* ============================================================
+   AI SCAN — odometer, staged bar, chips, dings
+   ============================================================ */
+function startScan(e){
+  initAudio(); playCoin();
+  emojiBurst('🤖', e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.7, 8);
+  go('s-scan');
+  setTimeout(runScan, 500);
+}
+
+function runScan(){
+  const fill = document.getElementById('scanFill');
+  const odo = document.getElementById('odo');
+  const odoLabel = document.getElementById('odoLabel');
+  const lines = [0,1,2,3,4].map(i=>document.getElementById('sl'+i));
+
+  // build personalization chips
+  const chipVals = [
+    answers.goal||'Side income',
+    answers.exp||'Beginner',
+    answers.time||'1 hr/day',
+    '$'+Number(answers.rev||'10000').toLocaleString()+'/mo'
+  ];
+  const chipsBox = document.getElementById('scanChips');
+  chipsBox.innerHTML = chipVals.map(c=>`<span class="scan-chip">${c}</span>`).join('');
+  const chips = [...chipsBox.children];
+
+  // odometer to 10.2M
+  countUp(odo, 0, 10247391, 2600, v=>Math.round(v).toLocaleString());
+
+  const seq = [
+    {at:0,    bar:9,  line:0, mode:'doing'},
+    {at:900,  bar:22, line:0, mode:'ok', ding:true},
+    {at:1400, bar:31, line:1, mode:'doing', label:'viral ads analyzed'},
+    {at:2700, bar:44, line:1, mode:'ok', ding:true},
+    {at:3100, bar:52, line:2, mode:'doing', label:'matching to your answers'},
+    {at:3500, chip:0},{at:3900, chip:1},{at:4300, chip:2},{at:4700, chip:3},
+    {at:5100, bar:68, line:2, mode:'ok', ding:true},
+    {at:5500, bar:79, line:3, mode:'doing', label:'suppliers verified'},
+    {at:6700, bar:88, line:3, mode:'ok', ding:true},
+    {at:7100, bar:94, line:4, mode:'doing', label:'profit margins locked'},
+    {at:8200, bar:100, line:4, mode:'ok', ding:true},
+  ];
+
+  seq.forEach(s=>{
+    setTimeout(()=>{
+      if(s.bar!==undefined) fill.style.width = s.bar+'%';
+      if(s.label) odoLabel.textContent = s.label;
+      if(s.line!==undefined){
+        const L = lines[s.line];
+        L.classList.add('in');
+        L.classList.remove('doing');
+        L.classList.add(s.mode);
+        if(s.mode==='ok' && s.ding){ playDing(); vibrate(8); }
+      }
+      if(s.chip!==undefined){
+        chips[s.chip].classList.add('in');
+        setTimeout(()=>chips[s.chip].classList.add('hit'), 240);
+        playPop(1.1+s.chip*0.12);
+      }
+    }, s.at);
+  });
+
+  // finale
+  setTimeout(()=>{
+    const orb = document.getElementById('orb');
+    orb.classList.add('done'); orb.textContent = '✓';
+    odo.textContent = 'FOUND'; odoLabel.textContent = 'winning products matched to you';
+    playTada();
+    confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 120);
+    coinCannon(window.innerWidth/2, window.innerHeight*0.35);
+    vibrate([20,80,20,80,30]);
+  }, 8700);
+  setTimeout(()=>go('s-cards'), 10200);
+}
+
+/* ============================================================
+   INTERACTIVE PICKER DEMO — replica of the real product chooser:
+   red ✕ = next product, blue = build store with this one
+   ============================================================ */
+const DEMO_PRODUCTS = [
+  {emoji:'🌅', trend:'🔥 TRENDING +312%', name:'Aurora Sunset Lamp',    cat:'Home & Vibes · 4.8★ supplier rating',   cost:11.20, price:39.99},
+  {emoji:'🐶', trend:'🔥 TRENDING +204%', name:'PawPro Grooming Kit',   cat:'Pets · 4.9★ supplier rating',           cost:9.80,  price:34.99},
+  {emoji:'💆', trend:'🔥 TRENDING +187%', name:'NeckRelax Pro Massager',cat:'Health & Wellness · 4.7★ supplier rating',cost:14.60, price:49.99},
+  {emoji:'✨', trend:'🔥 TRENDING +251%', name:'GlowSkin LED Wand',     cat:'Beauty · 4.8★ supplier rating',         cost:12.30, price:44.99}
+];
+let demoI = 0, cardsRan = false, demoSkipped = false, demoBuilt = false, swapping = false;
+
+function runCards(){
+  if(cardsRan) return; cardsRan = true;
+  playTada();
+  confettiBurst(window.innerWidth/2, 120, 60);
+  setTimeout(()=>{
+    countUp(document.getElementById('pProfit'), 0, DEMO_PRODUCTS[0].price - DEMO_PRODUCTS[0].cost, 1000, v=>'$'+v.toFixed(2));
+  }, 600);
+}
+
+function fillDemo(p){
+  document.getElementById('pEmoji').textContent = p.emoji;
+  document.getElementById('pTrend').textContent = p.trend;
+  document.getElementById('pName').textContent = p.name;
+  document.getElementById('pCat').textContent = p.cat;
+  document.getElementById('pCost').textContent = '$'+p.cost.toFixed(2);
+  document.getElementById('pPrice').textContent = '$'+p.price.toFixed(2);
+  document.getElementById('pProfit').textContent = '$'+(p.price-p.cost).toFixed(2);
+}
+
+function demoSkip(){
+  if(swapping || demoBuilt) return; swapping = true;
+  initAudio(); playWhoosh(); vibrate(10);
+  const card = document.getElementById('demoCard');
+  card.classList.add('swap-out');
+  setTimeout(()=>{
+    demoI = (demoI + 1) % DEMO_PRODUCTS.length;
+    fillDemo(DEMO_PRODUCTS[demoI]);
+    card.classList.remove('swap-out');
+    card.classList.add('swap-in');
+    playPop(1.15);
+    setTimeout(()=>{ card.classList.remove('swap-in'); swapping = false; }, 400);
+  }, 270);
+
+  // first skip → teach the blue button
+  if(!demoSkipped){
+    demoSkipped = true;
+    document.getElementById('btnSkip').classList.remove('nudge');
+    document.getElementById('btnBuild').classList.add('nudge');
+    document.getElementById('hintLabel').textContent = 'STEP 2 — THE BLUE BUTTON';
+    document.getElementById('hintText').innerHTML = 'Exactly! Keep tapping ✕ until you see "the one". When a product feels right, hit the <span class="blue-b">blue button</span> — that tells the AI to <b>build your store around it</b>. Try it 👆';
+    showToast('😎','You got it — next product!');
+  }
+}
+
+function demoBuild(e){
+  if(demoBuilt) return; demoBuilt = true;
+  initAudio(); playTada(); playCoin(); vibrate([15,50,15]);
+  const r = e.target.getBoundingClientRect();
+  confettiBurst(r.left + r.width/2, r.top, 80);
+  sparkBurst(r.left + r.width/2, r.top, '#3B82F6');
+  document.getElementById('btnBuild').classList.remove('nudge');
+  document.getElementById('btnBuild').textContent = '✓ Claimed!';
+  document.getElementById('builtPanel').classList.add('show');
+  document.getElementById('demoHint').style.display = 'none';
+  document.getElementById('revealBtn').style.display = 'block';
+  document.getElementById('cardsNote').style.display = 'block';
+  showToast('🏗️','In the real version, your store starts building!');
+  setTimeout(()=>document.getElementById('revealBtn').scrollIntoView({behavior:'smooth',block:'center'}), 450);
+}
+
+/* final redirect → sell.ecomwebsites.com */
+let finaleDone = false;
+function finale(e){
+  if(finaleDone) return; finaleDone = true;
+  initAudio(); playCoin(); playTada();
+  document.getElementById('revealBtn').textContent = 'Opening your products… 🔓';
+  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.7);
+  confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 140);
+  coinRain(1400);
+  flashPulse();
+  vibrate([20,60,20,60,40]);
+  setTimeout(()=>{ window.location.href = SELL_URL; }, 1500);
+}
+
+/* ============================================================
+   COUNT-UP UTILITY
+   ============================================================ */
+function countUp(el, from, to, dur, fmt){
+  const t0 = performance.now();
+  function frame(t){
+    const p = Math.min(1,(t-t0)/dur);
+    const eased = 1-Math.pow(1-p,3);
+    el.textContent = fmt(from+(to-from)*eased);
+    if(p<1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   PARTICLE ENGINE (confetti · coins · sparks · emoji)
+   ============================================================ */
+const cvs = document.getElementById('fx');
+const ctx = cvs.getContext('2d');
+let parts = [];
+function fit(){ cvs.width = innerWidth*devicePixelRatio; cvs.height = innerHeight*devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+fit(); addEventListener('resize', fit);
+
+const CONF_COLORS = ['#3B82F6','#22C55E','#FFC93C','#F59E0B','#8EC5FF','#7CF0A9','#fff'];
+
+function spawn(n, maker){ for(let i=0;i<n;i++) parts.push(maker(i)); loopFx(); }
+
+function confettiBurst(x,y,n=80){
+  spawn(n, ()=>({
+    type:'rect', x, y,
+    vx:(Math.random()-.5)*13, vy:-Math.random()*13-4,
+    g:.32, w:5+Math.random()*6, h:8+Math.random()*8,
+    rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.4,
+    color:CONF_COLORS[Math.floor(Math.random()*CONF_COLORS.length)],
+    life:1, decay:.008+Math.random()*.008
+  }));
+}
+function coinCannon(x,y){
+  spawn(26, ()=>({
+    type:'coin', x, y,
+    vx:(Math.random()-.5)*11, vy:-Math.random()*14-5,
+    g:.42, r:7+Math.random()*7, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.5,
+    life:1, decay:.007
+  }));
+}
+function coinRain(dur){
+  const t0 = performance.now();
+  (function drop(){
+    if(performance.now()-t0 > dur) return;
+    spawn(3, ()=>({
+      type:'coin', x:Math.random()*innerWidth, y:-24,
+      vx:(Math.random()-.5)*2, vy:3+Math.random()*5,
+      g:.22, r:7+Math.random()*8, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.4,
+      life:1, decay:.004
+    }));
+    setTimeout(drop, 60);
+  })();
+}
+function sparkBurst(x,y,color){
+  spawn(22, ()=>{
+    const a = Math.random()*Math.PI*2, sp = 3+Math.random()*8;
+    return {type:'spark', x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, g:.12,
+      len:6+Math.random()*10, color, life:1, decay:.03+Math.random()*.02};
+  });
+}
+function emojiBurst(emoji,x,y,n=10){
+  spawn(n, ()=>({
+    type:'emoji', ch:emoji, x, y,
+    vx:(Math.random()-.5)*10, vy:-Math.random()*11-3,
+    g:.32, size:18+Math.random()*16, rot:(Math.random()-.5)*.8, vr:(Math.random()-.5)*.2,
+    life:1, decay:.012
+  }));
+}
+
+let fxRunning = false;
+function loopFx(){
+  if(fxRunning) return; fxRunning = true;
+  (function frame(){
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    parts = parts.filter(p=>p.life>0 && p.y<innerHeight+60);
+    for(const p of parts){
+      p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.rot+=(p.vr||0); p.life-=p.decay;
+      ctx.globalAlpha = Math.max(0,Math.min(1,p.life*1.4));
+      if(p.type==='rect'){
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+      } else if(p.type==='coin'){
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        const sq = Math.abs(Math.cos(p.rot*2))*.65+.35; // fake 3D spin
+        ctx.scale(sq,1);
+        const g = ctx.createRadialGradient(-p.r*.3,-p.r*.3,1,0,0,p.r);
+        g.addColorStop(0,'#FFE9A3'); g.addColorStop(.55,'#FFC93C'); g.addColorStop(1,'#C77E06');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#8A5A04'; ctx.lineWidth=1.4; ctx.stroke();
+        ctx.fillStyle='#8A5A04'; ctx.font='bold '+p.r*1.1+'px sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,1);
+        ctx.restore();
+      } else if(p.type==='spark'){
+        ctx.strokeStyle=p.color; ctx.lineWidth=2.2; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(p.x,p.y);
+        const m = Math.hypot(p.vx,p.vy)||1;
+        ctx.lineTo(p.x-p.vx/m*p.len, p.y-p.vy/m*p.len); ctx.stroke();
+      } else if(p.type==='emoji'){
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.font=p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(p.ch,0,0); ctx.restore();
       }
     }
-    
-    // Toggle niche
-    function toggleNiche(nicheId) {
-      if (isAllStoresSelected) {
-        isAllStoresSelected = false;
-        selectedNiches = [nicheId];
-      } else if (selectedNiches.includes(nicheId)) {
-        selectedNiches = selectedNiches.filter(id => id !== nicheId);
-      } else {
-        selectedNiches.push(nicheId);
-      }
-      updateNicheUI();
-    }
-    
-    // Select all stores
-    function handleSelectAll() {
-      isAllStoresSelected = true;
-      selectedNiches = niches.map(n => n.id);
-      updateNicheUI();
-    }
-    
-    // Update niche UI
-    function updateNicheUI() {
-      // Bundle button
-      document.getElementById('bundleBtn').classList.toggle('selected', isAllStoresSelected);
-      
-      // Niche buttons
-      niches.forEach(n => {
-        const btn = document.getElementById('niche-' + n.id);
-        const isSelected = selectedNiches.includes(n.id);
-        btn.classList.toggle('selected', isSelected);
-        
-        const existingCheck = btn.querySelector('.check');
-        if (isSelected && !existingCheck) {
-          btn.innerHTML += '<span class="check">✓</span>';
-        } else if (!isSelected && existingCheck) {
-          existingCheck.remove();
-        }
-      });
-      
-      // Selection summary
-      const summary = document.getElementById('selectionSummary');
-      if (selectedNiches.length > 0 && !isAllStoresSelected) {
-        summary.style.display = 'block';
-        summary.textContent = selectedNiches.length + ' store' + (selectedNiches.length > 1 ? 's' : '') + ' selected';
-      } else if (isAllStoresSelected) {
-        summary.style.display = 'block';
-        summary.textContent = '🎉 All 12 stores selected!';
-      } else {
-        summary.style.display = 'none';
-      }
-      
-      // Next button
-      document.getElementById('nicheNextBtn').disabled = selectedNiches.length === 0;
-    }
-    
-    // Validate form
-    function validateForm() {
-      const email = document.getElementById('emailInput').value.trim();
-      const firstName = document.getElementById('firstNameInput').value.trim();
-      const isValid = email.includes('@') && email.includes('.') && firstName.length > 0;
-      document.getElementById('submitBtn').disabled = !isValid;
-    }
-    
-    // Submit form
-    function submitForm() {
-      userInfo = {
-        email: document.getElementById('emailInput').value.trim(),
-        firstName: document.getElementById('firstNameInput').value.trim(),
-        lastName: document.getElementById('lastNameInput').value.trim(),
-        shopifyUrl: document.getElementById('shopifyUrlInput').value.trim(),
-        phone: document.getElementById('phoneInput').value.trim(),
-        niches: selectedNiches,
-        allStores: isAllStoresSelected
-      };
-      
-      // Show confirmation
-      updateConfirmation();
-      nextStep();
-      
-      // TODO: Send data to your backend
-      console.log('Form submitted:', userInfo);
-    }
-    
-    // Update confirmation page
-    function updateConfirmation() {
-      // Email
-      document.getElementById('confirmEmail').textContent = userInfo.email;
-      
-      // Items
-      const itemsContainer = document.getElementById('confirmItems');
-      let html = '';
-      
-      if (isAllStoresSelected) {
-        html = '<div class="confirm-item"><span class="confirm-item-icon">🏪</span> All 12 Stores</div>';
-      } else {
-        selectedNiches.forEach(nicheId => {
-          const niche = niches.find(n => n.id === nicheId);
-          html += `<div class="confirm-item"><span class="confirm-item-icon">${niche.emoji}</span> ${niche.name} Store</div>`;
-        });
-      }
-      
-      itemsContainer.innerHTML = html;
-    }
-    
-    // Play video placeholder
-    function playVideo() {
-      alert('Video would play here. Replace the video-placeholder div with your actual video embed.');
-    }
-    
-    // Initialize
-    initNicheGrid();
-    updateProgress();
-  </script>
+    ctx.globalAlpha = 1;
+    if(parts.length){ requestAnimationFrame(frame); } else { fxRunning=false; ctx.clearRect(0,0,innerWidth,innerHeight); }
+  })();
+}
+
+function flashPulse(){
+  const f = document.getElementById('flash');
+  f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+}
+
+function vibrate(p){ if(navigator.vibrate) try{ navigator.vibrate(p); }catch(e){} }
+
+/* ============================================================
+   SOUND — tiny synth, no assets
+   ============================================================ */
+let AC = null;
+function initAudio(){
+  if(AC) return;
+  try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+}
+function tone(freq, dur, type='sine', vol=.14, delay=0, slide=0){
+  if(!AC) return;
+  const t = AC.currentTime + delay;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide), t+dur);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+  o.connect(g).connect(AC.destination);
+  o.start(t); o.stop(t+dur+.05);
+}
+function playPop(pitch=1){ tone(320*pitch,.12,'triangle',.16,0,180*pitch); }
+function playDing(){ tone(880,.22,'sine',.13); tone(1320,.3,'sine',.08,.03); }
+function playCoin(){ tone(988,.09,'square',.07); tone(1319,.24,'square',.07,.08); }
+function playWhoosh(){ tone(180,.16,'sine',.05,0,120); }
+function playTada(){ [523,659,784,1047].forEach((f,i)=>tone(f,.32,'triangle',.12,i*.09)); }
+function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40,.05,'square',.05,i*step/1000); }
+
+/* boot */
+setBar('s-landing');
+updateBack();
+</script>
 </body>
 </html>
