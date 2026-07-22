@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sell Products AI — Product Manager</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B15;--card:#0F172A;--card-2:#131D33;
+  --line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.16);
+  --text:#F5F8FF;--muted:#93A0BC;
+  --blue:#3B82F6;--green:#22C55E;--gold:#FFC93C;--gold-deep:#F59E0B;--red:#EF4444;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:22px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em}
+.logo .ai{background:var(--grad-money);color:#241500;border-radius:8px;padding:.15em .4em;font-size:.85em;transform:rotate(-3deg)}
+.logo small{display:block;font-weight:600;color:var(--muted);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase}
+h2{font-size:1.05rem;font-weight:800;margin:26px 0 12px;display:flex;align-items:center;gap:8px}
+h2 .n{width:24px;height:24px;border-radius:50%;background:var(--grad-brand);display:inline-flex;align-items:center;justify-content:center;font-size:.72rem}
+.panel{background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line);border-radius:18px;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+input,select{width:100%;padding:12px 13px;border-radius:11px;background:#0B1120;border:1.5px solid var(--line-strong);color:var(--text);font-size:.92rem;font-weight:600;outline:none}
+input:focus{border-color:var(--blue)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 18px;border:none;border-radius:12px;cursor:pointer;font-weight:800;font-size:.88rem;transition:.15s;color:#fff;background:var(--grad-brand)}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:scale(.97)}
+.btn.gold{background:var(--grad-money);color:#241500}
+.btn.ghost{background:transparent;border:1.5px solid var(--line-strong);color:var(--muted)}
+.btn.ghost:hover{color:var(--text)}
+.btn.danger{background:rgba(239,68,68,.14);border:1.5px solid var(--red);color:#F87171}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hint{font-size:.76rem;color:var(--muted);line-height:1.55;margin-top:8px}
+.hint b{color:var(--text)}
+.hint code{background:rgba(255,255,255,.08);padding:1px 6px;border-radius:5px;font-size:.72rem}
+
+/* image drop */
+.drop{
+  border:2px dashed var(--line-strong);border-radius:14px;padding:18px;text-align:center;cursor:pointer;
+  color:var(--muted);font-size:.85rem;font-weight:600;transition:.2s;position:relative;overflow:hidden;min-height:110px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+}
+.drop:hover,.drop.over{border-color:var(--blue);color:var(--text);background:rgba(59,130,246,.06)}
+.drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px}
+.drop .clear{position:absolute;top:8px;right:8px;z-index:2;background:rgba(7,11,21,.8);border:1px solid var(--red);color:#F87171;border-radius:8px;padding:4px 9px;font-size:.7rem;font-weight:800;cursor:pointer}
+
+/* product list */
+.plist{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.prow{
+  display:flex;align-items:center;gap:13px;background:var(--card);
+  border:1px solid var(--line);border-radius:15px;padding:11px 13px;
+}
+.prow.editing{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,201,60,.15)}
+.pthumb{width:52px;height:52px;flex-shrink:0;border-radius:11px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.6rem;background:linear-gradient(135deg,#101A31,#0B2036)}
+.pthumb img{width:100%;height:100%;object-fit:cover}
+.pinfo{flex:1;min-width:0}
+.pname{font-weight:800;font-size:.93rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmeta{font-size:.74rem;color:var(--muted);margin-top:2px}
+.pmeta .profit{color:var(--gold);font-weight:800}
+.pacts{display:flex;gap:6px;flex-shrink:0}
+.mini{padding:8px 11px;border-radius:9px;font-size:.72rem;font-weight:800;cursor:pointer;border:1.5px solid var(--line-strong);background:transparent;color:var(--muted)}
+.mini:hover{color:var(--text);border-color:var(--blue)}
+.mini.del:hover{color:#F87171;border-color:var(--red)}
+.mini.mv{padding:8px 9px}
+.empty{color:var(--muted);text-align:center;padding:26px;font-size:.9rem}
+
+/* preview card (funnel replica) */
+.preview-side{position:sticky;top:18px}
+.halo{padding:2.5px;border-radius:25px;background:conic-gradient(from var(--ang,0deg),#3B82F6,#22C55E,#FFC93C,#3B82F6);animation:haloSpin 3.2s linear infinite}
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes haloSpin{to{--ang:360deg}}
+.pv-card{border-radius:22px;overflow:hidden;background:linear-gradient(180deg,var(--card-2),var(--card))}
+.pv-img{position:relative;aspect-ratio:16/9.4;display:flex;align-items:center;justify-content:center;font-size:3.6rem;overflow:hidden;
+  background:radial-gradient(circle at 68% 34%,rgba(255,201,60,.5),transparent 46%),radial-gradient(circle at 25% 70%,rgba(59,130,246,.55),transparent 55%),linear-gradient(135deg,#101A31,#0B2036)}
+.pv-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pv-trend{position:absolute;top:10px;left:10px;background:rgba(239,68,68,.92);color:#fff;font-size:.64rem;font-weight:800;padding:5px 10px;border-radius:999px;z-index:2}
+.pv-sup{position:absolute;top:10px;right:10px;background:rgba(7,11,21,.75);color:#7CF0A9;font-size:.64rem;font-weight:800;padding:5px 10px;border-radius:999px;border:1px solid rgba(34,197,94,.4);z-index:2}
+.pv-body{padding:13px 15px 15px}
+.pv-name{font-weight:800;font-size:1rem}
+.pv-cat{font-size:.72rem;color:var(--muted);margin-bottom:10px}
+.pv-cat .stars{color:var(--gold)}
+.pv-row{display:flex;justify-content:space-between;padding:8px 11px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.78rem;margin-bottom:6px}
+.pv-row .l{color:var(--muted);font-weight:600}
+.pv-row .v{font-weight:800}
+.pv-profit{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;margin-top:2px;
+  background:linear-gradient(135deg,rgba(255,201,60,.16),rgba(245,158,11,.08));border:2px solid rgba(255,201,60,.55)}
+.pv-profit .l{font-size:.72rem;font-weight:800;color:var(--gold)}
+.pv-profit .v{font-weight:800;font-size:1.15rem;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.layout{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:820px){.layout{grid-template-columns:1.35fr 1fr}}
+.status{font-size:.8rem;font-weight:700;padding:10px 14px;border-radius:11px;margin-top:10px;display:none}
+.status.ok{display:block;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);color:#7CF0A9}
+.status.err{display:block;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#F87171}
+.toolbar{position:fixed;bottom:0;left:0;right:0;z-index:50;background:linear-gradient(0deg,var(--bg) 65%,transparent);padding:14px 20px 18px}
+.toolbar-inner{max-width:920px;margin:0 auto;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:800;font-size:.85rem;color:#8EC5FF}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <span style="font-size:1.15rem">Sell Products <span class="ai">AI</span></span>
+      <small>· product manager</small>
+    </div>
+    <div class="row">
+      <button class="btn ghost" onclick="importFile()">📂 Import products.json</button>
+      <input type="file" id="importInput" accept=".json,application/json" style="display:none" onchange="handleImport(this.files[0])">
+    </div>
+  </header>
+
+  <div class="layout">
+    <div>
+      <h2><span class="n">1</span> Add / edit a product</h2>
+      <div class="panel">
+        <div class="grid" style="margin-bottom:12px">
+          <div style="grid-column:1/-1">
+            <label>Product name *</label>
+            <input id="fName" placeholder="Aurora Sunset Lamp" oninput="livePreview()">
+          </div>
+          <div>
+            <label>Category</label>
+            <input id="fCat" placeholder="Home & Vibes" oninput="livePreview()">
+          </div>
+          <div>
+            <label>Fallback emoji (if no image)</label>
+            <input id="fEmoji" placeholder="🌅" maxlength="4" oninput="livePreview()">
+          </div>
+          <div>
+            <label>Supplier cost ($) *</label>
+            <input id="fCost" type="number" step="0.01" min="0" placeholder="11.20" oninput="livePreview()">
+          </div>
+          <div>
+            <label>Sale price ($) *</label>
+            <input id="fPrice" type="number" step="0.01" min="0" placeholder="39.99" oninput="livePreview()">
+          </div>
+          <div>
+            <label>Trending % (badge)</label>
+            <input id="fTrend" type="number" min="0" placeholder="312" oninput="livePreview()">
+          </div>
+          <div>
+            <label>Supplier rating (1–5)</label>
+            <input id="fRating" type="number" step="0.1" min="1" max="5" placeholder="4.8" oninput="livePreview()">
+          </div>
+          <div>
+            <label>"Sold today" starting count</label>
+            <input id="fSold" type="number" min="0" placeholder="214" oninput="livePreview()">
+          </div>
+        </div>
+
+        <label>Product image</label>
+        <div class="drop" id="drop" onclick="document.getElementById('imgInput').click()">
+          <span id="dropTxt">📸 Click or drag an image here<br><small style="font-weight:600">auto-compressed · stored inside products.json</small></span>
+          <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImage(this.files[0])">
+        </div>
+
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="saveBtn" onclick="saveProduct()">＋ Add product</button>
+          <button class="btn ghost" id="cancelBtn" style="display:none" onclick="cancelEdit()">Cancel edit</button>
+        </div>
+        <div class="status" id="formStatus"></div>
+      </div>
+
+      <h2><span class="n">2</span> Your products <span style="color:var(--muted);font-weight:600;font-size:.8rem" id="pCount"></span></h2>
+      <div class="plist" id="plist"><div class="empty">No products yet — add your first one above 👆</div></div>
+
+      <h2><span class="n">3</span> Publish</h2>
+      <div class="panel">
+        <div class="row">
+          <button class="btn gold" onclick="downloadJson()">⬇️ Download products.json</button>
+          <button class="btn ghost" onclick="copyJson()">📋 Copy JSON</button>
+        </div>
+        <p class="hint">Drop the downloaded <code>products.json</code> into the same folder as <code>index.html</code> on GitHub (replace the old one) and the funnel updates instantly. Changes here also auto-save in this browser.</p>
+
+        <details>
+          <summary>⚡ Or publish straight to GitHub (no downloads)</summary>
+          <div class="grid" style="margin-top:12px">
+            <div><label>GitHub token</label><input id="ghToken" type="password" placeholder="ghp_… (needs repo write)"></div>
+            <div><label>Owner</label><input id="ghOwner" value="amer-lang"></div>
+            <div><label>Repo</label><input id="ghRepo" value="Quiz-funnel"></div>
+            <div><label>Branch</label><input id="ghBranch" value="main"></div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" onclick="publishGithub()">🚀 Publish to GitHub</button>
+          </div>
+          <p class="hint">Create a fine-grained token at <b>github.com → Settings → Developer settings → Tokens</b> with <b>Contents: Read &amp; write</b> on this repo only. The token is stored only in this browser.</p>
+          <div class="status" id="ghStatus"></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="preview-side">
+      <h2><span class="n">👁</span> Live preview (what they'll see)</h2>
+      <div class="halo">
+        <div class="pv-card">
+          <div class="pv-img" id="pvImg">
+            <span class="pv-trend" id="pvTrend">🔥 TRENDING +312%</span>
+            <span class="pv-sup">✓ Supplier secured</span>
+            <span id="pvEmoji">🌅</span>
+          </div>
+          <div class="pv-body">
+            <div class="pv-name" id="pvName">Aurora Sunset Lamp</div>
+            <div class="pv-cat"><span class="stars" id="pvStars">★★★★★</span> · <span id="pvCat">Home &amp; Vibes</span></div>
+            <div class="pv-row"><span class="l">🏭 Supplier cost</span><span class="v" id="pvCost">$11.20</span></div>
+            <div class="pv-row"><span class="l">🏷️ Sale price</span><span class="v" id="pvPrice">$39.99</span></div>
+            <div class="pv-profit"><span class="l">💰 PROFIT / SALE</span><span class="v" id="pvProfit">$28.79</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="hint" style="text-align:center;margin-top:10px">Tip: square-ish photos ≥ 700px wide look best.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <span style="align-self:center;font-size:.76rem;color:var(--muted);font-weight:700" id="saveState">auto-saved ✓</span>
+  </div>
+</div>
+
+<script>
+const LS_KEY = 'spai_products_v1';
+let products = [];
+let editIdx = -1;
+let imgData = '';
+
+/* ---------- init ---------- */
+(function boot(){
+  try{
+    const saved = localStorage.getItem(LS_KEY);
+    if(saved){ products = JSON.parse(saved); renderList(); return; }
+  }catch(e){}
+  // first run: pull the live products.json as a starting point
+  fetch('products.json?v='+Math.floor(Math.random()*1e9))
+    .then(r=>r.ok?r.json():null)
+    .then(j=>{
+      const list = Array.isArray(j)?j:(j&&j.products);
+      if(list){ products = list; persist(); renderList(); }
+    }).catch(()=>{});
+})();
+
+function persist(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(products)); flashSave(); }catch(e){}
+}
+function flashSave(){
+  const el = document.getElementById('saveState');
+  el.textContent = 'auto-saved ✓';
+  el.style.color = '#7CF0A9';
+  setTimeout(()=>el.style.color='', 900);
+}
+
+/* ---------- image handling ---------- */
+const drop = document.getElementById('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleImage(f); });
+
+function handleImage(file){
+  if(!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      // compress: max 800px wide, JPEG q0.8
+      const scale = Math.min(1, 800/img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width*scale);
+      c.height = Math.round(img.height*scale);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      imgData = c.toDataURL('image/jpeg', 0.8);
+      showDropImage();
+      livePreview();
+      status('formStatus','ok','Image loaded ('+Math.round(imgData.length/1024)+' KB compressed)');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function showDropImage(){
+  drop.querySelectorAll('img,.clear').forEach(n=>n.remove());
+  if(!imgData){ document.getElementById('dropTxt').style.display='block'; return; }
+  document.getElementById('dropTxt').style.display='none';
+  const im = document.createElement('img'); im.src = imgData; drop.appendChild(im);
+  const x = document.createElement('button'); x.className='clear'; x.textContent='✕ remove';
+  x.onclick = e=>{ e.stopPropagation(); imgData=''; showDropImage(); livePreview(); };
+  drop.appendChild(x);
+}
+
+/* ---------- form ---------- */
+function val(id){ return document.getElementById(id).value.trim(); }
+function num(id){ const v=parseFloat(val(id)); return isNaN(v)?0:v; }
+
+function formProduct(){
+  return {
+    name: val('fName'),
+    category: val('fCat') || 'Winning product',
+    emoji: val('fEmoji') || '📦',
+    image: imgData || '',
+    cost: num('fCost'),
+    price: num('fPrice'),
+    trend: Math.round(num('fTrend')) || 200,
+    rating: num('fRating') || 4.8,
+    sold: Math.round(num('fSold')) || 180
+  };
+}
+
+function saveProduct(){
+  const p = formProduct();
+  if(!p.name){ status('formStatus','err','Give the product a name.'); return; }
+  if(p.price<=0 || p.cost<0){ status('formStatus','err','Set a supplier cost and a sale price.'); return; }
+  if(p.price<=p.cost){ status('formStatus','err','Sale price must be higher than supplier cost (that\'s the profit!).'); return; }
+  if(editIdx>=0){ products[editIdx]=p; status('formStatus','ok','Updated “'+p.name+'” ✓'); }
+  else { products.push(p); status('formStatus','ok','Added “'+p.name+'” ✓'); }
+  persist(); renderList(); cancelEdit(true);
+}
+
+function editProduct(i){
+  editIdx = i;
+  const p = products[i];
+  document.getElementById('fName').value = p.name;
+  document.getElementById('fCat').value = p.category||'';
+  document.getElementById('fEmoji').value = p.emoji||'';
+  document.getElementById('fCost').value = p.cost;
+  document.getElementById('fPrice').value = p.price;
+  document.getElementById('fTrend').value = p.trend||'';
+  document.getElementById('fRating').value = p.rating||'';
+  document.getElementById('fSold').value = p.sold||'';
+  imgData = p.image||'';
+  showDropImage();
+  document.getElementById('saveBtn').textContent = '💾 Save changes';
+  document.getElementById('cancelBtn').style.display = 'inline-flex';
+  renderList(); livePreview();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelEdit(silent){
+  editIdx = -1;
+  ['fName','fCat','fEmoji','fCost','fPrice','fTrend','fRating','fSold'].forEach(id=>document.getElementById(id).value='');
+  imgData=''; showDropImage();
+  document.getElementById('saveBtn').textContent = '＋ Add product';
+  document.getElementById('cancelBtn').style.display = 'none';
+  if(!silent) status('formStatus','ok','Edit cancelled');
+  renderList(); livePreview();
+}
+
+function delProduct(i){
+  if(!confirm('Delete “'+products[i].name+'”?')) return;
+  products.splice(i,1);
+  if(editIdx===i) cancelEdit(true);
+  persist(); renderList();
+}
+
+function move(i,dir){
+  const j=i+dir;
+  if(j<0||j>=products.length) return;
+  [products[i],products[j]]=[products[j],products[i]];
+  persist(); renderList();
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  const box = document.getElementById('plist');
+  document.getElementById('pCount').textContent = products.length ? '('+products.length+' live in the funnel)' : '';
+  if(!products.length){ box.innerHTML = '<div class="empty">No products yet — add your first one above 👆</div>'; return; }
+  box.innerHTML = products.map((p,i)=>`
+    <div class="prow ${i===editIdx?'editing':''}">
+      <div class="pthumb">${p.image?`<img src="${p.image}" alt="">`:(p.emoji||'📦')}</div>
+      <div class="pinfo">
+        <div class="pname">${esc(p.name)}</div>
+        <div class="pmeta">$${(+p.cost).toFixed(2)} → $${(+p.price).toFixed(2)} · <span class="profit">$${(p.price-p.cost).toFixed(2)} profit</span> · +${p.trend||0}% 🔥</div>
+      </div>
+      <div class="pacts">
+        <button class="mini mv" onclick="move(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="mini mv" onclick="move(${i},1)" ${i===products.length-1?'disabled':''}>↓</button>
+        <button class="mini" onclick="editProduct(${i})">Edit</button>
+        <button class="mini del" onclick="delProduct(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- live preview ---------- */
+function livePreview(){
+  const p = formProduct();
+  document.getElementById('pvName').textContent = p.name || 'Product name';
+  document.getElementById('pvCat').textContent = p.category;
+  document.getElementById('pvTrend').textContent = '🔥 TRENDING +'+p.trend+'%';
+  document.getElementById('pvCost').textContent = '$'+p.cost.toFixed(2);
+  document.getElementById('pvPrice').textContent = '$'+p.price.toFixed(2);
+  document.getElementById('pvProfit').textContent = '$'+Math.max(0,p.price-p.cost).toFixed(2);
+  const f = Math.round(p.rating);
+  document.getElementById('pvStars').textContent = '★★★★★'.slice(0,f)+'☆☆☆☆☆'.slice(f);
+  const box = document.getElementById('pvImg');
+  box.querySelectorAll('img').forEach(n=>n.remove());
+  const em = document.getElementById('pvEmoji');
+  if(p.image){ em.style.display='none'; const im=document.createElement('img'); im.src=p.image; box.appendChild(im); }
+  else { em.style.display='inline'; em.textContent = p.emoji; }
+}
+
+/* ---------- import / export ---------- */
+function jsonBlob(){ return JSON.stringify({products}, null, 2); }
+
+function downloadJson(){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([jsonBlob()],{type:'application/json'}));
+  a.download = 'products.json';
+  a.click();
+}
+function copyJson(){
+  navigator.clipboard.writeText(jsonBlob()).then(()=>alert('JSON copied ✓'));
+}
+function importFile(){ document.getElementById('importInput').click(); }
+function handleImport(file){
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = e=>{
+    try{
+      const j = JSON.parse(e.target.result);
+      const list = Array.isArray(j)?j:(j&&j.products);
+      if(!list) throw 0;
+      products = list; persist(); renderList();
+      status('formStatus','ok','Imported '+list.length+' products ✓');
+    }catch(err){ status('formStatus','err','That file isn\'t a valid products.json'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- publish to GitHub ---------- */
+(function loadGh(){
+  try{
+    const g = JSON.parse(localStorage.getItem('spai_gh')||'{}');
+    if(g.token) document.getElementById('ghToken').value=g.token;
+    if(g.owner) document.getElementById('ghOwner').value=g.owner;
+    if(g.repo) document.getElementById('ghRepo').value=g.repo;
+    if(g.branch) document.getElementById('ghBranch').value=g.branch;
+  }catch(e){}
+})();
+
+async function publishGithub(){
+  const token = val('ghToken'), owner = val('ghOwner'), repo = val('ghRepo'), branch = val('ghBranch')||'main';
+  if(!token||!owner||!repo){ status('ghStatus','err','Fill in token, owner and repo.'); return; }
+  try{ localStorage.setItem('spai_gh', JSON.stringify({token,owner,repo,branch})); }catch(e){}
+  const api = `https://api.github.com/repos/${owner}/${repo}/contents/products.json`;
+  const headers = {Authorization:'Bearer '+token, Accept:'application/vnd.github+json'};
+  status('ghStatus','ok','Publishing…');
+  try{
+    let sha;
+    const cur = await fetch(api+'?ref='+branch, {headers});
+    if(cur.ok){ sha = (await cur.json()).sha; }
+    const body = {
+      message:'Update products via Sell Products AI admin',
+      branch,
+      content: btoa(unescape(encodeURIComponent(jsonBlob())))
+    };
+    if(sha) body.sha = sha;
+    const res = await fetch(api, {method:'PUT', headers, body: JSON.stringify(body)});
+    if(!res.ok){ const j = await res.json().catch(()=>({})); throw new Error(j.message||('HTTP '+res.status)); }
+    status('ghStatus','ok','✅ Published! The funnel now shows these products (give the CDN ~1 min).');
+  }catch(err){
+    status('ghStatus','err','Publish failed: '+err.message);
+  }
+}
+
+/* ---------- misc ---------- */
+function status(id, cls, msg){
+  const el = document.getElementById(id);
+  el.className = 'status '+cls;
+  el.textContent = msg;
+}
+livePreview();
+</script>
+</body>
+</html>

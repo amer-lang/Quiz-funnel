@@ -1,0 +1,10 @@
+{
+  "products": [
+    {"name": "Aurora Sunset Lamp", "category": "Home & Vibes", "emoji": "🌅", "image": "", "cost": 11.20, "price": 39.99, "trend": 312, "rating": 4.8, "sold": 214},
+    {"name": "PawPro Grooming Kit", "category": "Pets", "emoji": "🐶", "image": "", "cost": 9.80, "price": 34.99, "trend": 204, "rating": 4.9, "sold": 187},
+    {"name": "NeckRelax Pro Massager", "category": "Health & Wellness", "emoji": "💆", "image": "", "cost": 14.60, "price": 49.99, "trend": 187, "rating": 4.7, "sold": 243},
+    {"name": "GlowSkin LED Wand", "category": "Beauty", "emoji": "✨", "image": "", "cost": 12.30, "price": 44.99, "trend": 251, "rating": 4.8, "sold": 198},
+    {"name": "FlexBand Home Gym", "category": "Fitness", "emoji": "💪", "image": "", "cost": 13.40, "price": 45.99, "trend": 176, "rating": 4.8, "sold": 171},
+    {"name": "MiniChef Chopper Pro", "category": "Kitchen", "emoji": "🥗", "image": "", "cost": 10.90, "price": 36.99, "trend": 228, "rating": 4.7, "sold": 205}
+  ]
+}
