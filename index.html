@@ -809,17 +809,17 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 @keyframes ribbonIn{from{transform:rotate(38deg) scale(2.2);opacity:0}to{transform:rotate(38deg) scale(1);opacity:1}}
 .engine{
-  margin:6px 0 12px;padding:14px 14px 12px;border-radius:18px;
+  margin:4px 0 9px;padding:11px 12px 9px;border-radius:16px;
   background:linear-gradient(180deg,rgba(255,201,60,.09),rgba(245,158,11,.04));
   border:1px solid rgba(255,201,60,.35);
   box-shadow:0 14px 44px -16px rgba(245,158,11,.35);
   animation:screenIn .6s cubic-bezier(.22,1,.36,1) .5s both;
 }
-.engine-title{text-align:center;font-size:.66rem;font-weight:800;letter-spacing:.18em;color:var(--gold);margin-bottom:10px}
+.engine-title{text-align:center;font-size:.62rem;font-weight:800;letter-spacing:.16em;color:var(--gold);margin-bottom:7px}
 .eq{display:flex;align-items:stretch;justify-content:center;gap:7px}
 .eq-op{align-self:center;font-weight:800;font-size:1.05rem;color:var(--muted)}
 .eq-tile{
-  flex:1;max-width:118px;text-align:center;padding:10px 6px;border-radius:13px;
+  flex:1;max-width:118px;text-align:center;padding:8px 6px;border-radius:12px;
   background:rgba(255,255,255,.05);border:1px solid var(--line-strong);
 }
 .eq-tile b{display:block;font-size:1.02rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -831,7 +831,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 .eq-tile.gold b{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.1rem}
 @keyframes goldGlow{0%,100%{box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55)}50%{box-shadow:0 0 0 8px rgba(255,201,60,.04),0 10px 32px -8px rgba(245,158,11,.75)}}
-.engine-note{margin-top:9px;text-align:center;font-size:.7rem;font-weight:700;color:#7CF0A9}
+.engine-note{margin-top:7px;text-align:center;font-size:.66rem;font-weight:700;color:#7CF0A9}
 .stack-line{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;animation:screenIn .6s cubic-bezier(.22,1,.36,1) .8s both}
 .stack-line .chip{
   font-size:.64rem;font-weight:700;color:var(--muted);
@@ -852,7 +852,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .price-slash .hold b{font-variant-numeric:tabular-nums}
 
 /* device-trio mockup — their store on desktop, tablet and phone at once */
-.mock-scene{position:relative;margin:2px 0 10px;padding-bottom:14px}
+.mock-scene{position:relative;margin:0 0 8px;padding-bottom:8px}
 .scene-glow{
   position:absolute;left:8%;right:8%;bottom:-4px;height:70px;border-radius:50%;
   background:radial-gradient(ellipse at center,rgba(59,130,246,.4),rgba(34,197,94,.18) 55%,transparent 75%);
@@ -871,38 +871,43 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 @keyframes screenPan{0%,8%{transform:translateY(0)}46%,58%{transform:translateY(var(--pan,0px))}94%,100%{transform:translateY(0)}}
 .cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
 
-.dev-monitor{position:relative;z-index:1;width:88%;margin:0 auto;animation:devUp .8s cubic-bezier(.34,1.3,.64,1) .1s both}
-.mon-frame{
-  background:#101725;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:5px;
-  box-shadow:0 30px 70px -18px rgba(0,0,0,.85),0 0 0 1px rgba(0,0,0,.4);
+.dev-monitor{
+  position:absolute;right:-2%;top:2px;z-index:1;width:60%;
+  animation:devDrift .8s cubic-bezier(.34,1.3,.64,1) .35s both;
 }
-.mon-chrome{display:flex;align-items:center;gap:7px;padding:6px 9px;background:#1A2336;border-radius:9px 9px 0 0}
-.mc-dots{display:flex;gap:4px;flex-shrink:0}
-.mc-dots i{width:7px;height:7px;border-radius:50%}
+.mon-frame{
+  background:#101725;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:4px;
+  box-shadow:0 24px 60px -18px rgba(0,0,0,.85),0 0 0 1px rgba(0,0,0,.4);
+}
+.mon-chrome{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1A2336;border-radius:8px 8px 0 0}
+.mc-dots{display:flex;gap:3px;flex-shrink:0}
+.mc-dots i{width:6px;height:6px;border-radius:50%}
 .mc-dots i:nth-child(1){background:#EF4444}.mc-dots i:nth-child(2){background:#FFC93C}.mc-dots i:nth-child(3){background:#22C55E}
-.mc-url{flex:1;text-align:center;font-size:.62rem;font-weight:700;color:var(--muted);background:rgba(255,255,255,.07);border-radius:6px;padding:4px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mc-live{flex-shrink:0;display:flex;align-items:center;gap:4px;font-size:.54rem;font-weight:800;letter-spacing:.06em;color:#7CF0A9;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);padding:3px 7px;border-radius:999px}
-.mc-live i{width:5px;height:5px;border-radius:50%;background:#22C55E;animation:blip 1.3s ease infinite}
-.mon-screen{aspect-ratio:16/10;border-radius:0 0 9px 9px}
-.mon-neck{width:13%;height:22px;margin:0 auto;background:linear-gradient(180deg,#2A3550,#161D2F);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%)}
-.mon-base{width:36%;height:7px;margin:0 auto;border-radius:99px;background:linear-gradient(180deg,#39456A,#161D2F)}
+.mc-url{flex:1;text-align:center;font-size:.56rem;font-weight:700;color:var(--muted);background:rgba(255,255,255,.07);border-radius:5px;padding:3px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-live{flex-shrink:0;display:flex;align-items:center;gap:3px;font-size:.5rem;font-weight:800;letter-spacing:.06em;color:#7CF0A9;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);padding:2px 6px;border-radius:999px}
+.mc-live i{width:4px;height:4px;border-radius:50%;background:#22C55E;animation:blip 1.3s ease infinite}
+.mon-screen{aspect-ratio:16/10;border-radius:0 0 8px 8px}
+.mon-neck{width:13%;height:16px;margin:0 auto;background:linear-gradient(180deg,#2A3550,#161D2F);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%)}
+.mon-base{width:36%;height:6px;margin:0 auto;border-radius:99px;background:linear-gradient(180deg,#39456A,#161D2F)}
 
 .dev-tablet{
-  position:absolute;left:-1%;bottom:6px;width:30%;z-index:3;
-  animation:devLeft .8s cubic-bezier(.34,1.3,.64,1) .35s both,floatTab 5.5s ease-in-out 1.6s infinite;
+  position:absolute;left:-1%;bottom:2px;width:30%;z-index:2;
+  animation:devLeft .8s cubic-bezier(.34,1.3,.64,1) .55s both,floatTab 5.5s ease-in-out 1.6s infinite;
 }
 .tab-screen{aspect-ratio:3/4.1;border-radius:12px;border:5px solid #101725;box-shadow:0 22px 50px -14px rgba(0,0,0,.85)}
+
+/* the phone is the hero — customers shop on phones, and the store shines here */
 .dev-phone{
-  position:absolute;right:-1%;bottom:-2px;width:23%;z-index:4;
-  animation:devRight .8s cubic-bezier(.34,1.3,.64,1) .55s both,floatPh 4.8s ease-in-out 1.8s infinite;
+  position:relative;z-index:4;width:36%;margin:0 auto;
+  animation:devUp .8s cubic-bezier(.34,1.3,.64,1) .1s both;
+  filter:drop-shadow(0 30px 50px rgba(0,0,0,.8));
 }
-.ph-screen{aspect-ratio:9/18.5;border-radius:16px;border:5px solid #101725;box-shadow:0 22px 50px -14px rgba(0,0,0,.9)}
-.ph-notch{position:absolute;top:7px;left:50%;transform:translateX(-50%);width:34%;height:7px;border-radius:99px;background:#101725;z-index:5}
+.ph-screen{aspect-ratio:9/18.5;border-radius:22px;border:6px solid #101725;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+.ph-notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:32%;height:8px;border-radius:99px;background:#101725;z-index:5}
 @keyframes devUp{from{opacity:0;transform:translateY(46px) scale(.93)}to{opacity:1;transform:none}}
+@keyframes devDrift{from{opacity:0;transform:translateX(36px) translateY(10px)}to{opacity:1;transform:none}}
 @keyframes devLeft{from{opacity:0;transform:translateX(-40px) rotate(-9deg)}to{opacity:1;transform:translateX(0) rotate(-4deg)}}
-@keyframes devRight{from{opacity:0;transform:translateX(40px) rotate(9deg)}to{opacity:1;transform:translateX(0) rotate(4deg)}}
 @keyframes floatTab{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(-4deg) translateY(-6px)}}
-@keyframes floatPh{0%,100%{transform:rotate(4deg) translateY(0)}50%{transform:rotate(4deg) translateY(-7px)}}
 
 /* mock store shown until the real preview is wired in (light theme = real site feel) */
 .ms{font-family:'Plus Jakarta Sans',sans-serif;color:#111827;background:#fff;text-align:left}
@@ -980,8 +985,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
 .claim-bar{
   position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
-  padding:12px 20px calc(14px + env(safe-area-inset-bottom));
-  background:linear-gradient(0deg,var(--bg) 62%,rgba(7,11,21,.85) 85%,transparent);
+  padding:14px 20px calc(14px + env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,var(--bg) 80%,rgba(7,11,21,.96) 92%,transparent);
 }
 .claim-bar.show{display:block;animation:claimUp .5s cubic-bezier(.34,1.4,.64,1)}
 @keyframes claimUp{from{transform:translateY(90px);opacity:0}to{transform:none;opacity:1}}
@@ -991,8 +996,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 .claim-sub b{color:#7CF0A9}
 .price-slash{
-  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:9px;
-  font-size:.8rem;font-weight:700;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:9px;
+  font-size:.74rem;font-weight:700;color:var(--muted);
 }
 .price-slash .was{text-decoration:line-through;color:#F87171}
 .price-slash .tag{
@@ -1052,7 +1057,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <!-- fixed $1 claim bar — visible without scrolling while the preview screen is active -->
 <div class="claim-bar" id="claimBar">
   <div class="claim-inner">
-    <div class="price-slash"><span class="was">$49</span><span>today just</span><span class="tag">✨ $1 UNLOCK</span><span class="hold">⏳ held <b id="resvTimer">15:00</b></span></div>
+    <div class="price-slash"><span class="was">$49</span><span>→</span><span class="tag">✨ $1 today</span><span class="hold">⏳ <b id="resvTimer">15:00</b></span></div>
     <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $1 🔓</button>
     <p class="claim-sub"><b>$1 today</b> · 3-day full access · then $49/mo · cancel anytime</p>
   </div>
@@ -1508,10 +1513,10 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
     </section>
 
     <!-- ======================= 13 · STORE PREVIEW + $1 CLAIM ======================= -->
-    <section class="screen" id="s-preview" style="padding-bottom:150px">
+    <section class="screen" id="s-preview" style="padding-bottom:190px">
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> Build complete · Store #<span id="buildNo">2,417</span></div>
       <h2><span class="grad-text" id="pvProdName">Your store</span> isn't a mockup.<br>It's <span class="gold-text">built — and it's yours.</span></h2>
-      <p class="sub" style="margin-bottom:14px;font-size:.9rem">You told the AI your dream is <b id="dreamRev" style="color:var(--gold)">$10,000/mo</b>. It built you the machine. Here it is, live on every device 👇</p>
+      <p class="sub" style="margin-bottom:10px;font-size:.86rem">You told the AI your dream is <b id="dreamRev" style="color:var(--gold)">$10,000/mo</b>. It built you the machine. Here it is, live on every device 👇</p>
 
       <!-- DEVELOPER: the three device screens are filled automatically by runPreview():
            DropStart preview_image → panning image · PREVIEW_URL → iframes · fallback → mock store. -->
@@ -1533,6 +1538,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
         </div>
         <div class="dev-tablet"><div class="dev-screen tab-screen screen-loading" id="scrTablet"></div></div>
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
+        <!-- hero = phone: mobile screenshots render pixel-perfect here -->
       </div>
 
       <div class="engine">
@@ -2354,20 +2360,21 @@ function runPreview(){
 
   const src = dsStatus && dsStatus.preview_image;
   if(src){
-    // The real store we just built — full-page shot pans inside the monitor,
-    // top-crops fill the tablet and phone.
-    mountPanImage(mon, src, brand);
+    // The real store we just built. DropStart shots are mobile captures, so
+    // the HERO PHONE gets the full panning showcase where it looks native;
+    // monitor and tablet show supporting crops.
+    mountPanImage(ph, src, brand);
+    mountCoverImage(mon, src);
     mountCoverImage(tab, src);
-    mountCoverImage(ph, src);
   } else if(PREVIEW_URL){
     const url = PREVIEW_URL.replace('{{PRODUCT}}', encodeURIComponent(slug));
-    mountPanIframe(mon, url);
-    mountScaledIframe(tab, url, 768);
     mountScaledIframe(ph, url, 390);
+    mountScaledIframe(mon, url, 1280);
+    mountScaledIframe(tab, url, 768);
   } else {
-    mountPanHtml(mon, mockStore(p));
-    mountScaledHtml(tab, mockStore(p), 500);
-    mountScaledHtml(ph, mockStore(p), 375);
+    mountScaledHtml(ph, mockStore(p), 320);
+    mountScaledHtml(mon, mockStore(p), 500);
+    mountScaledHtml(tab, mockStore(p), 420);
   }
 
   playTada();
