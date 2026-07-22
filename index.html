@@ -565,7 +565,12 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 @keyframes swapIn{from{opacity:0;transform:translateX(72%) rotate(6deg) scale(.94)}to{opacity:1;transform:none}}
 
 .pick-img{
-  position:relative;aspect-ratio:16/9.4;overflow:hidden;
+  /* 3:2 + cover — identical to the DropStart sell-domain product card
+     (.eq-pcard__media). The box was 16:9-ish, taller-cropping the featured
+     photos (which are square or 3:2) more than the sell domain does; 3:2
+     matches the source ratio, so 3:2 images fill with no crop and squares
+     crop only as much as they already do on the sell domain. */
+  position:relative;aspect-ratio:3/2;overflow:hidden;
   background:
     radial-gradient(circle at 68% 34%,rgba(255,201,60,.5),transparent 46%),
     radial-gradient(circle at 25% 70%,rgba(59,130,246,.55),transparent 55%),
@@ -785,6 +790,67 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .tour-chip.gold-chip{border-color:rgba(255,201,60,.55);color:#FFE9A3}
 .tour-chip.gold-chip .tc-ok{background:var(--gold);color:#241500}
 
+/* glam layer — reserved ribbon, golden spotlight, profit engine, value stack */
+.scene-spot{
+  position:absolute;left:-12%;right:-12%;top:-26%;height:75%;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,201,60,.16),transparent 62%);
+  filter:blur(6px);
+}
+.resv-corner{
+  position:absolute;top:-6px;right:-6px;width:118px;height:118px;
+  overflow:hidden;z-index:7;pointer-events:none;border-radius:0 18px 0 0;
+}
+.resv-ribbon{
+  position:absolute;top:26px;right:-38px;transform:rotate(38deg);
+  background:var(--grad-money);color:#241500;
+  font-size:.5rem;font-weight:800;letter-spacing:.12em;white-space:nowrap;text-align:center;
+  padding:4px 38px;box-shadow:0 6px 18px -2px rgba(245,158,11,.65),0 0 0 1px rgba(255,255,255,.3) inset;
+  animation:ribbonIn .6s cubic-bezier(.34,1.6,.64,1) .9s both;
+}
+@keyframes ribbonIn{from{transform:rotate(38deg) scale(2.2);opacity:0}to{transform:rotate(38deg) scale(1);opacity:1}}
+.engine{
+  margin:6px 0 12px;padding:14px 14px 12px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(255,201,60,.09),rgba(245,158,11,.04));
+  border:1px solid rgba(255,201,60,.35);
+  box-shadow:0 14px 44px -16px rgba(245,158,11,.35);
+  animation:screenIn .6s cubic-bezier(.22,1,.36,1) .5s both;
+}
+.engine-title{text-align:center;font-size:.66rem;font-weight:800;letter-spacing:.18em;color:var(--gold);margin-bottom:10px}
+.eq{display:flex;align-items:stretch;justify-content:center;gap:7px}
+.eq-op{align-self:center;font-weight:800;font-size:1.05rem;color:var(--muted)}
+.eq-tile{
+  flex:1;max-width:118px;text-align:center;padding:10px 6px;border-radius:13px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-strong);
+}
+.eq-tile b{display:block;font-size:1.02rem;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.eq-tile span{display:block;margin-top:2px;font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.eq-tile.gold{
+  background:linear-gradient(135deg,rgba(255,201,60,.2),rgba(245,158,11,.1));
+  border-color:rgba(255,201,60,.6);box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55);
+  animation:goldGlow 2s ease infinite;
+}
+.eq-tile.gold b{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.1rem}
+@keyframes goldGlow{0%,100%{box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55)}50%{box-shadow:0 0 0 8px rgba(255,201,60,.04),0 10px 32px -8px rgba(245,158,11,.75)}}
+.engine-note{margin-top:9px;text-align:center;font-size:.7rem;font-weight:700;color:#7CF0A9}
+.stack-line{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;animation:screenIn .6s cubic-bezier(.22,1,.36,1) .8s both}
+.stack-line .chip{
+  font-size:.64rem;font-weight:700;color:var(--muted);
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  padding:5px 10px;border-radius:999px;white-space:nowrap;
+}
+.stack-line .chip s{color:#F87171;margin-left:3px}
+.stack-line .chip.total{
+  background:rgba(255,201,60,.12);border-color:rgba(255,201,60,.5);color:var(--text);
+  box-shadow:0 0 14px rgba(255,201,60,.2);
+}
+.stack-line .chip.total b{color:var(--gold)}
+.price-slash .hold{
+  display:flex;align-items:center;gap:4px;
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#F87171;
+  font-size:.66rem;font-weight:800;padding:3px 10px;border-radius:999px;
+}
+.price-slash .hold b{font-variant-numeric:tabular-nums}
+
 /* device-trio mockup — their store on desktop, tablet and phone at once */
 .mock-scene{position:relative;margin:2px 0 10px;padding-bottom:14px}
 .scene-glow{
@@ -986,7 +1052,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <!-- fixed $1 claim bar — visible without scrolling while the preview screen is active -->
 <div class="claim-bar" id="claimBar">
   <div class="claim-inner">
-    <div class="price-slash"><span class="was">$49</span><span>today just</span><span class="tag">✨ $1 UNLOCK</span></div>
+    <div class="price-slash"><span class="was">$49</span><span>today just</span><span class="tag">✨ $1 UNLOCK</span><span class="hold">⏳ held <b id="resvTimer">15:00</b></span></div>
     <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $1 🔓</button>
     <p class="claim-sub"><b>$1 today</b> · 3-day full access · then $49/mo · cancel anytime</p>
   </div>
@@ -1443,14 +1509,16 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
     <!-- ======================= 13 · STORE PREVIEW + $1 CLAIM ======================= -->
     <section class="screen" id="s-preview" style="padding-bottom:150px">
-      <div class="kicker gold" style="align-self:center"><span class="dot"></span> Fresh out of the oven</div>
-      <h2 class="one-line">Meet your store 👀</h2>
-      <p class="sub" style="margin-bottom:14px;font-size:.9rem"><strong id="pvProdName">Your store</strong> is live on desktop, tablet &amp; mobile — this is exactly what your customers will see.</p>
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> Build complete · Store #<span id="buildNo">2,417</span></div>
+      <h2><span class="grad-text" id="pvProdName">Your store</span> isn't a mockup.<br>It's <span class="gold-text">built — and it's yours.</span></h2>
+      <p class="sub" style="margin-bottom:14px;font-size:.9rem">You told the AI your dream is <b id="dreamRev" style="color:var(--gold)">$10,000/mo</b>. It built you the machine. Here it is, live on every device 👇</p>
 
       <!-- DEVELOPER: the three device screens are filled automatically by runPreview():
            DropStart preview_image → panning image · PREVIEW_URL → iframes · fallback → mock store. -->
       <div class="mock-scene">
         <div class="scene-glow"></div>
+        <div class="scene-spot"></div>
+        <div class="resv-corner"><div class="resv-ribbon">RESERVED FOR YOU</div></div>
         <div class="dev-monitor">
           <div class="mon-frame">
             <div class="mon-chrome">
@@ -1465,6 +1533,22 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
         </div>
         <div class="dev-tablet"><div class="dev-screen tab-screen screen-loading" id="scrTablet"></div></div>
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
+      </div>
+
+      <div class="engine">
+        <div class="engine-title">✨ THE MATH ON YOUR DREAM</div>
+        <div class="eq">
+          <div class="eq-tile"><b id="eqProfit">$0.00</b><span>profit / sale</span></div>
+          <span class="eq-op">×</span>
+          <div class="eq-tile"><b id="eqSales">0</b><span>sales / day</span></div>
+          <span class="eq-op">=</span>
+          <div class="eq-tile gold"><b id="eqMonth">$0</b><span>per month</span></div>
+        </div>
+        <div class="engine-note" id="engineNote">✓ based on this store's real supplier cost &amp; sale price</div>
+      </div>
+
+      <div class="stack-line">
+        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$1 today</b></span>
       </div>
     </section>
 
@@ -1931,12 +2015,22 @@ function dsPreloadImages(list){
   setTimeout(()=>list.slice(8).forEach(warm), 1500);
 }
 
+/* Fisher-Yates — randomise the deck on load so the same products don't always
+   lead, matching the DropStart sell-domain funnel (they come back sort_order'd). */
+function dsShuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 dsLoadProducts()
   .catch(dsLoadProductsJson)
   .then(list=>{
     if(list && list.length){
-      PRODUCTS = list;
-      dsPreloadImages(list);
+      PRODUCTS = dsShuffle(list);
+      dsPreloadImages(PRODUCTS);
     }
   })
   .catch(()=>{});
@@ -2280,6 +2374,80 @@ function runPreview(){
   confettiBurst(window.innerWidth/2, 130, 110);
   coinCannon(window.innerWidth/2, window.innerHeight*0.35);
   vibrate([16,60,16]);
+
+  runGlam(p);
+}
+
+/* ---- the FOMO layer: personalized dream math, reservation timer,
+        gold dust and coins dripping out of their own store ---- */
+let resvTick = null;
+function runGlam(p){
+  // store number — feels like a production line, changes daily
+  const d = new Date();
+  document.getElementById('buildNo').textContent = (2391 + d.getDate()*3 + d.getDay()).toLocaleString();
+
+  // the math on THEIR dream: goal ÷ this store's real profit per sale
+  const goal = Number(answers.rev || '10000');
+  const profit = Math.max(1, Number(p.price) - Number(p.cost));
+  const sales = Math.max(1, Math.ceil(goal / 30 / profit));
+  const month = Math.round(sales * profit * 30);
+  document.getElementById('dreamRev').textContent = '$' + goal.toLocaleString() + '/mo';
+  setTimeout(()=>{
+    countUp(document.getElementById('eqProfit'), 0, profit, 900, v=>'$'+v.toFixed(2));
+    countUp(document.getElementById('eqSales'), 0, sales, 900, v=>Math.round(v));
+    countUp(document.getElementById('eqMonth'), 0, month, 1400, v=>'$'+Math.round(v).toLocaleString());
+    setTimeout(()=>{ playCoin(); }, 1450);
+  }, 900);
+  document.getElementById('engineNote').textContent =
+    '✓ that beats the $' + goal.toLocaleString() + '/mo dream you told the AI';
+
+  // reservation hold — 15 minutes, survives refresh
+  let end = 0;
+  try{ end = +localStorage.getItem('spai_resv_end') || 0; }catch(e){}
+  if(!end || end < Date.now()){
+    end = Date.now() + 15*60*1000;
+    try{ localStorage.setItem('spai_resv_end', end); }catch(e){}
+  }
+  const tEl = document.getElementById('resvTimer');
+  clearInterval(resvTick);
+  resvTick = setInterval(()=>{
+    const left = end - Date.now();
+    if(left <= 0){ tEl.textContent = '0:00'; clearInterval(resvTick); return; }
+    const m = Math.floor(left/60000), sec = Math.floor(left%60000/1000);
+    tEl.textContent = m + ':' + String(sec).padStart(2,'0');
+  }, 250);
+
+  // ambient gold dust + coins dripping out of the phone
+  let drips = 0;
+  const dust = setInterval(()=>{
+    if(current !== 's-preview'){ clearInterval(dust); return; }
+    goldDust();
+  }, 700);
+  const drip = setInterval(()=>{
+    if(current !== 's-preview'){ clearInterval(drip); return; }
+    const phone = document.querySelector('.dev-phone');
+    if(!phone) return;
+    const r = phone.getBoundingClientRect();
+    coinDrip(r.left + r.width/2, r.top + r.height*0.4);
+    if(drips++ < 2) playCoin();
+  }, 6500);
+}
+
+function goldDust(){
+  spawn(2, ()=>({
+    type:'dust', x:Math.random()*innerWidth, y:-8,
+    vx:(Math.random()-.5)*.5, vy:.5+Math.random()*.9, g:.004,
+    r:1.2+Math.random()*2.2, tw:Math.random()*Math.PI*2,
+    life:1, decay:.0035
+  }));
+}
+function coinDrip(x,y){
+  spawn(3, ()=>({
+    type:'coin', x:x+(Math.random()-.5)*16, y,
+    vx:(Math.random()-.5)*3.5, vy:-Math.random()*4-2,
+    g:.34, r:5+Math.random()*5, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.4,
+    life:1, decay:.011
+  }));
 }
 
 /* ---- device screen mounts ------------------------------------------------
@@ -2621,6 +2789,14 @@ function loopFx(){
         ctx.beginPath(); ctx.moveTo(p.x,p.y);
         const m = Math.hypot(p.vx,p.vy)||1;
         ctx.lineTo(p.x-p.vx/m*p.len, p.y-p.vy/m*p.len); ctx.stroke();
+      } else if(p.type==='dust'){
+        p.tw += .12;
+        const a = Math.max(0, Math.min(1, p.life)) * (0.45 + 0.55*Math.abs(Math.sin(p.tw)));
+        ctx.globalAlpha = a;
+        const g2 = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
+        g2.addColorStop(0,'rgba(255,220,120,.9)'); g2.addColorStop(1,'rgba(255,201,60,0)');
+        ctx.fillStyle = g2;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r*3,0,Math.PI*2); ctx.fill();
       } else if(p.type==='emoji'){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
         ctx.font=p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
