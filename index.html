@@ -565,12 +565,9 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 @keyframes swapIn{from{opacity:0;transform:translateX(72%) rotate(6deg) scale(.94)}to{opacity:1;transform:none}}
 
 .pick-img{
-  /* 3:2 box, contain fit. Cover (what the sell domain does) fills the frame
-     but crops the top and base off TALL products — a spiral lamp lost its
-     stand. contain shows the whole product every time; the card's gradient
-     backdrop (same one the emoji floats on) fills the sides on square photos,
-     so it reads as a spotlight, not letterboxing. 3:2 source photos fill it
-     edge to edge regardless. */
+  /* 3:2 + cover, matching the DropStart sell-domain card exactly. The photos
+     used here are the image_card heroes, which ARE 3:2 (framed to fit), so
+     cover fills the frame with no crop — including tall products like a lamp. */
   position:relative;aspect-ratio:3/2;overflow:hidden;
   background:
     radial-gradient(circle at 68% 34%,rgba(255,201,60,.5),transparent 46%),
@@ -578,7 +575,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
     linear-gradient(135deg,#101A31,#0B2036);
   display:flex;align-items:center;justify-content:center;
 }
-.pick-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.pick-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .pick-img .emoji{font-size:4.2rem;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));animation:floaty 4.2s ease-in-out infinite}
 .badge-trend{
   position:absolute;top:12px;left:12px;z-index:2;
@@ -2022,14 +2019,17 @@ function dsLoadProducts(){
   return fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
     .then(r=>r.ok ? r.json() : Promise.reject())
     .then(j=>{
-      const list = ((j && j.products) || []).filter(p=>p && p.label && p.image);
+      const list = ((j && j.products) || []).filter(p=>p && p.label && (p.image_card || p.image));
       if(!list.length) return Promise.reject();
       return list.map(p=>({
         dsId:     p.id,                          // → trending_id, anchors the build
         name:     p.label,
         category: p.badge || 'Winning product',
         emoji:    '📦',
-        image:    p.image,
+        // image_card is the purpose-built 3:2 hero the DropStart sell domain
+        // shows (the raw `image` is a square thumbnail that crops badly on tall
+        // products). Fall back to the thumbnail only if a card lacks a hero.
+        image:    p.image_card || p.image,
         cost:     Number(p.cost || 0),
         price:    Number(p.price || 0),
         rating:   p.rating || 4.8
