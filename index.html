@@ -532,9 +532,16 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .pick-count{
   display:flex;align-items:center;justify-content:center;gap:8px;
   margin-bottom:14px;font-size:.78rem;font-weight:700;color:var(--muted);
+  flex-wrap:nowrap;
 }
 .pick-count b{color:var(--text)}
+/* "Product 12 of 38" must never break across two lines */
+.pick-count>span:first-child{white-space:nowrap}
 .pick-dots{display:flex;gap:5px}
+/* Past a dozen products a dot per item overflows the row, so the position
+   becomes a slim bar instead. */
+.pick-prog{width:90px;height:4px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden;flex:0 0 auto}
+.pick-prog i{display:block;height:100%;border-radius:99px;background:var(--gold);transition:width .3s}
 .pick-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16);transition:.3s}
 .pick-dots i.on{background:var(--gold);box-shadow:0 0 8px rgba(255,201,60,.8)}
 
@@ -757,6 +764,26 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 @keyframes hintBob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
 .scroll-hint.gone{opacity:0}
+
+/* cinematic auto-tour — the store demos itself */
+.tour-chip{
+  position:absolute;top:52px;left:50%;transform:translateX(-50%) translateY(-8px) scale(.7);
+  z-index:4;display:flex;align-items:center;gap:8px;opacity:0;pointer-events:none;
+  background:rgba(7,11,21,.9);backdrop-filter:blur(8px);
+  border:1px solid rgba(34,197,94,.55);color:#CFFADF;
+  font-size:.78rem;font-weight:800;padding:9px 16px;border-radius:999px;
+  box-shadow:0 12px 34px rgba(0,0,0,.55),0 0 0 4px rgba(34,197,94,.08);
+  transition:.4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;max-width:92%;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.tour-chip.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+.tour-chip .tc-ok{
+  width:20px;height:20px;flex-shrink:0;border-radius:50%;background:var(--green);
+  display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#fff;font-weight:800;
+  animation:checkPop .35s cubic-bezier(.34,2,.64,1);
+}
+.tour-chip.gold-chip{border-color:rgba(255,201,60,.55);color:#FFE9A3}
+.tour-chip.gold-chip .tc-ok{background:var(--gold);color:#241500}
 
 /* mock store shown until the real preview is wired in (light theme = real site feel) */
 .ms{font-family:'Plus Jakarta Sans',sans-serif;color:#111827;background:#fff;text-align:left}
@@ -1391,10 +1418,26 @@ const EMAIL_ENDPOINT = '';
 // preview container ({{PRODUCT}} is replaced with a slug of the chosen product).
 // If empty, a generated mock storefront shows instead.
 const PREVIEW_URL = '';
-// DEVELOPER: $1 checkout link (Stripe/Shopify). If set, the claim button
-// redirects here ({{PRODUCT}} and {{EMAIL}} are replaced). If empty, the
-// funnel continues to the confirmation screen.
+// DEVELOPER: $1 checkout link (Stripe). If set, the claim button redirects
+// here — {{PRODUCT}}, {{EMAIL}} and {{STORE_ID}} are replaced, and the built
+// store's id is appended as client_reference_id so the payment can be matched
+// back to the store. Set the Stripe success URL to the DropStart hand-off so
+// the buyer lands in the Shopify setup once the charge clears.
+// If empty, the funnel falls back to the store preview.
 const CHECKOUT_URL = '';
+/* ---- DropStart backend -------------------------------------
+   The quiz now builds a REAL store. On email submit we POST the answers to
+   the express API, hold the build screen until the store is actually ready,
+   show a screenshot of it on the preview screen, and send the visitor to
+   their own store (where checkout lives) when they claim it.
+
+   The key is origin-locked to this domain and rate-limited server-side.
+   Set DS_LIVE = false to run the funnel in demo mode (mock store, no build,
+   no network) — handy for design work.                                     */
+const DS_API  = 'https://chat.dropstart.app/api/express';
+const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+const DS_LIVE = true;
+
 // Products are loaded from products.json (manage them in admin.html).
 // If the fetch fails (e.g. previewing the file directly), these defaults show.
 const FALLBACK_PRODUCTS = [
@@ -1470,6 +1513,7 @@ function onEnter(id){
   if(id==='s-preview') runPreview();
   if(id==='s-done') runDone();
   document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
+  dsTrack(id);
 }
 
 /* ============================================================
@@ -1714,12 +1758,63 @@ let PRODUCTS = FALLBACK_PRODUCTS;
 let pIdx = 0, chosen = null, swapping = false, pickEntered = false;
 let soldTimer = null;
 
-// load real products (admin.html manages this file)
-fetch('products.json?v=' + Math.floor(Math.random()*1e9))
-  .then(r=>r.ok ? r.json() : null)
-  .then(j=>{
-    const list = Array.isArray(j) ? j : (j && j.products);
-    if(list && list.length) PRODUCTS = list.filter(p=>p && p.name);
+/* Products for the picker, in order of preference:
+     1. the live DropStart catalogue — these are REAL products we can build a
+        store around, and keeping each card's id (dsId) means the store gets
+        built around the EXACT product the visitor picks
+     2. products.json (admin.html manages it)
+     3. the FALLBACK_PRODUCTS baked in above                                */
+function dsLoadProducts(){
+  if(!DS_LIVE) return Promise.reject();
+  return fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
+    .then(r=>r.ok ? r.json() : Promise.reject())
+    .then(j=>{
+      const list = ((j && j.products) || []).filter(p=>p && p.label && p.image);
+      if(!list.length) return Promise.reject();
+      return list.map(p=>({
+        dsId:     p.id,                          // → trending_id, anchors the build
+        name:     p.label,
+        category: p.badge || 'Winning product',
+        emoji:    '📦',
+        image:    p.image,
+        cost:     Number(p.cost || 0),
+        price:    Number(p.price || 0),
+        rating:   p.rating || 4.8
+      }));
+    });
+}
+
+function dsLoadProductsJson(){
+  return fetch('products.json?v=' + Math.floor(Math.random()*1e9))
+    .then(r=>r.ok ? r.json() : null)
+    .then(j=>{
+      const list = Array.isArray(j) ? j : (j && j.products);
+      if(!list || !list.length) return Promise.reject();
+      return list.filter(p=>p && p.name);
+    });
+}
+
+/* Warm the product photos so swiping through the picker is instant instead of
+   fetching each image at the moment it's shown. The first few load right away;
+   the rest follow a beat later so they don't compete with the opening screens. */
+function dsPreloadImages(list){
+  const warm = p => {
+    if(!p || !p.image) return;
+    const im = new Image();
+    im.decoding = 'async';
+    im.src = p.image;
+  };
+  list.slice(0, 8).forEach(warm);
+  setTimeout(()=>list.slice(8).forEach(warm), 1500);
+}
+
+dsLoadProducts()
+  .catch(dsLoadProductsJson)
+  .then(list=>{
+    if(list && list.length){
+      PRODUCTS = list;
+      dsPreloadImages(list);
+    }
   })
   .catch(()=>{});
 
@@ -1753,7 +1848,14 @@ function fillPick(p, i){
   document.getElementById('pickNum').textContent = i+1;
   document.getElementById('pickTotal').textContent = PRODUCTS.length;
   const dots = document.getElementById('pickDots');
-  dots.innerHTML = PRODUCTS.map((_,j)=>'<i class="'+(j===i?'on':'')+'"></i>').join('');
+  if(PRODUCTS.length <= 12){
+    dots.className = 'pick-dots';
+    dots.innerHTML = PRODUCTS.map((_,j)=>'<i class="'+(j===i?'on':'')+'"></i>').join('');
+  } else {
+    // 38 dots doesn't fit a phone — show progress through the set instead.
+    dots.className = 'pick-prog';
+    dots.innerHTML = '<i style="width:'+Math.round(((i+1)/PRODUCTS.length)*100)+'%"></i>';
+  }
 }
 
 function enterPick(){
@@ -1812,6 +1914,44 @@ function resetChoice(){ chosen = null; }
    EMAIL / CLAIM
    ============================================================ */
 let userEmail = '';
+
+/* ---- DropStart build state -------------------------------------------- */
+let dsBuild = null;        // {project_id, resume_url, status_url} once started
+let dsStatus = null;       // last status payload once the store is ready
+let dsBuildError = null;   // set if the build could not be started
+
+/* Stable anonymous id, so every step of this visitor's journey stitches
+   together in the funnel report (and links to the build they start). */
+function dsCid(){
+  try{
+    let c = localStorage.getItem('ds_cid');
+    if(!c){
+      c = 'q-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('ds_cid', c);
+    }
+    return c;
+  }catch(e){ return 'q-' + Date.now().toString(36); }
+}
+
+function dsCookie(n){
+  const m = document.cookie.match('(^|;)\\s*' + n + '\\s*=\\s*([^;]+)');
+  return m ? m.pop() : undefined;
+}
+
+/* Funnel step tracking — fired from onEnter(). */
+const DS_STEPS = {
+  's-intro':1,'s-q1':2,'s-q2':3,'s-q3':4,'s-q4':5,'s-q5':6,
+  's-scan':7,'s-pick':8,'s-email':9,'s-build':10,'s-preview':11,'s-done':12
+};
+function dsTrack(id){
+  if(!DS_LIVE || !DS_STEPS[id]) return;
+  fetch(DS_API + '/track', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    body: JSON.stringify({ cid: dsCid(), step: DS_STEPS[id], source_url: location.href })
+  }).catch(()=>{});
+}
+
 function emailCheck(){
   const v = document.getElementById('emailInput').value.trim();
   const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
@@ -1842,6 +1982,33 @@ function startBuild(e){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(lead)
     }).catch(()=>{});
+  }
+
+  // Start the REAL build now, so it runs while the build animation plays.
+  // runBuild() waits on this before opening the preview.
+  if(DS_LIVE){
+    dsBuild = null; dsStatus = null; dsBuildError = null;
+    fetch(DS_API + '/build', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      body: JSON.stringify({
+        email:        userEmail,
+        what_to_sell: chosen ? chosen.name : '',
+        trending_id:  (chosen && chosen.dsId) || undefined,
+        audience:     answers.goal || undefined,
+        store_style:  'modern',
+        cid:          dsCid(),
+        source_url:   location.href,
+        fbp:          dsCookie('_fbp'),
+        fbc:          dsCookie('_fbc')
+      })
+    })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.ok) dsBuild = j;
+      else dsBuildError = (j && j.error) || 'We could not start your build.';
+    })
+    .catch(()=>{ dsBuildError = 'We could not reach the store builder.'; });
   }
 
   go('s-build');
@@ -1904,7 +2071,32 @@ function runBuild(){
     coinRain(1200);
     vibrate([20,80,20,80,30]);
   }, 8200);
-  setTimeout(()=>go('s-preview'), 9700);
+  // The sequence above runs ~9.7s; a real store takes a bit longer than that,
+  // so hold here until it's genuinely ready rather than opening an empty
+  // preview. Falls through to the mock if the build failed or takes too long.
+  setTimeout(()=>dsWaitThenPreview(), 9700);
+}
+
+function dsWaitThenPreview(startedAt){
+  if(!DS_LIVE || dsBuildError || dsStatus) return go('s-preview');
+  startedAt = startedAt || Date.now();
+
+  // build request still in flight
+  if(!dsBuild){
+    if(Date.now() - startedAt > 20000) return go('s-preview');
+    return setTimeout(()=>dsWaitThenPreview(startedAt), 1000);
+  }
+  if(Date.now() - startedAt > 180000) return go('s-preview');
+
+  fetch(dsBuild.status_url, { headers: { 'X-Express-Key': DS_KEY } })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.ready){ dsStatus = j; return go('s-preview'); }
+      const lbl = document.getElementById('buildLabel');
+      if(lbl && j && j.status_text) lbl.textContent = j.status_text.replace(/^I'm\s+/,'');
+      setTimeout(()=>dsWaitThenPreview(startedAt), 3000);
+    })
+    .catch(()=>setTimeout(()=>dsWaitThenPreview(startedAt), 3000));
 }
 
 /* ============================================================
@@ -1919,16 +2111,32 @@ function slugOf(name){
 function runPreview(){
   if(previewRan) return; previewRan = true;
   const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
-  const slug = slugOf(p.name);
-  document.getElementById('pvProdName').textContent = p.name;
+  // Once a real store exists, use its AI-generated brand name for the header
+  // and URL rather than a slug of the product.
+  const brand = (dsStatus && dsStatus.store_name) || p.name;
+  const slug = slugOf(brand);
+  document.getElementById('pvProdName').textContent = brand;
   document.getElementById('pvUrl').textContent = slug + '.myshopify.com';
 
   const slot = document.getElementById('previewSlot');
-  if(PREVIEW_URL){
+  let waitFor = null; // element whose load we await before the tour starts
+  if(dsStatus && dsStatus.preview_image){
+    // The actual store we just built — a full-page shot they can scroll.
+    const img = document.createElement('img');
+    img.src = dsStatus.preview_image;
+    img.alt = brand + ' store preview';
+    img.style.cssText = 'width:100%;display:block';
+    slot.appendChild(img);
+    waitFor = img;
+  } else if(PREVIEW_URL){
     const f = document.createElement('iframe');
     f.src = PREVIEW_URL.replace('{{PRODUCT}}', encodeURIComponent(slug));
     f.loading = 'eager';
+    // Tall render surface so the slot can pan over the store — works even
+    // when the iframe is cross-origin (we never touch its insides).
+    f.style.height = '2800px';
     slot.appendChild(f);
+    waitFor = f;
   } else {
     slot.innerHTML = mockStore(p);
   }
@@ -1941,6 +2149,106 @@ function runPreview(){
   confettiBurst(window.innerWidth/2, 130, 110);
   coinCannon(window.innerWidth/2, window.innerHeight*0.35);
   vibrate([16,60,16]);
+
+  startStoreTour(slot, waitFor);
+}
+
+/* ============================================================
+   CINEMATIC AUTO-TOUR
+   The preview scrolls itself through the store — hero, product page,
+   reviews, checkout — with synced checkmark captions, so nobody has to
+   know how to scroll to see 100% of what the AI built. The instant the
+   visitor touches the preview, the tour bows out and hands them control.
+   ============================================================ */
+const TOUR_STOPS = [
+  {at:0.00, label:'Your storefront',                ico:'🏪'},
+  {at:0.30, label:'AI-written product page',        ico:'✍️'},
+  {at:0.62, label:'Real customer reviews',          ico:'⭐'},
+  {at:0.96, label:'Checkout — supplier connected',  ico:'🔒'}
+];
+let tourStopFlag = false;
+
+function startStoreTour(slot, waitFor){
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  tourStopFlag = false;
+
+  // the visitor taking over ends the tour instantly
+  const takeOver = ()=>{ tourStopFlag = true; hideTourChip(); };
+  ['pointerdown','wheel','touchstart'].forEach(ev=>
+    slot.addEventListener(ev, takeOver, {once:true, passive:true}));
+
+  // wait for the preview content (image/iframe) to load, capped at 3.5s
+  const begin = ()=>setTimeout(()=>runTour(slot), 800);
+  if(waitFor){
+    let began = false;
+    const once = ()=>{ if(!began){ began = true; begin(); } };
+    waitFor.addEventListener('load', once);
+    setTimeout(once, 3500);
+  } else {
+    begin();
+  }
+}
+
+function runTour(slot){
+  if(tourStopFlag) return;
+  const span = slot.scrollHeight - slot.clientHeight;
+  if(span < 120){ return; } // nothing meaningful to tour
+  document.getElementById('scrollHint').classList.add('gone');
+
+  let i = 0;
+  const nextStop = ()=>{
+    if(tourStopFlag) return;
+    if(i >= TOUR_STOPS.length){
+      // glide home and hand over the keys
+      glideTo(slot, 0, 1700, ()=>{
+        if(tourStopFlag) return;
+        showTourChip('👆', "It's all yours — take a look", true);
+        setTimeout(hideTourChip, 2600);
+      });
+      return;
+    }
+    const stop = TOUR_STOPS[i++];
+    glideTo(slot, stop.at * span, i === 1 ? 400 : 2300, ()=>{
+      if(tourStopFlag) return;
+      showTourChip('✓', stop.label);
+      playDing(); vibrate(8);
+      setTimeout(()=>{ hideTourChip(); setTimeout(nextStop, 250); }, 1650);
+    });
+  };
+  nextStop();
+}
+
+/* rAF scroll glide with easing; any user touch aborts via tourStopFlag */
+function glideTo(slot, target, dur, done){
+  const from = slot.scrollTop, delta = target - from, t0 = performance.now();
+  (function step(t){
+    if(tourStopFlag) return;
+    const p = Math.min(1, (t - t0) / dur);
+    const e = p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2; // easeInOutCubic
+    slot.scrollTop = from + delta * e;
+    if(p < 1) requestAnimationFrame(step);
+    else if(done) done();
+  })(performance.now());
+}
+
+function showTourChip(ico, label, gold){
+  let chip = document.getElementById('tourChip');
+  if(!chip){
+    chip = document.createElement('div');
+    chip.id = 'tourChip';
+    chip.className = 'tour-chip';
+    chip.innerHTML = '<span class="tc-ok" id="tourChipIco"></span><span id="tourChipTxt"></span>';
+    document.querySelector('.pv-frame').appendChild(chip);
+  }
+  chip.classList.toggle('gold-chip', !!gold);
+  document.getElementById('tourChipIco').textContent = ico;
+  document.getElementById('tourChipTxt').textContent = label;
+  chip.classList.remove('on'); void chip.offsetWidth; chip.classList.add('on');
+}
+
+function hideTourChip(){
+  const chip = document.getElementById('tourChip');
+  if(chip) chip.classList.remove('on');
 }
 
 /* generated mock storefront — placeholder until the real preview is wired in */
@@ -1999,10 +2307,27 @@ function claimStore(e){
   flashPulse();
   vibrate([20,60,20,60,40]);
   if(CHECKOUT_URL){
-    const url = CHECKOUT_URL
+    // Payment happens HERE, on our own Stripe. The built store's id rides along
+    // as client_reference_id (and {{STORE_ID}} if you'd rather place it in the
+    // URL yourself) so the payment can be tied back to the store that was
+    // built — that's what lets DropStart pick the buyer up for the Shopify
+    // setup once the charge clears.
+    let url = CHECKOUT_URL
       .replace('{{PRODUCT}}', encodeURIComponent(slugOf(chosen?chosen.name:'store')))
-      .replace('{{EMAIL}}', encodeURIComponent(userEmail||''));
+      .replace('{{EMAIL}}', encodeURIComponent(userEmail||''))
+      .replace('{{STORE_ID}}', encodeURIComponent(dsBuild ? dsBuild.project_id : ''));
+
+    const params = [];
+    if(dsBuild) params.push('client_reference_id=' + encodeURIComponent(dsBuild.project_id));
+    if(userEmail) params.push('prefilled_email=' + encodeURIComponent(userEmail));
+    if(params.length && url.indexOf('client_reference_id=') === -1){
+      url += (url.indexOf('?') > -1 ? '&' : '?') + params.join('&');
+    }
+
     setTimeout(()=>{ window.location.href = url; }, 1300);
+  } else if(dsBuild && dsBuild.resume_url){
+    // No checkout configured — fall back to the store preview.
+    setTimeout(()=>{ window.location.href = dsBuild.resume_url; }, 1300);
   } else {
     setTimeout(()=>{ claimed = false; btn.textContent = 'Claim My Store — $1 🔓'; go('s-done'); }, 1300);
   }
