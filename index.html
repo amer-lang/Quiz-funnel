@@ -710,6 +710,118 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 
 /* ============================================================
+   STORE PREVIEW + $1 CLAIM
+   ============================================================ */
+.pv-frame{
+  position:relative;border-radius:18px;overflow:hidden;
+  border:1px solid var(--line-strong);background:#fff;
+  box-shadow:0 30px 80px -22px rgba(0,0,0,.8),0 0 0 4px rgba(255,201,60,.12);
+}
+.pv-urlbar{
+  display:flex;align-items:center;gap:8px;padding:10px 13px;
+  background:var(--card-2);border-bottom:1px solid var(--line);
+}
+.pv-urlbar .pv-dots{display:flex;gap:4px;flex-shrink:0}
+.pv-urlbar .pv-dots i{width:9px;height:9px;border-radius:50%}
+.pv-urlbar .pv-dots i:nth-child(1){background:#EF4444}
+.pv-urlbar .pv-dots i:nth-child(2){background:#FFC93C}
+.pv-urlbar .pv-dots i:nth-child(3){background:#22C55E}
+.pv-url{
+  flex:1;display:flex;align-items:center;gap:6px;justify-content:center;
+  font-size:.72rem;font-weight:700;color:var(--muted);
+  background:rgba(255,255,255,.06);border-radius:8px;padding:6px 10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pv-live{
+  flex-shrink:0;display:flex;align-items:center;gap:5px;
+  font-size:.62rem;font-weight:800;letter-spacing:.06em;color:#7CF0A9;
+  background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);
+  padding:4px 9px;border-radius:999px;
+}
+.pv-live i{width:6px;height:6px;border-radius:50%;background:#22C55E;animation:blip 1.3s ease infinite}
+/* the scrollable store preview — developer drops the real preview in here */
+.pv-scroll{
+  height:clamp(320px,46vh,520px);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:#fff;overscroll-behavior:contain;
+}
+.pv-scroll iframe{display:block;width:100%;height:100%;border:0}
+.scroll-hint{
+  position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  display:flex;align-items:center;gap:7px;pointer-events:none;z-index:3;
+  background:rgba(7,11,21,.85);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,201,60,.5);color:var(--gold);
+  font-size:.74rem;font-weight:800;padding:8px 15px;border-radius:999px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+  animation:hintBob 1.6s ease infinite;transition:opacity .4s;
+}
+@keyframes hintBob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+.scroll-hint.gone{opacity:0}
+
+/* mock store shown until the real preview is wired in (light theme = real site feel) */
+.ms{font-family:'Plus Jakarta Sans',sans-serif;color:#111827;background:#fff;text-align:left}
+.ms-announce{background:#111827;color:#fff;font-size:.66rem;font-weight:700;text-align:center;padding:8px 10px;letter-spacing:.04em}
+.ms-nav{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid #F3F4F6;font-weight:800;font-size:.95rem}
+.ms-cart{position:relative;font-size:1.1rem}
+.ms-cart b{position:absolute;top:-6px;right:-9px;background:#EF4444;color:#fff;font-size:.55rem;width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.ms-hero{padding:20px 16px 6px;text-align:center}
+.ms-img{
+  border-radius:16px;overflow:hidden;margin-bottom:14px;aspect-ratio:1/.82;
+  display:flex;align-items:center;justify-content:center;font-size:5rem;
+  background:radial-gradient(circle at 65% 30%,#FEF3C7,transparent 55%),radial-gradient(circle at 30% 75%,#DBEAFE,transparent 55%),#F8FAFC;
+}
+.ms-img img{width:100%;height:100%;object-fit:cover}
+.ms-name{font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin-bottom:4px}
+.ms-stars{font-size:.78rem;color:#6B7280;margin-bottom:10px}
+.ms-stars b{color:#F59E0B;letter-spacing:.05em}
+.ms-price{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:13px}
+.ms-price .now{font-weight:800;font-size:1.45rem}
+.ms-price .was{color:#9CA3AF;text-decoration:line-through;font-size:.95rem;font-weight:600}
+.ms-price .save{background:#FEE2E2;color:#DC2626;font-size:.64rem;font-weight:800;padding:4px 9px;border-radius:999px}
+.ms-buy{
+  display:block;width:100%;padding:15px;border:none;border-radius:13px;cursor:pointer;
+  background:#111827;color:#fff;font-weight:800;font-size:.95rem;margin-bottom:9px;
+}
+.ms-fast{font-size:.72rem;color:#DC2626;font-weight:700;margin-bottom:14px}
+.ms-trust{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;padding:0 14px 18px}
+.ms-trust span{font-size:.64rem;font-weight:700;color:#374151;background:#F3F4F6;padding:6px 11px;border-radius:999px}
+.ms-sec{padding:20px 18px;border-top:1px solid #F3F4F6}
+.ms-sec .ic{font-size:1.9rem;display:block;margin-bottom:8px}
+.ms-sec h4{font-weight:800;font-size:1.02rem;margin-bottom:5px;letter-spacing:-.01em}
+.ms-sec p{font-size:.83rem;color:#6B7280;line-height:1.6}
+.ms-rev{padding:20px 18px;border-top:1px solid #F3F4F6;background:#FAFAFA}
+.ms-rev h4{font-weight:800;font-size:1.02rem;margin-bottom:12px}
+.ms-rcard{background:#fff;border:1px solid #F3F4F6;border-radius:13px;padding:13px 14px;margin-bottom:9px}
+.ms-rcard .st{color:#F59E0B;font-size:.72rem;letter-spacing:.06em;margin-bottom:4px}
+.ms-rcard p{font-size:.8rem;color:#374151;line-height:1.55;margin-bottom:5px}
+.ms-rcard small{font-size:.68rem;color:#9CA3AF;font-weight:700}
+.ms-rcard small b{color:#16A34A}
+.ms-footer{padding:18px;text-align:center;border-top:1px solid #F3F4F6;font-size:.68rem;color:#9CA3AF}
+
+/* fixed claim bar — always on screen, no scrolling needed */
+.claim-bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
+  padding:12px 20px calc(14px + env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,var(--bg) 62%,rgba(7,11,21,.85) 85%,transparent);
+}
+.claim-bar.show{display:block;animation:claimUp .5s cubic-bezier(.34,1.4,.64,1)}
+@keyframes claimUp{from{transform:translateY(90px);opacity:0}to{transform:none;opacity:1}}
+.claim-inner{max-width:520px;margin:0 auto}
+.claim-sub{
+  margin-top:8px;text-align:center;font-size:.74rem;color:var(--muted);font-weight:600;
+}
+.claim-sub b{color:#7CF0A9}
+.price-slash{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:9px;
+  font-size:.8rem;font-weight:700;color:var(--muted);
+}
+.price-slash .was{text-decoration:line-through;color:#F87171}
+.price-slash .tag{
+  background:rgba(255,201,60,.14);border:1px solid rgba(255,201,60,.45);color:var(--gold);
+  font-size:.66rem;font-weight:800;padding:3px 10px;border-radius:999px;letter-spacing:.05em;
+}
+
+/* ============================================================
    DONE SCREEN
    ============================================================ */
 .done-check{
@@ -757,6 +869,15 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <canvas id="fx"></canvas>
 <div class="flash" id="flash"></div>
 <div class="toast" id="toast"><span id="toastIco">✓</span><span id="toastTxt"></span></div>
+
+<!-- fixed $1 claim bar — visible without scrolling while the preview screen is active -->
+<div class="claim-bar" id="claimBar">
+  <div class="claim-inner">
+    <div class="price-slash"><span class="was">$49</span><span>today just</span><span class="tag">✨ $1 UNLOCK</span></div>
+    <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $1 🔓</button>
+    <p class="claim-sub"><b>$1 today</b> · 3-day full access · then $49/mo · cancel anytime</p>
+  </div>
+</div>
 
 <div class="shell">
 
@@ -1207,25 +1328,46 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
       </div>
     </section>
 
-    <!-- ======================= 13 · DONE ======================= -->
+    <!-- ======================= 13 · STORE PREVIEW + $1 CLAIM ======================= -->
+    <section class="screen" id="s-preview" style="justify-content:flex-start;padding-bottom:150px">
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> Fresh out of the oven</div>
+      <h2 class="one-line">Meet your store 👀</h2>
+      <p class="sub" style="margin-bottom:16px;font-size:.9rem">Built around <strong id="pvProdName">your product</strong> — scroll through it below. This is exactly what your customers will see.</p>
+
+      <div class="pv-frame">
+        <div class="pv-urlbar">
+          <span class="pv-dots"><i></i><i></i><i></i></span>
+          <span class="pv-url">🔒 <span id="pvUrl">yourstore.myshopify.com</span></span>
+          <span class="pv-live"><i></i>PREVIEW</span>
+        </div>
+        <!-- DEVELOPER: this is the preview container.
+             Option A: set PREVIEW_URL in the CONFIG block below and an iframe fills this slot.
+             Option B: replace the contents of #previewSlot with your own preview markup.
+             The slot scrolls internally; the claim bar stays fixed on screen. -->
+        <div class="pv-scroll" id="previewSlot"></div>
+        <div class="scroll-hint" id="scrollHint">Scroll your store 👇</div>
+      </div>
+    </section>
+
+    <!-- ======================= 14 · DONE ======================= -->
     <section class="screen" id="s-done">
       <div class="done-check">✓</div>
       <div class="kicker green" style="align-self:center"><span class="dot"></span> Store in production</div>
-      <h2>Your <span class="gold-text" id="doneName">Aurora Sunset Lamp</span> store is being built! 🎉</h2>
+      <h2>Your <span class="gold-text" id="doneName">Aurora Sunset Lamp</span> store is almost yours! 🎉</h2>
       <p class="sub">Here's what happens next:</p>
 
       <div class="done-steps">
         <div class="done-step" id="dn1">
           <span class="n">1</span>
-          <p><b>Your store preview lands in your inbox</b> — we're sending it to <b id="doneEmail">you@email.com</b>. Watch for it.</p>
+          <p><b>Check your inbox</b> — we're sending your store link and claim instructions to <b id="doneEmail">you@email.com</b>.</p>
         </div>
         <div class="done-step" id="dn2">
           <span class="n">2</span>
-          <p><b>Preview it 100% free.</b> Click around, feel it out — it's your store, built to convert.</p>
+          <p><b>Complete the <span class="gold-b">$1 unlock</span></b> — 3 days of full access, then $49/mo. Cancel anytime.</p>
         </div>
         <div class="done-step" id="dn3">
           <span class="n">3</span>
-          <p><b>Love it?</b> Claim it with the <span class="gold-b">$1 three-day trial</span> ($49/mo after) and it goes live on Shopify — ready for orders.</p>
+          <p><b>Go live on Shopify</b> — supplier connected, checkout ready, open for orders.</p>
         </div>
       </div>
 
@@ -1245,6 +1387,14 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 // Optional: POST chosen product + email here (Formspree / Zapier / your API).
 // Leave empty to skip network calls.
 const EMAIL_ENDPOINT = '';
+// DEVELOPER: real store preview. If set, an iframe with this URL fills the
+// preview container ({{PRODUCT}} is replaced with a slug of the chosen product).
+// If empty, a generated mock storefront shows instead.
+const PREVIEW_URL = '';
+// DEVELOPER: $1 checkout link (Stripe/Shopify). If set, the claim button
+// redirects here ({{PRODUCT}} and {{EMAIL}} are replaced). If empty, the
+// funnel continues to the confirmation screen.
+const CHECKOUT_URL = '';
 // Products are loaded from products.json (manage them in admin.html).
 // If the fetch fails (e.g. previewing the file directly), these defaults show.
 const FALLBACK_PRODUCTS = [
@@ -1267,7 +1417,7 @@ let streakCount = 0;
 const PROGRESS = {
   's-landing':4,'s-intro':10,'s-q1':20,'s-q2':29,'s-q3':38,'s-q4':46,
   's-dropship':51,'s-q5':56,'s-reality':64,'s-blueprint':72,'s-scan':80,
-  's-pick':88,'s-email':93,'s-build':97,'s-done':100
+  's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-done':100
 };
 
 function setBar(id){
@@ -1305,7 +1455,7 @@ function goBack(){
 }
 
 function updateBack(){
-  const noBack = ['s-landing','s-scan','s-pick','s-build','s-done'];
+  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-done'];
   document.getElementById('backBtn').style.display =
     (noBack.includes(current) || !history.length) ? 'none' : 'flex';
 }
@@ -1317,7 +1467,9 @@ function onEnter(id){
   if(id==='s-blueprint') runBlueprint();
   if(id==='s-pick') enterPick();
   if(id==='s-build') runBuild();
+  if(id==='s-preview') runPreview();
   if(id==='s-done') runDone();
+  document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
 }
 
 /* ============================================================
@@ -1745,14 +1897,115 @@ function runBuild(){
   setTimeout(()=>{
     const orb = document.getElementById('buildOrb');
     orb.classList.remove('gold'); orb.classList.add('done'); orb.textContent = '✓';
-    document.getElementById('buildTitle').textContent = 'Store queued!';
-    label.textContent = 'your preview is on its way';
+    document.getElementById('buildTitle').textContent = 'Store ready!';
+    label.textContent = 'opening your preview…';
     playTada();
     confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 130);
     coinRain(1200);
     vibrate([20,80,20,80,30]);
   }, 8200);
-  setTimeout(()=>go('s-done'), 9700);
+  setTimeout(()=>go('s-preview'), 9700);
+}
+
+/* ============================================================
+   STORE PREVIEW + $1 CLAIM
+   ============================================================ */
+let previewRan = false;
+
+function slugOf(name){
+  return (name||'your-store').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+function runPreview(){
+  if(previewRan) return; previewRan = true;
+  const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
+  const slug = slugOf(p.name);
+  document.getElementById('pvProdName').textContent = p.name;
+  document.getElementById('pvUrl').textContent = slug + '.myshopify.com';
+
+  const slot = document.getElementById('previewSlot');
+  if(PREVIEW_URL){
+    const f = document.createElement('iframe');
+    f.src = PREVIEW_URL.replace('{{PRODUCT}}', encodeURIComponent(slug));
+    f.loading = 'eager';
+    slot.appendChild(f);
+  } else {
+    slot.innerHTML = mockStore(p);
+  }
+
+  // hide the scroll hint after they scroll the preview
+  const hint = document.getElementById('scrollHint');
+  slot.addEventListener('scroll', ()=>hint.classList.add('gone'), {once:true, passive:true});
+
+  playTada();
+  confettiBurst(window.innerWidth/2, 130, 110);
+  coinCannon(window.innerWidth/2, window.innerHeight*0.35);
+  vibrate([16,60,16]);
+}
+
+/* generated mock storefront — placeholder until the real preview is wired in */
+function mockStore(p){
+  const brand = (p.name||'Your Store').split(' ')[0];
+  const price = Number(p.price).toFixed(2);
+  const wasP = (Math.ceil(Number(p.price)*1.8)-0.01).toFixed(2);
+  const save = Math.round((1 - p.price/(Math.ceil(p.price*1.8)-0.01))*100);
+  const heroImg = p.image
+    ? `<img src="${p.image}" alt="${p.name}">`
+    : (p.emoji||'📦');
+  return `
+  <div class="ms">
+    <div class="ms-announce">🚚 FREE Shipping + ${save}% OFF — Today Only</div>
+    <div class="ms-nav"><span>${brand}™</span><span class="ms-cart">🛒<b>1</b></span></div>
+    <div class="ms-hero">
+      <div class="ms-img">${heroImg}</div>
+      <div class="ms-name">${p.name}</div>
+      <div class="ms-stars"><b>★★★★★</b> 4.9 · 2,347 verified reviews</div>
+      <div class="ms-price">
+        <span class="now">$${price}</span>
+        <span class="was">$${wasP}</span>
+        <span class="save">SAVE ${save}%</span>
+      </div>
+      <button class="ms-buy">ADD TO CART — $${price}</button>
+      <div class="ms-fast">🔥 Selling fast — ${p.sold||200}+ ordered today</div>
+    </div>
+    <div class="ms-trust">
+      <span>✅ 30-Day Guarantee</span><span>🚚 Fast Free Shipping</span><span>🔒 Secure Checkout</span>
+    </div>
+    <div class="ms-sec"><span class="ic">⚡</span><h4>Feel the difference from day one</h4>
+      <p>Engineered to solve the problem your customers are already searching for — this section sells the transformation, not the product.</p></div>
+    <div class="ms-sec"><span class="ic">🎯</span><h4>Designed to convert</h4>
+      <p>Every block on this page — headline, photos, reviews, urgency — is placed by the AI in the order proven to turn visitors into buyers.</p></div>
+    <div class="ms-sec"><span class="ic">📦</span><h4>Shipped for you, automatically</h4>
+      <p>Orders route straight to your connected supplier. You never touch a box — the profit lands with you.</p></div>
+    <div class="ms-rev">
+      <h4>What customers say</h4>
+      <div class="ms-rcard"><div class="st">★★★★★</div><p>"Ordered Monday, arrived Thursday. Quality is honestly better than I expected."</p><small>Jessica M. · <b>✓ Verified Buyer</b></small></div>
+      <div class="ms-rcard"><div class="st">★★★★★</div><p>"Bought one for me and one as a gift. Both were a hit."</p><small>Darius K. · <b>✓ Verified Buyer</b></small></div>
+      <div class="ms-rcard"><div class="st">★★★★★</div><p>"This is my second order. Obsessed."</p><small>Amelia R. · <b>✓ Verified Buyer</b></small></div>
+    </div>
+    <div class="ms-footer">© ${brand}™ · Built with Sell Products AI ⚡</div>
+  </div>`;
+}
+
+let claimed = false;
+function claimStore(e){
+  if(claimed) return; claimed = true;
+  initAudio(); playCoin(); playTada();
+  const btn = e.target;
+  btn.textContent = 'Unlocking your store… 🔓';
+  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.85);
+  confettiBurst(window.innerWidth/2, window.innerHeight*0.5, 120);
+  coinRain(1300);
+  flashPulse();
+  vibrate([20,60,20,60,40]);
+  if(CHECKOUT_URL){
+    const url = CHECKOUT_URL
+      .replace('{{PRODUCT}}', encodeURIComponent(slugOf(chosen?chosen.name:'store')))
+      .replace('{{EMAIL}}', encodeURIComponent(userEmail||''));
+    setTimeout(()=>{ window.location.href = url; }, 1300);
+  } else {
+    setTimeout(()=>{ claimed = false; btn.textContent = 'Claim My Store — $1 🔓'; go('s-done'); }, 1300);
+  }
 }
 
 /* ============================================================
