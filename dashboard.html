@@ -142,7 +142,8 @@ canvas{width:100%;display:block}
     <div class="htitle">Funnel dashboard</div>
     <div class="spacer"></div>
     <div class="sources">
-      <button class="chip on" id="srcDevice" onclick="setSource('device')">This device</button>
+      <button class="chip on" id="srcLive" onclick="setSource('live')">● Live (all visitors)</button>
+      <button class="chip" id="srcDevice" onclick="setSource('device')">This device</button>
       <button class="chip" onclick="document.getElementById('fileIn').click()">Import JSON/CSV</button>
       <button class="chip" onclick="connectEndpoint()">Endpoint</button>
       <button class="chip demo" id="srcDemo" onclick="setSource('demo')">Demo data</button>
@@ -214,9 +215,13 @@ async function sha256(s){
 }
 async function unlock(e){
   if(e) e.preventDefault();
-  const h = await sha256(document.getElementById('pw').value);
+  const pw = document.getElementById('pw').value;
+  const h = await sha256(pw);
   if(h === PW_HASH){
-    try{ sessionStorage.setItem('spdash_key', h); }catch(err){}
+    try{
+      sessionStorage.setItem('spdash_key', h);
+      sessionStorage.setItem('spdash_rkey', await sha256('read:' + pw)); // live API read key
+    }catch(err){}
     openGate();
   } else {
     const c = document.getElementById('lockCard');
@@ -233,9 +238,28 @@ function openGate(){
 try{ if(sessionStorage.getItem('spdash_key') === PW_HASH){ window.addEventListener('DOMContentLoaded', openGate); } }catch(e){}
 
 /* ---------------- data sources ---------------- */
-let SOURCE = 'device';        // device | demo | import | endpoint
+let SOURCE = 'live';          // live | device | demo | import | endpoint
 let RANGE_DAYS = 30;
 let IMPORTED = [];
+let LIVE_ERROR = '';
+
+async function liveEvents(){
+  LIVE_ERROR = '';
+  const rkey = (()=>{ try{ return sessionStorage.getItem('spdash_rkey') || ''; }catch(e){ return ''; } })();
+  if(!rkey){ LIVE_ERROR = 'Re-enter the password to load live data (read key missing).'; return []; }
+  try{
+    const days = RANGE_DAYS > 0 ? RANGE_DAYS : 60;
+    const r = await fetch('/api/collect?key=' + rkey + '&days=' + days, { cache: 'no-store' });
+    if(r.status === 503){ LIVE_ERROR = 'Collector is deployed but not initialized yet.'; return []; }
+    if(r.status === 403){ LIVE_ERROR = 'Live API rejected the key — re-enter the password.'; return []; }
+    if(!r.ok){ LIVE_ERROR = 'Live API error (' + r.status + ').'; return []; }
+    const j = await r.json();
+    return Array.isArray(j) ? j.filter(e => e.sid !== 'selftest') : [];
+  }catch(err){
+    LIVE_ERROR = 'Could not reach /api/collect — are you opening the dashboard on sellproducts.ai?';
+    return [];
+  }
+}
 
 const STEPS = [
   ['s-landing','Landing'],['s-intro','Intro'],['s-q1','Question 1'],['s-q2','Question 2'],['s-q3','Question 3'],
@@ -329,6 +353,7 @@ function parseCsv(txt){
 }
 function setSource(s){
   SOURCE = s;
+  document.getElementById('srcLive').classList.toggle('on', s === 'live');
   document.getElementById('srcDevice').classList.toggle('on', s === 'device');
   document.getElementById('srcDemo').classList.toggle('on', s === 'demo');
   render();
@@ -342,7 +367,8 @@ function setRange(d, btn){
 /* ---------------- rendering ---------------- */
 async function getEvents(){
   let ev;
-  if(SOURCE === 'demo') ev = demoEvents();
+  if(SOURCE === 'live') ev = await liveEvents();
+  else if(SOURCE === 'demo') ev = demoEvents();
   else if(SOURCE === 'import') ev = IMPORTED;
   else if(SOURCE === 'endpoint') ev = await endpointEvents();
   else ev = deviceEvents();
@@ -357,7 +383,13 @@ const uniq = (ev, pred) => new Set(ev.filter(pred).map(e => e.sid)).size;
 async function render(){
   const ev = await getEvents();
   document.getElementById('demoBadge').classList.toggle('show', SOURCE === 'demo');
-  document.getElementById('emptyState').classList.toggle('show', ev.length === 0 && SOURCE !== 'demo');
+  const empty = document.getElementById('emptyState');
+  empty.classList.toggle('show', ev.length === 0 && SOURCE !== 'demo');
+  if(SOURCE === 'live' && ev.length === 0){
+    empty.innerHTML = LIVE_ERROR
+      ? '<b>Live data problem:</b><br>' + LIVE_ERROR
+      : '<b>Connected — no visitor events in this range yet.</b><br>As traffic hits sellproducts.ai, every session shows up here. Tap "Demo data" to preview the widgets.';
+  }
 
   const S = id => uniq(ev, e => e.e === 'screen' && e.v === id);
   const E = name => uniq(ev, e => e.e === name);

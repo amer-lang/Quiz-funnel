@@ -2256,13 +2256,23 @@ const DS_STEPS = {
    each event to SP_EVENTS_URL (leave '' to disable). Additive only —
    does not touch DropStart tracking.
    ============================================================ */
-const SP_EVENTS_URL = '';
+const SP_EVENTS_URL = '/api/collect';
+let spQueue = [], spFlushTimer = null;
 function spSid(){
   try{
     let s = localStorage.getItem('sp_sid');
     if(!s){ s = Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sp_sid', s); }
     return s;
   }catch(e){ return 'anon'; }
+}
+function spFlush(){
+  if(!SP_EVENTS_URL || !spQueue.length) return;
+  try{
+    const payload = JSON.stringify({ sid: spSid(), events: spQueue.splice(0, 200) });
+    const sent = navigator.sendBeacon &&
+      navigator.sendBeacon(SP_EVENTS_URL, new Blob([payload], { type: 'application/json' }));
+    if(!sent) fetch(SP_EVENTS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: payload, keepalive:true }).catch(()=>{});
+  }catch(err){}
 }
 function spLog(e, v){
   try{
@@ -2271,9 +2281,17 @@ function spLog(e, v){
     arr.push(ev);
     if(arr.length > 4000) arr.splice(0, arr.length - 4000);
     localStorage.setItem('sp_events', JSON.stringify(arr));
-    if(SP_EVENTS_URL && navigator.sendBeacon) navigator.sendBeacon(SP_EVENTS_URL, JSON.stringify(ev));
+    if(SP_EVENTS_URL && /^https?:/.test(location.protocol)){
+      spQueue.push({ t: ev.t, e: ev.e, v: ev.v });
+      clearTimeout(spFlushTimer);
+      spFlushTimer = setTimeout(spFlush, 8000);
+      // money-path events shouldn't wait for the timer
+      if(spQueue.length >= 25 || e === 'email_submitted' || e === 'claim_click' || e === 'paid_1dollar' || e === 'paid_upsell') spFlush();
+    }
   }catch(err){}
 }
+addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') spFlush(); });
+addEventListener('pagehide', spFlush);
 
 function dsTrack(id){
   if(!DS_LIVE || !DS_STEPS[id]) return;
