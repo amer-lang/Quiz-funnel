@@ -93,10 +93,50 @@ canvas{width:100%;display:block}
 .pill-ok{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.62rem;font-weight:800;background:rgba(34,197,94,.14);color:#7CF0A9;border:1px solid rgba(34,197,94,.35)}
 .pill-no{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.62rem;font-weight:800;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
 #fileIn{display:none}
+/* ---------- password gate ---------- */
+#lock{
+  position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 70% at 50% -10%,#0E1830 0%,var(--bg) 55%);
+}
+.lock-card{
+  width:min(92vw,360px);text-align:center;padding:34px 26px;
+  background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line-strong);border-radius:20px;
+}
+.lock-card .ic{
+  width:52px;height:52px;border-radius:14px;margin:0 auto 14px;font-size:24px;
+  background:var(--grad-brand);display:flex;align-items:center;justify-content:center;
+}
+.lock-card h2{font-size:1.05rem;font-weight:800;margin-bottom:4px}
+.lock-card p{font-size:.78rem;color:var(--muted);margin-bottom:18px}
+.lock-card input{
+  width:100%;padding:13px 15px;border-radius:12px;margin-bottom:10px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--text);
+  font:inherit;font-size:.95rem;text-align:center;letter-spacing:.12em;outline:none;
+}
+.lock-card input:focus{border-color:var(--blue)}
+.lock-card button{
+  width:100%;padding:13px;border:none;border-radius:12px;cursor:pointer;
+  background:var(--grad-brand);color:#fff;font:inherit;font-size:.9rem;font-weight:800;
+}
+.lock-card .err{display:none;color:var(--red);font-size:.74rem;font-weight:700;margin-top:10px}
+.lock-card.no .err{display:block}
+.lock-card.no{animation:lockShake .4s}
+@keyframes lockShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-5px)}}
+#gate-hidden{display:none}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div id="lock">
+  <form class="lock-card" id="lockCard" onsubmit="return unlock(event)">
+    <div class="ic">🔒</div>
+    <h2>Private dashboard</h2>
+    <p>Enter the password to view funnel analytics.</p>
+    <input type="password" id="pw" placeholder="password" autocomplete="current-password" autofocus>
+    <button type="submit">Unlock</button>
+    <div class="err">Wrong password.</div>
+  </form>
+</div>
+<div class="wrap" id="gate-hidden">
   <header>
     <div class="logo"><span class="ic">🛍️</span>Sell Products <span class="ai">AI</span></div>
     <div class="htitle">Funnel dashboard</div>
@@ -162,6 +202,36 @@ canvas{width:100%;display:block}
 
 <script>
 'use strict';
+/* ---------------- password gate ----------------
+   Only the SHA-256 fingerprint of the password lives in this file.
+   To change the password: open the browser console on this page and run
+     sha256('your-new-password').then(console.log)
+   then replace PW_HASH below with the printed value. */
+const PW_HASH = '8927f78d8e1888c18bc3d447f27a84196a621c6a5fe59a9993815669a601f63e';
+async function sha256(s){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+async function unlock(e){
+  if(e) e.preventDefault();
+  const h = await sha256(document.getElementById('pw').value);
+  if(h === PW_HASH){
+    try{ sessionStorage.setItem('spdash_key', h); }catch(err){}
+    openGate();
+  } else {
+    const c = document.getElementById('lockCard');
+    c.classList.remove('no'); void c.offsetWidth; c.classList.add('no');
+    document.getElementById('pw').select();
+  }
+  return false;
+}
+function openGate(){
+  document.getElementById('lock').remove();
+  document.getElementById('gate-hidden').style.display = 'block';
+  render();
+}
+try{ if(sessionStorage.getItem('spdash_key') === PW_HASH){ window.addEventListener('DOMContentLoaded', openGate); } }catch(e){}
+
 /* ---------------- data sources ---------------- */
 let SOURCE = 'device';        // device | demo | import | endpoint
 let RANGE_DAYS = 30;
