@@ -10,8 +10,28 @@ const AC_URL = 'https://sellproducts.api-us1.com';
 const AC_KEY = 'd84c8bf84307d5b159099552ae63a16a92af944cac522e0ff3ea8ece4bae99b7350dab92';
 const TEST_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
 
+// Payment verification (same backend the funnel itself uses)
+const DS_API = 'https://chat.dropstart.app/api/express';
+const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+
 const STAGE_LIST = { optin: 5, unlocked: 6, videoads: 7 };
 const OK_ORIGINS = /^https:\/\/(www\.)?sellproducts\.ai$/;
+
+/* Paid stages require a Stripe checkout-session id that the payment backend
+   confirms as PAID. Presence of return-URL params is NOT proof of payment —
+   failed charges can bounce back through the same URLs. */
+async function verifyPaid(cs){
+  if(!cs || typeof cs !== 'string' || cs.length > 300) return false;
+  try{
+    const r = await fetch(DS_API + '/verify-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Express-Key': DS_KEY },
+      body: JSON.stringify({ cs })
+    });
+    const j = await r.json().catch(() => ({}));
+    return !!(j && j.ok && j.paid);
+  }catch(err){ return false; } // verification unreachable → fail CLOSED
+}
 
 async function ac(path, method, body){
   const r = await fetch(AC_URL + path, {
@@ -38,6 +58,12 @@ module.exports = async (req, res) => {
         const r = await ac('/api/3/lists/' + id);
         out[stage] = { listId: id, name: r.ok && r.j.list ? r.j.list.name : ('ERROR ' + r.status) };
       }
+      if((req.query || {}).verifytest){
+        // key-gated: exercise the payment-verification call with any cs and
+        // report the raw outcome — never subscribes anyone.
+        const paid = await verifyPaid(String(req.query.verifytest === '1' ? (req.query.cs || 'cs_test_bogus') : req.query.verifytest));
+        return res.status(200).json({ ok: true, verifiedPaid: paid });
+      }
       let wrote = null;
       if((req.query || {}).write === '1'){
         // exercise the REAL write path with a test contact into the opt-in list
@@ -62,6 +88,13 @@ module.exports = async (req, res) => {
       const stage = body && String(body.stage || '');
       const listId = STAGE_LIST[stage];
       if(!listId || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(204).end();
+
+      // Money lists demand a server-verified PAID Stripe session — no cs or a
+      // failed/unverifiable charge means no list add, full stop.
+      if(stage === 'unlocked' || stage === 'videoads'){
+        const paid = await verifyPaid(body.cs);
+        if(!paid) return res.status(204).end();
+      }
 
       const sync = await ac('/api/3/contact/sync', 'POST', { contact: { email } });
       const contactId = sync.ok && sync.j.contact ? sync.j.contact.id : null;

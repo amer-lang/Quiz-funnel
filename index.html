@@ -2295,7 +2295,7 @@ addEventListener('pagehide', spFlush);
 
 /* ActiveCampaign bridge — server-side at /api/lead (the key never ships here).
    optin → list 5 · unlocked ($1 paid) → list 6 · videoads ($299 paid) → list 7 */
-function spLead(stage, email){
+function spLead(stage, email, cs){
   try{
     if(!email){
       try{ email = (JSON.parse(localStorage.getItem('spai_lead') || '{}').email) || ''; }catch(e){ email = ''; }
@@ -2303,7 +2303,7 @@ function spLead(stage, email){
     if(!email || !/^https?:/.test(location.protocol)) return;
     fetch('/api/lead', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email: email, stage: stage }), keepalive: true
+      body: JSON.stringify({ email: email, stage: stage, cs: cs || null }), keepalive: true
     }).catch(()=>{});
   }catch(err){}
 }
@@ -3027,7 +3027,7 @@ function dsResumeAfterPayment(){
     // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
     window.dsFire && window.dsFire('Purchase', { value: 1, currency: 'USD' }, 'purchase_' + j.project_id);
     spLog('paid_1dollar', j.project_id);
-    spLead('unlocked'); // → ActiveCampaign list 6
+    spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
     if(j.unlocked){ /* already fully done — nothing to upsell */ }
     dsPaidCs = cs;
     dsBuild  = { ok:true, project_id: j.project_id };
@@ -3054,7 +3054,7 @@ function dsResumeAfterUpsell(){
   if(dsBuild && dsBuild.project_id && q.get('upsell_cs')){
     window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' }, 'upsell_purchase_' + dsBuild.project_id);
     spLog('paid_upsell', dsBuild.project_id);
-    spLead('videoads'); // → ActiveCampaign list 7
+    spLead('videoads', null, q.get('upsell_cs')); // → AC list 7 only if the $299 session verifies as PAID
   }
   dsFinalize({ upsell_cs: q.get('upsell_cs') || '' }); // → s-done with the setup link
   return true;
