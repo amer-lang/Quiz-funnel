@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Sell Products AI — Funnel Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B15;--card:#0C1424;--card-2:#101B31;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.16);
+  --text:#F5F8FF;--muted:#93A0BC;
+  --blue:#3B82F6;--green:#22C55E;--gold:#FFC93C;--gold-deep:#F59E0B;--red:#F87171;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(120% 70% at 50% -10%,#0E1830 0%,var(--bg) 55%);
+  color:var(--text);min-height:100vh;padding:22px 16px 60px;
+}
+.wrap{max-width:1060px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.05rem}
+.logo .ic{width:30px;height:30px;border-radius:8px;background:var(--grad-brand);display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo .ai{background:var(--grad-money);color:#241500;border-radius:6px;padding:1px 6px;font-size:.8rem;font-weight:800;transform:rotate(-3deg)}
+.htitle{font-size:.8rem;color:var(--muted);font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-left:2px}
+.spacer{flex:1}
+.ranges,.sources{display:flex;gap:6px;flex-wrap:wrap}
+.chip{
+  border:1px solid var(--line-strong);background:var(--card);color:var(--muted);
+  font:inherit;font-size:.76rem;font-weight:700;padding:7px 13px;border-radius:999px;cursor:pointer;transition:.15s;
+}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--grad-brand);color:#fff;border-color:transparent}
+.chip.demo.on{background:var(--grad-money);color:#241500}
+.badge-demo{
+  display:none;margin:0 0 14px;padding:9px 14px;border-radius:12px;font-size:.8rem;font-weight:700;
+  background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.45);color:var(--gold);
+}
+.badge-demo.show{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px;margin-bottom:14px}
+.tile{
+  background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line);
+  border-radius:var(--radius);padding:14px 15px;
+}
+.tile .k{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.tile .v{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .s{font-size:.7rem;color:var(--muted);font-weight:600;margin-top:3px}
+.tile.gold .v{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.tile.green .v{color:#7CF0A9}
+.tile.blue .v{color:#8EC5FF}
+.cards{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.cards{grid-template-columns:1.35fr 1fr}}
+.card{
+  background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px 16px 14px;min-width:0;
+}
+.card h3{font-size:.8rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:13px;display:flex;align-items:center;gap:8px}
+.card h3 .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(34,197,94,.8)}
+.full{grid-column:1/-1}
+.frow{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.fname{width:118px;flex-shrink:0;font-size:.76rem;font-weight:700;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fbarbox{flex:1;height:22px;border-radius:7px;background:rgba(255,255,255,.045);overflow:hidden;position:relative}
+.fbar{height:100%;border-radius:7px;background:var(--grad-brand);min-width:2px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+.frow.money .fbar{background:var(--grad-money)}
+.fnum{width:56px;flex-shrink:0;font-size:.78rem;font-weight:800;font-variant-numeric:tabular-nums}
+.fpct{width:62px;flex-shrink:0;font-size:.7rem;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.fpct.bad{color:var(--red)}
+.fpct.good{color:#7CF0A9}
+canvas{width:100%;display:block}
+.tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.tbl th{font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 8px 8px}
+.tbl td{padding:8px;border-top:1px solid var(--line);font-weight:600}
+.tbl td.num{font-variant-numeric:tabular-nums;font-weight:800}
+.tbl tr td:last-child,.tbl tr th:last-child{text-align:right}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.mini{grid-template-columns:1fr}}
+.abar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.abar .al{width:120px;flex-shrink:0;font-size:.72rem;font-weight:700;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abar .ab{flex:1;height:14px;border-radius:5px;background:rgba(255,255,255,.045);overflow:hidden}
+.abar .ab i{display:block;height:100%;border-radius:5px;background:var(--grad-brand)}
+.abar .an{width:34px;font-size:.72rem;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.empty{
+  text-align:center;padding:40px 20px;color:var(--muted);font-size:.88rem;line-height:1.7;
+  border:1px dashed var(--line-strong);border-radius:var(--radius);margin-bottom:14px;display:none;
+}
+.empty.show{display:block}
+.empty b{color:var(--text)}
+.note{font-size:.7rem;color:var(--muted);margin-top:16px;line-height:1.6;text-align:center}
+.pill-ok{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.62rem;font-weight:800;background:rgba(34,197,94,.14);color:#7CF0A9;border:1px solid rgba(34,197,94,.35)}
+.pill-no{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.62rem;font-weight:800;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
+#fileIn{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><span class="ic">🛍️</span>Sell Products <span class="ai">AI</span></div>
+    <div class="htitle">Funnel dashboard</div>
+    <div class="spacer"></div>
+    <div class="sources">
+      <button class="chip on" id="srcDevice" onclick="setSource('device')">This device</button>
+      <button class="chip" onclick="document.getElementById('fileIn').click()">Import JSON/CSV</button>
+      <button class="chip" onclick="connectEndpoint()">Endpoint</button>
+      <button class="chip demo" id="srcDemo" onclick="setSource('demo')">Demo data</button>
+    </div>
+    <div class="ranges">
+      <button class="chip" data-r="1" onclick="setRange(1,this)">Today</button>
+      <button class="chip" data-r="7" onclick="setRange(7,this)">7d</button>
+      <button class="chip on" data-r="30" onclick="setRange(30,this)">30d</button>
+      <button class="chip" data-r="0" onclick="setRange(0,this)">All</button>
+    </div>
+  </header>
+  <input type="file" id="fileIn" accept=".json,.csv" multiple onchange="importFiles(this.files)">
+
+  <div class="badge-demo" id="demoBadge">⚠️ You're looking at DEMO DATA — sample numbers so you can see how every widget works. Switch to "This device" or import real events to see reality.</div>
+
+  <div class="empty" id="emptyState">
+    <b>No events yet from this source.</b><br>
+    Data appears here three ways:<br>
+    1 — <b>This device:</b> every visit to the funnel in THIS browser logs its journey automatically (open the funnel, click around, refresh here).<br>
+    2 — <b>Import:</b> drop a JSON or CSV export of events (columns: t, sid, e, v).<br>
+    3 — <b>Endpoint:</b> point the dashboard at a URL that returns the event array, and set SP_EVENTS_URL in index.html so every visitor's events flow there.<br><br>
+    Tap <b>Demo data</b> to preview the dashboard with sample numbers.
+  </div>
+
+  <div class="grid" id="tiles"></div>
+
+  <div class="cards">
+    <div class="card full">
+      <h3><span class="dot"></span>Funnel — unique visitors reaching each step</h3>
+      <div id="funnel"></div>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Daily trend</h3>
+      <canvas id="trend" height="190"></canvas>
+      <div class="note" style="margin-top:8px;text-align:left" id="trendLegend"></div>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Quiz answers</h3>
+      <div class="mini" id="answers"></div>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Products — shown vs chosen</h3>
+      <table class="tbl"><thead><tr><th>Product</th><th>Views</th><th>Chosen</th><th>Choose rate</th></tr></thead><tbody id="prodRows"></tbody></table>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Recent sessions</h3>
+      <table class="tbl"><thead><tr><th>Started</th><th>Furthest step</th><th>Email</th><th>Paid</th></tr></thead><tbody id="sessRows"></tbody></table>
+    </div>
+  </div>
+
+  <p class="note">
+    Events come from the funnel's first-party logger (spLog in index.html). "This device" shows only this browser's traffic —
+    for all-visitor data, set SP_EVENTS_URL in index.html to a collection endpoint and connect it here.<br>
+    Money source-of-truth stays in Stripe; ad-attributed purchases in Meta Events Manager. This dashboard tracks the funnel's behavior.
+  </p>
+</div>
+
+<script>
+'use strict';
+/* ---------------- data sources ---------------- */
+let SOURCE = 'device';        // device | demo | import | endpoint
+let RANGE_DAYS = 30;
+let IMPORTED = [];
+
+const STEPS = [
+  ['s-landing','Landing'],['s-intro','Intro'],['s-q1','Question 1'],['s-q2','Question 2'],['s-q3','Question 3'],
+  ['s-q4','Question 4'],['s-q5','Question 5'],['s-reality','Reality check'],['s-blueprint','Blueprint'],
+  ['s-scan','AI scan'],['s-pick','Product pick'],['s-email','Email'],['s-build','Build'],['s-preview','Store preview']
+];
+const MONEY_STEPS = [
+  ['claim_click','$1 claim clicked'],['paid_1dollar','Paid $1 ✓'],['s-upsell','Upsell seen'],['paid_upsell','Upsell $299 ✓']
+];
+const ANSWER_LABELS = { goal:'Main goal', exp:'Experience', time:'Time available', ds:'Knows dropshipping', rev:'Dream revenue' };
+
+function deviceEvents(){
+  try{ return JSON.parse(localStorage.getItem('sp_events') || '[]'); }catch(e){ return []; }
+}
+/* Deterministic demo data: ~40 sessions/day for 30 days with realistic decay. */
+function demoEvents(){
+  const out = [];
+  let seed = 42;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const now = Date.now();
+  const prods = ['Aurora Sunset Lamp','MiniChef Chopper Pro','NeckRelax Pro Massager','GlowSkin LED Wand','FlexBand Home Gym','PawPro Grooming Kit'];
+  const stepP = [1,.72,.64,.58,.54,.5,.47,.42,.36,.33,.31,.14,.135,.13];       // reach probability per STEPS index
+  for(let d = 29; d >= 0; d--){
+    const n = 30 + Math.floor(rnd() * 22);
+    for(let s = 0; s < n; s++){
+      const sid = 'demo' + d + '_' + s;
+      let t = now - d * 864e5 - Math.floor(rnd() * 86340000);
+      const depth = rnd();
+      for(let i = 0; i < STEPS.length; i++){
+        if(depth > stepP[i]) break;
+        out.push({t: t += 5000 + rnd() * 40000, sid, e:'screen', v:STEPS[i][0]});
+        if(STEPS[i][0] === 's-q1') out.push({t: t += 2000, sid, e:'answer', v:'goal:' + ['Side income','Replace my 9–5','Freedom & travel','Build an empire'][Math.floor(rnd()*4)]});
+        if(STEPS[i][0] === 's-q2') out.push({t: t += 2000, sid, e:'answer', v:'exp:' + ['Total beginner','Tried before','Experienced'][Math.floor(rnd()*3)]});
+        if(STEPS[i][0] === 's-q5') out.push({t: t += 2000, sid, e:'answer', v:'rev:' + ['5000','10000','25000','50000'][Math.floor(rnd()*4)]});
+        if(STEPS[i][0] === 's-pick'){
+          const views = 1 + Math.floor(rnd() * 6);
+          for(let k = 0; k < views; k++) out.push({t: t += 4000, sid, e:'product_view', v:prods[Math.floor(rnd()*prods.length)]});
+        }
+        if(STEPS[i][0] === 's-email'){
+          out.push({t: t += 3000, sid, e:'product_choose', v:prods[Math.floor(rnd()*prods.length)]});
+          out.push({t: t += 8000, sid, e:'email_submitted', v:null});
+        }
+        if(STEPS[i][0] === 's-preview' && rnd() < .38){
+          out.push({t: t += 20000, sid, e:'claim_click', v:null});
+          if(rnd() < .62){
+            out.push({t: t += 60000, sid, e:'paid_1dollar', v:'demo'});
+            out.push({t: t += 4000,  sid, e:'screen', v:'s-upsell'});
+            if(rnd() < .18) out.push({t: t += 30000, sid, e:'paid_upsell', v:'demo'});
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+async function endpointEvents(){
+  const url = localStorage.getItem('spdash_endpoint') || '';
+  if(!url) return [];
+  try{
+    const r = await fetch(url, {cache:'no-store'});
+    const j = await r.json();
+    return Array.isArray(j) ? j : (j.events || []);
+  }catch(e){ alert('Could not fetch events from the endpoint.'); return []; }
+}
+function connectEndpoint(){
+  const cur = localStorage.getItem('spdash_endpoint') || '';
+  const url = prompt('Events endpoint URL (returns a JSON array of {t,sid,e,v}):', cur);
+  if(url === null) return;
+  localStorage.setItem('spdash_endpoint', url.trim());
+  if(url.trim()) setSource('endpoint'); else setSource('device');
+}
+function importFiles(files){
+  const readers = [...files].map(f => f.text().then(txt => {
+    if(f.name.toLowerCase().endsWith('.csv')) return parseCsv(txt);
+    const j = JSON.parse(txt);
+    return Array.isArray(j) ? j : (j.events || []);
+  }));
+  Promise.all(readers).then(all => {
+    IMPORTED = all.flat().filter(e => e && e.t && e.e);
+    setSource('import');
+  }).catch(() => alert('Could not parse that file — expected JSON array or CSV with t,sid,e,v columns.'));
+}
+function parseCsv(txt){
+  const lines = txt.trim().split(/\r?\n/);
+  const head = lines.shift().split(',').map(h => h.trim().toLowerCase());
+  const ti = head.indexOf('t'), si = head.indexOf('sid'), ei = head.indexOf('e'), vi = head.indexOf('v');
+  return lines.map(l => {
+    const c = l.split(',');
+    return { t:+c[ti], sid:c[si], e:c[ei], v:vi >= 0 ? (c[vi] || null) : null };
+  });
+}
+function setSource(s){
+  SOURCE = s;
+  document.getElementById('srcDevice').classList.toggle('on', s === 'device');
+  document.getElementById('srcDemo').classList.toggle('on', s === 'demo');
+  render();
+}
+function setRange(d, btn){
+  RANGE_DAYS = d;
+  document.querySelectorAll('.ranges .chip').forEach(c => c.classList.toggle('on', c === btn));
+  render();
+}
+
+/* ---------------- rendering ---------------- */
+async function getEvents(){
+  let ev;
+  if(SOURCE === 'demo') ev = demoEvents();
+  else if(SOURCE === 'import') ev = IMPORTED;
+  else if(SOURCE === 'endpoint') ev = await endpointEvents();
+  else ev = deviceEvents();
+  if(RANGE_DAYS > 0){
+    const cut = Date.now() - RANGE_DAYS * 864e5;
+    ev = ev.filter(e => e.t >= cut);
+  }
+  return ev.slice().sort((a,b) => a.t - b.t);
+}
+const uniq = (ev, pred) => new Set(ev.filter(pred).map(e => e.sid)).size;
+
+async function render(){
+  const ev = await getEvents();
+  document.getElementById('demoBadge').classList.toggle('show', SOURCE === 'demo');
+  document.getElementById('emptyState').classList.toggle('show', ev.length === 0 && SOURCE !== 'demo');
+
+  const S = id => uniq(ev, e => e.e === 'screen' && e.v === id);
+  const E = name => uniq(ev, e => e.e === name);
+  const visitors = new Set(ev.map(e => e.sid)).size;
+  const quizStart = S('s-q1'), quizDone = S('s-scan');
+  const emails = E('email_submitted'), previews = S('s-preview');
+  const claims = E('claim_click'), paid1 = E('paid_1dollar'), paid299 = E('paid_upsell');
+  const pct = (a,b) => b ? Math.round(a / b * 100) + '%' : '—';
+
+  const tiles = [
+    ['Visitors', visitors, RANGE_DAYS ? 'last ' + (RANGE_DAYS===1?'24h':RANGE_DAYS+' days') : 'all time', ''],
+    ['Quiz starts', quizStart, pct(quizStart, visitors) + ' of visitors', 'blue'],
+    ['Quiz completed', quizDone, pct(quizDone, quizStart) + ' of starts', 'blue'],
+    ['Emails captured', emails, pct(emails, visitors) + ' of visitors', 'green'],
+    ['Store previews', previews, pct(previews, emails) + ' of emails', 'blue'],
+    ['$1 claims clicked', claims, pct(claims, previews) + ' of previews', 'gold'],
+    ['Paid $1 ✓', paid1, pct(paid1, claims) + ' of claims', 'gold'],
+    ['Upsells $299 ✓', paid299, pct(paid299, paid1) + ' of buyers', 'gold'],
+    ['Revenue (verified)', '$' + (paid1 * 1 + paid299 * 299).toLocaleString(), paid1 + '×$1 + ' + paid299 + '×$299', 'gold'],
+    ['Trial MRR at stake', '$' + (paid1 * 49).toLocaleString(), paid1 + ' trials × $49/mo', 'green'],
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(t =>
+    `<div class="tile ${t[3]}"><div class="k">${t[0]}</div><div class="v">${t[1]}</div><div class="s">${t[2]}</div></div>`).join('');
+
+  /* funnel */
+  const rows = STEPS.map(s => ({ id:s[0], name:s[1], n:S(s[0]), money:false }))
+    .concat(MONEY_STEPS.map(s => ({ id:s[0], name:s[1], n:s[0].startsWith('s-') ? S(s[0]) : E(s[0]), money:true })));
+  const max = Math.max(1, ...rows.map(r => r.n));
+  let worst = -1, worstDrop = 0;
+  rows.forEach((r,i) => {
+    if(i > 0 && rows[i-1].n > 3){
+      const drop = 1 - r.n / rows[i-1].n;
+      if(drop > worstDrop){ worstDrop = drop; worst = i; }
+    }
+  });
+  document.getElementById('funnel').innerHTML = rows.map((r,i) => {
+    const prev = i ? rows[i-1].n : r.n;
+    const p = i === 0 ? '100%' : (prev ? Math.round(r.n / prev * 100) + '%' : '—');
+    const cls = i === worst ? 'bad' : (i && prev && r.n / prev >= .85 ? 'good' : '');
+    return `<div class="frow ${r.money ? 'money' : ''}">
+      <div class="fname">${r.name}</div>
+      <div class="fbarbox"><div class="fbar" style="width:${Math.max(2, r.n / max * 100)}%"></div></div>
+      <div class="fnum">${r.n.toLocaleString()}</div>
+      <div class="fpct ${cls}">${i === worst ? '▼ ' : ''}${p}</div>
+    </div>`;
+  }).join('') + `<div class="note" style="text-align:left;margin-top:10px">% = conversion from the previous step · ▼ marks your biggest leak · gold bars are money steps</div>`;
+
+  drawTrend(ev);
+  drawAnswers(ev);
+  drawProducts(ev);
+  drawSessions(ev);
+}
+
+function drawTrend(ev){
+  const days = Math.max(RANGE_DAYS === 1 ? 1 : RANGE_DAYS, 7) || 30;
+  const n = RANGE_DAYS === 0 ? 30 : days;
+  const buckets = [];
+  for(let i = n - 1; i >= 0; i--){
+    const d0 = new Date(); d0.setHours(0,0,0,0); d0.setDate(d0.getDate() - i);
+    const t0 = d0.getTime(), t1 = t0 + 864e5;
+    const slice = ev.filter(e => e.t >= t0 && e.t < t1);
+    buckets.push({
+      label: (d0.getMonth()+1) + '/' + d0.getDate(),
+      v: new Set(slice.map(e => e.sid)).size,
+      em: new Set(slice.filter(e => e.e === 'email_submitted').map(e => e.sid)).size,
+      pd: new Set(slice.filter(e => e.e === 'paid_1dollar').map(e => e.sid)).size
+    });
+  }
+  const cv = document.getElementById('trend');
+  const W = cv.clientWidth || 460, H = 190;
+  cv.width = W * 2; cv.height = H * 2;
+  const ctx = cv.getContext('2d'); ctx.scale(2,2); ctx.clearRect(0,0,W,H);
+  const maxV = Math.max(1, ...buckets.map(b => b.v));
+  const pad = 6, bw = (W - pad * 2) / buckets.length;
+  buckets.forEach((b,i) => {
+    const x = pad + i * bw;
+    const hv = (H - 26) * b.v / maxV;
+    ctx.fillStyle = 'rgba(59,130,246,.35)'; roundBar(ctx, x + 1, H - 18 - hv, Math.max(2, bw - 3), hv);
+    const he = (H - 26) * b.em / maxV;
+    ctx.fillStyle = 'rgba(34,197,94,.8)'; roundBar(ctx, x + 1, H - 18 - he, Math.max(2, bw - 3), he);
+    const hp = (H - 26) * b.pd / maxV;
+    ctx.fillStyle = '#FFC93C'; roundBar(ctx, x + 1, H - 18 - hp, Math.max(2, bw - 3), hp);
+    if(buckets.length <= 14 || i % Math.ceil(buckets.length / 10) === 0){
+      ctx.fillStyle = 'rgba(147,160,188,.7)'; ctx.font = '600 8px Plus Jakarta Sans';
+      ctx.fillText(b.label, x + 1, H - 6);
+    }
+  });
+  document.getElementById('trendLegend').innerHTML =
+    '<span style="color:#8EC5FF">■ visitors</span> &nbsp; <span style="color:#7CF0A9">■ emails</span> &nbsp; <span style="color:#FFC93C">■ paid $1</span>';
+}
+function roundBar(ctx,x,y,w,h){ if(h <= 0) return; ctx.beginPath(); ctx.roundRect(x, y, w, h, 2); ctx.fill(); }
+
+function drawAnswers(ev){
+  const groups = {};
+  ev.filter(e => e.e === 'answer' && e.v && e.v.includes(':')).forEach(e => {
+    const i = e.v.indexOf(':'), k = e.v.slice(0,i), v = e.v.slice(i+1);
+    (groups[k] = groups[k] || {})[v] = (groups[k][v] || 0) + 1;
+  });
+  const el = document.getElementById('answers');
+  const keys = Object.keys(groups);
+  if(!keys.length){ el.innerHTML = '<div class="note" style="text-align:left">No quiz answers in range yet.</div>'; return; }
+  el.innerHTML = keys.map(k => {
+    const entries = Object.entries(groups[k]).sort((a,b) => b[1] - a[1]);
+    const max = entries[0][1];
+    return `<div><div style="font-size:.7rem;font-weight:800;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">${ANSWER_LABELS[k] || k}</div>` +
+      entries.map(([v,n]) => `<div class="abar"><div class="al" title="${v}">${k === 'rev' ? '$' + Number(v).toLocaleString() + '/mo' : v}</div><div class="ab"><i style="width:${n / max * 100}%"></i></div><div class="an">${n}</div></div>`).join('') + '</div>';
+  }).join('');
+}
+
+function drawProducts(ev){
+  const views = {}, chosen = {};
+  ev.forEach(e => {
+    if(e.e === 'product_view' && e.v) views[e.v] = (views[e.v] || 0) + 1;
+    if(e.e === 'product_choose' && e.v) chosen[e.v] = (chosen[e.v] || 0) + 1;
+  });
+  const names = [...new Set([...Object.keys(views), ...Object.keys(chosen)])]
+    .map(n => ({ n, v: views[n] || 0, c: chosen[n] || 0 }))
+    .sort((a,b) => b.c - a.c || b.v - a.v).slice(0, 12);
+  document.getElementById('prodRows').innerHTML = names.length
+    ? names.map(p => `<tr><td>${p.n}</td><td class="num">${p.v}</td><td class="num">${p.c}</td><td class="num">${p.v ? Math.round(p.c / p.v * 100) + '%' : '—'}</td></tr>`).join('')
+    : '<tr><td colspan="4" style="color:var(--muted)">No product events in range yet.</td></tr>';
+}
+
+function drawSessions(ev){
+  const by = {};
+  ev.forEach(e => (by[e.sid] = by[e.sid] || []).push(e));
+  const stepRank = Object.fromEntries(STEPS.map((s,i) => [s[0], i]));
+  const rows = Object.entries(by).map(([sid, list]) => {
+    const start = Math.min(...list.map(e => e.t));
+    let far = 'Landing', rank = -1;
+    list.forEach(e => { if(e.e === 'screen' && stepRank[e.v] > rank){ rank = stepRank[e.v]; far = STEPS[rank][1]; } });
+    if(list.some(e => e.e === 'paid_upsell')) far = 'Upsell $299 ✓';
+    else if(list.some(e => e.e === 'paid_1dollar')) far = 'Paid $1 ✓';
+    else if(list.some(e => e.e === 'claim_click')) far = '$1 claim clicked';
+    return { start, far,
+      email: list.some(e => e.e === 'email_submitted'),
+      paid: list.some(e => e.e === 'paid_1dollar' || e.e === 'paid_upsell') };
+  }).sort((a,b) => b.start - a.start).slice(0, 12);
+  document.getElementById('sessRows').innerHTML = rows.length
+    ? rows.map(r => `<tr><td>${new Date(r.start).toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})}</td><td>${r.far}</td><td>${r.email ? '<span class="pill-ok">YES</span>' : '<span class="pill-no">no</span>'}</td><td>${r.paid ? '<span class="pill-ok">PAID</span>' : '<span class="pill-no">no</span>'}</td></tr>`).join('')
+    : '<tr><td colspan="4" style="color:var(--muted)">No sessions in range yet.</td></tr>';
+}
+
+if(localStorage.getItem('spdash_endpoint')) SOURCE = 'endpoint';
+render();
+window.addEventListener('resize', () => render());
+</script>
+</body>
+</html>

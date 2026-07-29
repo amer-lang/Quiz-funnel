@@ -1805,6 +1805,7 @@ function onEnter(id){
   if(id==='s-done') runDone();
   document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
   dsTrack(id);
+  spLog('screen', id);
 }
 
 /* ============================================================
@@ -1849,6 +1850,7 @@ function answer(el, key, val, emoji, opts={}){
   if(answering) return; answering = true;
   initAudio();
   answers[key] = val;
+  spLog('answer', key + ':' + val);
 
   el.parentElement.querySelectorAll('.opt').forEach(o=>o.classList.remove('picked'));
   el.classList.add('picked');
@@ -2125,6 +2127,7 @@ function matchScore(i){ return 93 + ((i*37 + (answers.rev||'').length*7) % 6); }
 function stars(r){ const f=Math.round(r||4.8); return '★★★★★'.slice(0,f)+'☆☆☆☆☆'.slice(f); }
 
 function fillPick(p, i){
+  spLog('product_view', p.name);
   const box = document.getElementById('pImgBox');
   const old = box.querySelector('img'); if(old) old.remove();
   const em = document.getElementById('pEmoji');
@@ -2197,6 +2200,7 @@ function pickSkip(){
 function pickChoose(e){
   if(chosen) return;
   chosen = PRODUCTS[pIdx];
+  spLog('product_choose', chosen.name);
   initAudio(); playTada(); playCoin(); vibrate([15,50,15]);
   const r = e.target.getBoundingClientRect();
   confettiBurst(r.left + r.width/2, r.top, 90);
@@ -2246,6 +2250,31 @@ const DS_STEPS = {
   's-intro':1,'s-q1':2,'s-q2':3,'s-q3':4,'s-q4':5,'s-q5':6,
   's-scan':7,'s-pick':8,'s-email':9,'s-build':10,'s-preview':11,'s-done':12
 };
+/* ============================================================
+   FIRST-PARTY FUNNEL ANALYTICS — read by dashboard.html.
+   Ring buffer in this browser's localStorage; optionally beacons
+   each event to SP_EVENTS_URL (leave '' to disable). Additive only —
+   does not touch DropStart tracking.
+   ============================================================ */
+const SP_EVENTS_URL = '';
+function spSid(){
+  try{
+    let s = localStorage.getItem('sp_sid');
+    if(!s){ s = Date.now().toString(36) + Math.random().toString(36).slice(2,8); localStorage.setItem('sp_sid', s); }
+    return s;
+  }catch(e){ return 'anon'; }
+}
+function spLog(e, v){
+  try{
+    const ev = { t: Date.now(), sid: spSid(), e: e, v: (v==null ? null : String(v).slice(0,80)) };
+    const arr = JSON.parse(localStorage.getItem('sp_events') || '[]');
+    arr.push(ev);
+    if(arr.length > 4000) arr.splice(0, arr.length - 4000);
+    localStorage.setItem('sp_events', JSON.stringify(arr));
+    if(SP_EVENTS_URL && navigator.sendBeacon) navigator.sendBeacon(SP_EVENTS_URL, JSON.stringify(ev));
+  }catch(err){}
+}
+
 function dsTrack(id){
   if(!DS_LIVE || !DS_STEPS[id]) return;
   fetch(DS_API + '/track', {
@@ -2265,6 +2294,7 @@ function emailCheck(){
 
 function startBuild(e){
   userEmail = document.getElementById('emailInput').value.trim();
+  spLog('email_submitted');
   initAudio(); playCoin();
   coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6);
   vibrate(15);
@@ -2781,6 +2811,7 @@ function dsClosePay(){
 
 function claimStore(e){
   if(claimed) return; claimed = true;
+  spLog('claim_click');
   initAudio(); playCoin(); playTada();
   const btn = e.target;
   btn.textContent = 'Unlocking your store… 🔓';
@@ -2872,6 +2903,7 @@ function upsellHandoff(extra){
 }
 
 function upsellYes(){
+  spLog('upsell_click');
   initAudio(); playCoin(); vibrate([15,50,15]);
   // Open the $299 video-ads checkout as an in-page popup (same as the $1). It
   // pre-fills the card saved on the $1 subscription, so it's still one tap. On
@@ -2898,6 +2930,7 @@ function upsellYes(){
 
 function upsellNo(e){
   if(e) e.preventDefault();
+  spLog('upsell_decline');
   // Decline: settle the sale on our side (unlock the store) and land on THIS
   // funnel's final page with the "set up on Shopify" link — no cross-domain
   // redirect. dsFinalize handles the rest.
@@ -2959,6 +2992,7 @@ function dsResumeAfterPayment(){
     // whichever the buyer reaches, Meta counts it once. Fired here off the
     // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
     window.dsFire && window.dsFire('Purchase', { value: 1, currency: 'USD' }, 'purchase_' + j.project_id);
+    spLog('paid_1dollar', j.project_id);
     if(j.unlocked){ /* already fully done — nothing to upsell */ }
     dsPaidCs = cs;
     dsBuild  = { ok:true, project_id: j.project_id };
@@ -2984,6 +3018,7 @@ function dsResumeAfterUpsell(){
   // Meta Purchase for the $299 upsell — same onceKey as the /store page, deduped.
   if(dsBuild && dsBuild.project_id && q.get('upsell_cs')){
     window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' }, 'upsell_purchase_' + dsBuild.project_id);
+    spLog('paid_upsell', dsBuild.project_id);
   }
   dsFinalize({ upsell_cs: q.get('upsell_cs') || '' }); // → s-done with the setup link
   return true;
@@ -3208,6 +3243,7 @@ function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40
 /* boot */
 setBar('s-landing');
 updateBack();
+if(!/paid=1|upsold=1|resume=/.test(location.search)) spLog('screen', 's-landing');
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
 if(!dsResumeAfterUpsell() && !dsResumeAfterPayment()) dsResumeFromEmail();
