@@ -340,22 +340,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .big-stat .huge-label{font-size:1.05rem;font-weight:700;color:var(--text);margin-top:2px}
 .big-stat .huge-sub{font-size:.82rem;color:var(--muted);margin-top:6px}
 
-.scale-box{
-  background:linear-gradient(180deg,var(--card-2),var(--card));
-  border:1px solid var(--line);border-radius:var(--radius);
-  padding:18px;margin:20px 0 8px;
-}
-.scale-title{font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;text-align:center}
-.scale-bar{position:relative;height:26px;border-radius:99px;background:linear-gradient(90deg,#1E3A8A,#155E38);overflow:visible;margin-bottom:10px}
-.scale-you{
-  position:absolute;left:6%;top:-6px;bottom:-6px;width:3px;border-radius:3px;
-  background:var(--gold);box-shadow:0 0 14px 2px rgba(255,201,60,.8);
-}
-.scale-you::after{
-  content:'you 👀';position:absolute;top:-26px;left:50%;transform:translateX(-50%);
-  font-size:.68rem;font-weight:800;color:var(--gold);white-space:nowrap;
-}
-.scale-legend{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);font-weight:600}
 .fact-rows{display:flex;flex-direction:column;gap:10px;margin:16px 0 22px}
 .fact{
   display:flex;align-items:center;gap:12px;
@@ -382,7 +366,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 /* ============================================================
    BLUEPRINT
    ============================================================ */
-.bp{display:flex;flex-direction:column;margin-bottom:8px}
+.bp{display:flex;flex-direction:column;margin-bottom:4px}
 .bp-step{
   display:flex;gap:15px;opacity:0;transform:translateY(22px) scale(.97);
   transition:.55s cubic-bezier(.34,1.4,.64,1);
@@ -395,15 +379,15 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   background:var(--grad-brand);box-shadow:0 8px 22px -6px rgba(59,130,246,.55);
 }
 .bp-step:nth-child(3) .bp-dot{background:var(--grad-money);box-shadow:0 8px 22px -6px rgba(245,158,11,.55)}
-.bp-line{width:2px;flex:1;min-height:22px;background:var(--line-strong)}
+.bp-line{width:2px;flex:1;min-height:12px;background:var(--line-strong)}
 .bp-card{
-  flex:1;margin-bottom:16px;padding:16px 18px;border-radius:18px;
+  flex:1;margin-bottom:10px;padding:13px 15px;border-radius:18px;
   background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line);
 }
 .bp-card b{display:block;font-size:1rem;margin-bottom:4px}
-.bp-card p{font-size:.85rem;color:var(--muted);line-height:1.55}
+.bp-card p{font-size:.83rem;color:var(--muted);line-height:1.45}
 .bp-card .tag{
-  display:inline-block;margin-top:9px;padding:4px 11px;border-radius:999px;
+  display:inline-block;margin-top:7px;padding:4px 11px;border-radius:999px;
   font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
   background:rgba(34,197,94,.13);color:#7CF0A9;border:1px solid rgba(34,197,94,.3);
 }
@@ -412,11 +396,58 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .free-banner{
   display:flex;align-items:center;gap:12px;
   background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);
-  border-radius:16px;padding:14px 16px;margin-bottom:22px;
+  border-radius:16px;padding:12px 14px;margin-bottom:16px;
 }
 .free-banner .fb-ico{font-size:1.6rem}
-.free-banner p{font-size:.85rem;color:#C9E9D6;line-height:1.5}
+.free-banner p{font-size:.83rem;color:#C9E9D6;line-height:1.45}
 .free-banner b{color:#7CF0A9}
+
+/* Short viewports (browser chrome eats ~130px on real phones): compress the
+   blueprint + picker so their CTAs sit above the fold without scrolling. */
+@media (max-height:820px){
+  #s-blueprint .kicker{display:none}
+  #s-blueprint h2{font-size:1.28rem}
+  #s-blueprint .sub{margin-bottom:9px}
+  #s-blueprint .bp-dot{width:36px;height:36px;font-size:1rem}
+  #s-blueprint .bp-card{padding:10px 13px;margin-bottom:8px}
+  #s-blueprint .bp-card p{font-size:.77rem;line-height:1.38}
+  #s-blueprint .bp-card .tag{margin-top:5px;font-size:.62rem;padding:3px 9px}
+  #s-blueprint .bp-line{min-height:8px}
+  #s-blueprint .free-banner{margin-bottom:11px;padding:9px 12px}
+  #s-blueprint .free-banner p{font-size:.78rem}
+  #s-blueprint .cta-note{display:none}
+  #s-pick .kicker{display:none}
+  #s-pick h2{font-size:1.22rem;margin-bottom:6px}
+  #s-pick .sub{font-size:.8rem;margin-bottom:7px !important}
+  .pick-count{margin-bottom:6px}
+  .halo{margin-bottom:8px}
+  .pick-img{aspect-ratio:2.2/1}
+  .pick-img .emoji{font-size:3.4rem}
+  .pick-body{padding:10px 14px 12px}
+  .pick-name{font-size:1rem}
+  .pick-cat{margin-bottom:8px}
+  .pick-rows{gap:5px;margin-bottom:7px}
+  .pick-row{padding:7px 12px;font-size:.79rem}
+  .profit-row{padding:8px 12px;margin-bottom:9px}
+  .profit-val{font-size:1.2rem}
+  .act-blue{padding:11px;font-size:.88rem}
+  .act-red{padding:7px 6px;width:64px}
+}
+@media (max-height:700px){
+  #s-reality .kicker{display:none}
+  #s-reality h2{font-size:1.22rem}
+  #s-reality .huge{font-size:3.3rem}
+  #s-reality .big-stat .huge-sub{margin-top:3px}
+  #s-reality .fact{padding:9px 12px;font-size:.8rem}
+  #s-reality .fact-rows{gap:7px;margin:11px 0 14px}
+  #s-blueprint .sub{display:none}
+  #s-blueprint h2{font-size:1.15rem}
+  #s-blueprint .free-banner .fb-ico{display:none}
+  #s-pick .sub{display:none}
+  #s-pick h2{font-size:1.12rem;margin-bottom:8px}
+  .pick-img{aspect-ratio:2.5/1}
+  .pick-cat{display:none}
+}
 
 /* ============================================================
    LOADING SCREENS (AI scan + store build)
@@ -679,12 +710,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .act-blue:hover{transform:scale(1.02);box-shadow:0 10px 28px -8px rgba(59,130,246,.6)}
 .act-blue:active{transform:scale(.95)}
 @keyframes nudgeBlue{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.55)}55%{box-shadow:0 0 0 12px rgba(59,130,246,0)}}
-.pick-help{
-  display:flex;justify-content:center;gap:18px;margin-top:2px;
-  font-size:.72rem;color:var(--muted);font-weight:600;
-}
-.pick-help .r{color:#F87171}
-.pick-help .b{color:#8EC5FF}
 
 /* ============================================================
    EMAIL / CLAIM SCREEN
@@ -877,9 +902,9 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .screen-loading{background:linear-gradient(100deg,#E8EDF5 40%,#F8FAFF 50%,#E8EDF5 60%);background-size:200% 100%;animation:skel 1.2s linear infinite}
 @keyframes skel{to{background-position:-200% 0}}
 /* the monitor slowly pans through the full store — nobody has to scroll to see it all */
-.pan-layer{position:absolute;left:0;top:0;width:100%;will-change:transform;animation:screenPan 18s ease-in-out 1.4s infinite}
+.pan-layer{position:absolute;left:0;top:0;width:100%;will-change:transform;animation:screenPan 36s ease-in-out 1.8s infinite}
 .pan-layer img{width:100%;display:block}
-@keyframes screenPan{0%,8%{transform:translateY(0)}46%,58%{transform:translateY(var(--pan,0px))}94%,100%{transform:translateY(0)}}
+@keyframes screenPan{0%,14%{transform:translateY(0)}62%,72%{transform:translateY(var(--pan,0px))}96%,100%{transform:translateY(0)}}
 .cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
 
 .dev-monitor{position:relative;z-index:1;width:88%;margin:0 auto;animation:devUp .8s cubic-bezier(.34,1.3,.64,1) .1s both}
@@ -1085,6 +1110,23 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.15s !important}
 }
 </style>
+<!-- Meta Pixel (sellproducts.ai). Mirrors DropStart's dsFire so this funnel and
+     the /store page dedupe: same pixel id + eventID 'ds_<onceKey>'. -->
+<script>
+(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+window.DS_PIXEL_ID = '2291464791591164';
+fbq('init', window.DS_PIXEL_ID);
+// Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
+// with DropStart's dsFire (ds_<onceKey>) so funnel-side + /store-side dedupe.
+window.dsFire = window.dsFire || function(name, params, onceKey){
+  params = params || {};
+  var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
+  try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
+  (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
+};
+window.dsFire('PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
 </head>
 <body>
 
@@ -1365,12 +1407,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
         <div class="huge-sub">at a typical $65 order on a one-product store</div>
       </div>
 
-      <div class="scale-box">
-        <div class="scale-title">Your slice of daily online shopping</div>
-        <div class="scale-bar"><div class="scale-you"></div></div>
-        <div class="scale-legend"><span id="rcPct">0.0000017% — basically invisible</span><span>350M+ daily orders</span></div>
-      </div>
-
       <div class="fact-rows">
         <div class="fact" id="f1"><span class="f-ico">⚡</span><span><b>$200,000+</b> is spent online <b>every single second</b></span></div>
         <div class="fact" id="f2"><span class="f-ico">🌍</span><span><b>2.7 billion people</b> shop online. You need <b id="rcNeed">6</b> of them a day</span></div>
@@ -1393,7 +1429,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
           <div class="bp-rail"><div class="bp-dot">🏆</div><div class="bp-line"></div></div>
           <div class="bp-card">
             <b>1 · Pick your winning product</b>
-            <p>The AI shows you trending products one at a time — with the <strong>supplier already found</strong>, the suggested sale price, and your potential profit per sale. You pick <strong>ONE</strong>.</p>
+            <p>The AI shows you trending products — <strong>supplier found</strong>, price set, profit per sale shown. You pick <strong>ONE</strong>.</p>
             <span class="tag">You do this — right here, in 2 min</span>
           </div>
         </div>
@@ -1401,7 +1437,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
           <div class="bp-rail"><div class="bp-dot">🤖</div><div class="bp-line"></div></div>
           <div class="bp-card">
             <b>2 · AI builds your store &amp; connects the supplier</b>
-            <p>An insane one-product store, engineered to convert visitors into buyers — product page, branding, checkout, supplier wired in. <strong>You preview the whole thing free.</strong></p>
+            <p>A one-product store engineered to convert — branding, checkout, supplier wired in. <strong>You preview it free.</strong></p>
             <span class="tag">AI does this</span>
           </div>
         </div>
@@ -1409,7 +1445,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
           <div class="bp-rail"><div class="bp-dot">🚀</div></div>
           <div class="bp-card">
             <b>3 · Love it? Claim it &amp; go live</b>
-            <p>Only when you love your store: claim it with a <strong>$1 three-day trial</strong> ($49/mo after) and it goes live on Shopify — ready to take orders.</p>
+            <p>Claim it with a <strong>$1 three-day trial</strong> (then $49/mo) and it's live on Shopify — taking orders.</p>
             <span class="tag gold">You're officially in business</span>
           </div>
         </div>
@@ -1417,7 +1453,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
       <div class="free-banner">
         <span class="fb-ico">👀</span>
-        <p><b>You see your finished store BEFORE you pay.</b> If it doesn't blow you away, you walk — no charge, no hard feelings.</p>
+        <p><b>You see your finished store BEFORE you pay.</b> Don't love it? You walk — no charge.</p>
       </div>
 
       <button class="cta gold pulse" onclick="startScan(event)">Fire Up The AI 🤖</button>
@@ -1492,10 +1528,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
         </div>
       </div>
 
-      <div class="pick-help">
-        <span><span class="r">✕</span> = show me another</span>
-        <span><span class="b">Blue</span> = this is the one</span>
-      </div>
     </section>
 
     <!-- ======================= 11 · EMAIL / CLAIM ======================= -->
@@ -1642,10 +1674,15 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
         </div>
       </div>
 
-      <div class="free-banner">
+      <div class="free-banner" id="doneRisk">
         <span class="fb-ico">🍼</span>
         <p><b>Zero risk.</b> You pay nothing until you've seen your finished store and love it.</p>
       </div>
+
+      <!-- Post-payment: the button to finish on Shopify (sell domain). Shown
+           by runDone once a store is paid + finalized. -->
+      <button type="button" id="doneSetup" class="cta gold pulse" style="display:none;margin-top:6px" onclick="dsGoSetup(event)">Set up your store on Shopify →</button>
+      <p class="cta-note" id="doneSetupNote" style="display:none">Takes you to your store to connect Shopify and go live.</p>
     </section>
 
   </main>
@@ -1686,6 +1723,10 @@ const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
 const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: '6a4d92062406c7e3ffb37813' };
 const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 const DS_LIVE = true;
+// STRIPE TEST MODE: append ?test=<secret> to the URL and the whole payment flow
+// (checkout + upsell + go-live) runs on Stripe TEST keys — 4242 4242 4242 4242
+// works, nothing real is charged. Leave the URL param off for live payments.
+const DS_TEST = (new URLSearchParams(location.search).get('test')) || '';
 
 // Products are loaded from products.json (manage them in admin.html).
 // If the fetch fails (e.g. previewing the file directly), these defaults show.
@@ -1886,7 +1927,6 @@ function runReality(){
   const d = REALITY[rev] || REALITY['10000'];
   document.getElementById('rcGoal').textContent = '$'+Number(rev).toLocaleString();
   document.getElementById('rcNeed').textContent = d.sales;
-  document.getElementById('rcPct').textContent = d.pct+' — basically invisible';
 
   setTimeout(()=>{
     countUp(document.getElementById('rcSales'), 0, d.sales, 1100, v=>Math.round(v));
@@ -2239,6 +2279,7 @@ function startBuild(e){
     at: new Date().toISOString()
   };
   try{ localStorage.setItem('spai_lead', JSON.stringify(lead)); }catch(err){}
+  window.dsFire && window.dsFire('Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured
   if(EMAIL_ENDPOINT){
     fetch(EMAIL_ENDPOINT, {
       method:'POST',
@@ -2310,8 +2351,8 @@ function runBuild(){
     {at:3700, bar:60, line:2, mode:'doing', label:'writing copy that sells…', el:'se3'},
     {at:4900, bar:74, line:2, mode:'ok', ding:true, el:'se4'},
     {at:5300, bar:82, line:3, mode:'doing', label:'wiring checkout & fulfillment…', el:'se5'},
-    {at:6700, bar:96, line:3, mode:'ok', ding:true, el:'se6'},
-    {at:7300, bar:100, label:'final polish…'}
+    {at:6700, bar:94, line:3, mode:'ok', ding:true, el:'se6'},
+    {at:7300, bar:96, label:'final polish…'}
   ];
 
   seq.forEach(s=>{
@@ -2329,15 +2370,16 @@ function runBuild(){
     }, s.at);
   });
 
+  // Hold at ~96% and creep toward 99% while the real build finishes in the
+  // backend — the "Store ready!" celebration only fires from buildFinish(),
+  // once the preview is genuinely ready to show.
   setTimeout(()=>{
-    const orb = document.getElementById('buildOrb');
-    orb.classList.remove('gold'); orb.classList.add('done'); orb.textContent = '✓';
-    document.getElementById('buildTitle').textContent = 'Store ready!';
-    label.textContent = 'opening your preview…';
-    playTada();
-    confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 130);
-    coinRain(1200);
-    vibrate([20,80,20,80,30]);
+    let creep = 96;
+    const iv = setInterval(()=>{
+      if(buildFinished){ clearInterval(iv); return; }
+      creep = Math.min(creep + 0.5, 99.5);
+      fill.style.width = creep+'%';
+    }, 1200);
   }, 8200);
   // The sequence above runs ~9.7s; a real store takes a bit longer than that,
   // so hold here until it's genuinely ready rather than opening an empty
@@ -2345,16 +2387,35 @@ function runBuild(){
   setTimeout(()=>dsWaitThenPreview(), 9700);
 }
 
+/* The celebration + hand-off to the preview, fired only when the store can
+   actually be shown (or the fallback path decides to proceed). */
+let buildFinished = false;
+function buildFinish(){
+  if(buildFinished) return; buildFinished = true;
+  const fill = document.getElementById('buildFill');
+  const orb = document.getElementById('buildOrb');
+  if(fill) fill.style.width = '100%';
+  if(orb){ orb.classList.remove('gold'); orb.classList.add('done'); orb.textContent = '✓'; }
+  document.getElementById('buildTitle').textContent = 'Store ready!';
+  const lbl = document.getElementById('buildLabel');
+  if(lbl) lbl.textContent = 'opening your preview…';
+  playTada();
+  confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 130);
+  coinRain(1200);
+  vibrate([20,80,20,80,30]);
+  setTimeout(()=>go('s-preview'), 1500);
+}
+
 function dsWaitThenPreview(startedAt){
-  if(!DS_LIVE || dsBuildError || dsStatus) return go('s-preview');
+  if(!DS_LIVE || dsBuildError || dsStatus) return buildFinish();
   startedAt = startedAt || Date.now();
 
   // build request still in flight
   if(!dsBuild){
-    if(Date.now() - startedAt > 20000) return go('s-preview');
+    if(Date.now() - startedAt > 20000) return buildFinish();
     return setTimeout(()=>dsWaitThenPreview(startedAt), 1000);
   }
-  if(Date.now() - startedAt > 180000) return go('s-preview');
+  if(Date.now() - startedAt > 180000) return buildFinish();
 
   fetch(dsBuild.status_url, { headers: { 'X-Express-Key': DS_KEY } })
     .then(r=>r.json())
@@ -2366,7 +2427,7 @@ function dsWaitThenPreview(startedAt){
           dsBuild.store_name = j.store_name;
           try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(err){}
         }
-        return go('s-preview');
+        return buildFinish();
       }
       const lbl = document.getElementById('buildLabel');
       if(lbl && j && j.status_text) lbl.textContent = j.status_text.replace(/^I'm\s+/,'');
@@ -2678,6 +2739,46 @@ function mockStore(p){
 }
 
 let claimed = false;
+/* ---- In-page Stripe (embedded checkout) ------------------------------- */
+let _dsCheckout = null;
+function dsLoadStripeJs(){
+  return new Promise((res, rej)=>{
+    if(window.Stripe) return res();
+    const ex = document.querySelector('script[src*="js.stripe.com/v3"]');
+    if(ex){ ex.addEventListener('load', ()=>res()); ex.addEventListener('error', ()=>rej()); return; }
+    const s = document.createElement('script');
+    s.src = 'https://js.stripe.com/v3/';
+    s.onload = ()=>res(); s.onerror = ()=>rej();
+    document.head.appendChild(s);
+  });
+}
+async function dsOpenPay(clientSecret, pubKey, isTest){
+  try{
+    await dsLoadStripeJs();
+    const stripe = window.Stripe(pubKey);
+    const slot = document.getElementById('dsPayEmbed');
+    slot.innerHTML = '';
+    if(_dsCheckout){ try{ _dsCheckout.destroy(); }catch(e){} _dsCheckout = null; }
+    _dsCheckout = await stripe.initEmbeddedCheckout({ clientSecret });
+    _dsCheckout.mount('#dsPayEmbed');
+    document.getElementById('dsPayTest').style.display = isTest ? 'block' : 'none';
+    document.getElementById('dsPayModal').style.display = 'flex';
+    // On completion Stripe redirects the page to the return_url (?paid=1&cs=…).
+  }catch(err){
+    claimed = false;
+    const b = document.querySelector('#claimBar .cta, .claim-bar .cta, [onclick*="claimStore"]');
+    if(b) b.textContent = 'Claim My Store — $1 🔓';
+    showToast('⚠️','Couldn’t open payment — try again');
+  }
+}
+function dsClosePay(){
+  if(_dsCheckout){ try{ _dsCheckout.destroy(); }catch(e){} _dsCheckout = null; }
+  document.getElementById('dsPayModal').style.display = 'none';
+  claimed = false; // let them reopen
+  const b = document.querySelector('#claimBar .cta, .claim-bar .cta, [onclick*="claimStore"]');
+  if(b) b.textContent = 'Claim My Store — $1 🔓';
+}
+
 function claimStore(e){
   if(claimed) return; claimed = true;
   initAudio(); playCoin(); playTada();
@@ -2688,28 +2789,44 @@ function claimStore(e){
   coinRain(1300);
   flashPulse();
   vibrate([20,60,20,60,40]);
+  // Meta InitiateCheckout — they committed to the $1 unlock.
+  window.dsFire && window.dsFire('InitiateCheckout', { value: 1, currency: 'USD' },
+    'ic_' + ((dsBuild && dsBuild.project_id) || dsCid()));
+
+  // Live path: ask DropStart for an EMBEDDED Stripe checkout on this store. It
+  // creates the $1 / 3-day-trial / $49-mo subscription on the client's own
+  // Stripe (or the TEST account when ?test= is set), saves the card for the
+  // optional video-ads upsell, and returns a clientSecret we mount right here on
+  // the page. On completion Stripe returns to ?paid=1&cs=… (→ upsell).
+  if(DS_LIVE && dsBuild && dsBuild.project_id){
+    const body = { project_id: dsBuild.project_id, embedded: true };
+    if(DS_TEST) body.test = DS_TEST;
+    fetch(DS_API + '/checkout', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      body: JSON.stringify(body)
+    })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.embedded && j.client_secret){ return dsOpenPay(j.client_secret, j.publishable_key, !!j.test); }
+      if(j && j.checkout_url){ window.location.href = j.checkout_url; return; } // hosted fallback
+      if(j && j.already_unlocked && j.resume_url){ window.location.href = j.resume_url; return; }
+      throw new Error((j && j.error) || 'no checkout');
+    })
+    .catch(()=>{
+      claimed = false; btn.textContent = 'Claim My Store — $1 🔓';
+      showToast('⚠️','Couldn’t open checkout — try again');
+    });
+    return;
+  }
+
+  // Static fallbacks (DS_LIVE off, or a hand-configured CHECKOUT_URL).
   if(CHECKOUT_URL){
-    // Payment happens HERE, on our own Stripe. The built store's id rides along
-    // as client_reference_id (and {{STORE_ID}} if you'd rather place it in the
-    // URL yourself) so the payment can be tied back to the store that was
-    // built — that's what lets DropStart pick the buyer up for the Shopify
-    // setup once the charge clears.
     let url = CHECKOUT_URL
       .replace('{{PRODUCT}}', encodeURIComponent(slugOf(chosen?chosen.name:'store')))
       .replace('{{EMAIL}}', encodeURIComponent(userEmail||''))
       .replace('{{STORE_ID}}', encodeURIComponent(dsBuild ? dsBuild.project_id : ''));
-
-    const params = [];
-    if(dsBuild) params.push('client_reference_id=' + encodeURIComponent(dsBuild.project_id));
-    if(userEmail) params.push('prefilled_email=' + encodeURIComponent(userEmail));
-    if(params.length && url.indexOf('client_reference_id=') === -1){
-      url += (url.indexOf('?') > -1 ? '&' : '?') + params.join('&');
-    }
-
     setTimeout(()=>{ window.location.href = url; }, 1300);
-  } else if(dsBuild && dsBuild.resume_url){
-    // No checkout configured — fall back to the store preview.
-    setTimeout(()=>{ window.location.href = dsBuild.resume_url; }, 1300);
   } else {
     setTimeout(()=>{ claimed = false; btn.textContent = 'Claim My Store — $1 🔓'; go('s-done'); }, 1300);
   }
@@ -2719,7 +2836,8 @@ function claimStore(e){
    VIDEO ADS UPSELL — shown once the $1 charge clears
    ============================================================ */
 let upsellRan = false;
-let dsPaidCs = '';   // the checkout session Stripe hands back after payment
+let dsPaidCs = '';    // the checkout session Stripe hands back after payment
+let dsResumeUrl = '';  // signed sell-domain link to finish on Shopify (set by finalize)
 
 function runUpsell(){
   if(upsellRan) return; upsellRan = true;
@@ -2748,18 +2866,71 @@ function upsellHandoff(extra){
   const q = [];
   if(dsPaidCs) q.push('cs=' + encodeURIComponent(dsPaidCs));
   if(!dsPaidCs && dsBuild) q.push('store=' + encodeURIComponent(dsBuild.project_id));
+  if(DS_TEST) q.push('test=' + encodeURIComponent(DS_TEST)); // keep the hand-off on test keys
   q.push(extra);
   window.location.href = DS_HANDOFF + '?' + q.filter(Boolean).join('&');
 }
 
 function upsellYes(){
   initAudio(); playCoin(); vibrate([15,50,15]);
-  upsellHandoff('next=upsell');
+  // Open the $299 video-ads checkout as an in-page popup (same as the $1). It
+  // pre-fills the card saved on the $1 subscription, so it's still one tap. On
+  // completion Stripe returns to the hand-off, which unlocks the store, records
+  // the upsell, and runs go-live.
+  if(dsBuild && dsBuild.project_id){
+    const body = { project_id: dsBuild.project_id, base_cs: dsPaidCs || '', embedded: true };
+    if(DS_TEST) body.test = DS_TEST;
+    fetch(DS_API + '/upsell-checkout', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      body: JSON.stringify(body)
+    })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.embedded && j.client_secret){ return dsOpenPay(j.client_secret, j.publishable_key, !!j.test); }
+      if(j && j.checkout_url){ window.location.href = j.checkout_url; return; }
+      throw new Error();
+    })
+    .catch(()=>{ upsellHandoff('upsell=0'); }); // don't trap them — send them to their store
+    return;
+  }
+  upsellHandoff('next=upsell'); // legacy fallback (no build id)
 }
 
 function upsellNo(e){
   if(e) e.preventDefault();
-  upsellHandoff('upsell=0');
+  // Decline: settle the sale on our side (unlock the store) and land on THIS
+  // funnel's final page with the "set up on Shopify" link — no cross-domain
+  // redirect. dsFinalize handles the rest.
+  dsFinalize({ upsell: 0 });
+}
+
+/* Settle a completed purchase: unlock the store, record the sale (+ the $299 if
+   upsell_cs is passed), get the sell-domain go-live link, and land on s-done. */
+function dsFinalize(extra){
+  const body = Object.assign({ cs: dsPaidCs || '' }, extra || {});
+  if(DS_TEST) body.test = DS_TEST;
+  if(!body.cs){
+    // No base session on hand (shouldn't happen post-payment) — fall back to the
+    // hand-off if we at least know the build, else just show the done page.
+    if(dsBuild && dsBuild.project_id){
+      window.location.href = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
+      return;
+    }
+    go('s-done'); return;
+  }
+  fetch(DS_API + '/finalize', {
+    method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    body: JSON.stringify(body)
+  })
+  .then(r=>r.json())
+  .then(j=>{ if(j && j.ok && j.resume_url){ dsResumeUrl = j.resume_url; } go('s-done'); })
+  .catch(()=>{ go('s-done'); });
+}
+
+/* Send the buyer to finish on the sell domain (Shopify go-live). */
+function dsGoSetup(e){
+  if(e) e.preventDefault();
+  if(dsResumeUrl){ window.location.href = dsResumeUrl; }
 }
 
 /* Coming back from the $1 checkout: Stripe returns to
@@ -2769,15 +2940,77 @@ function dsResumeAfterPayment(){
   const q = new URLSearchParams(location.search);
   if(q.get('paid') !== '1') return false;
 
-  dsPaidCs = q.get('cs') || '';
-  try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(err){}
+  const cs = q.get('cs') || '';
+  // A bare ?paid=1 (or a made-up cs) must NOT open the upsell — only a real,
+  // server-verified paid session does. No cs → not a genuine return; fall
+  // through to the normal quiz. TG11793.
+  if(!cs) return false;
 
-  document.getElementById('s-landing').classList.remove('active');
-  document.getElementById('s-upsell').classList.add('active');
-  current = 's-upsell';
-  setBar('s-upsell');
-  updateBack();
-  onEnter('s-upsell');
+  const body = { cs };
+  if(DS_TEST) body.test = DS_TEST;
+  fetch(DS_API + '/verify-checkout', {
+    method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    body: JSON.stringify(body)
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    if(!(j && j.ok && j.paid && j.project_id)) return; // not a real paid session → stay on the quiz
+    // Meta Purchase for the $1 unlock — SAME onceKey as the /store page fires, so
+    // whichever the buyer reaches, Meta counts it once. Fired here off the
+    // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
+    window.dsFire && window.dsFire('Purchase', { value: 1, currency: 'USD' }, 'purchase_' + j.project_id);
+    if(j.unlocked){ /* already fully done — nothing to upsell */ }
+    dsPaidCs = cs;
+    dsBuild  = { ok:true, project_id: j.project_id };
+    dsStatus = { ready:true, store_name: j.store_name };
+    try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
+    document.getElementById('s-landing').classList.remove('active');
+    document.getElementById('s-upsell').classList.add('active');
+    current = 's-upsell'; setBar('s-upsell'); updateBack(); onEnter('s-upsell');
+  })
+  .catch(()=>{}); // network hiccup → leave them on the quiz, not a broken upsell
+  return true; // we've claimed the ?paid param either way (don't also run ?resume)
+}
+
+/* Returning from the $299 video-ads checkout: …/?upsold=1&cs=<base>&upsell_cs=<299>.
+   Settle both (unlock + record the $299) and land on the final page. */
+function dsResumeAfterUpsell(){
+  const q = new URLSearchParams(location.search);
+  if(q.get('upsold') !== '1') return false;
+  const cs = q.get('cs') || '';
+  if(!cs) return false;
+  try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
+  dsPaidCs = cs;
+  // Meta Purchase for the $299 upsell — same onceKey as the /store page, deduped.
+  if(dsBuild && dsBuild.project_id && q.get('upsell_cs')){
+    window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' }, 'upsell_purchase_' + dsBuild.project_id);
+  }
+  dsFinalize({ upsell_cs: q.get('upsell_cs') || '' }); // → s-done with the setup link
+  return true;
+}
+
+/* Returning from a "$1 to unlock" reminder email: …/?resume={project_id}.
+   Pull the built store back from DropStart and drop them on its preview with
+   the $1 button — no need to re-take the quiz. If they already paid, send them
+   straight to their store. */
+function dsResumeFromEmail(){
+  const q = new URLSearchParams(location.search);
+  const pid = q.get('resume');
+  if(!pid || !/^\d+$/.test(pid)) return false;
+
+  fetch(DS_API + '/status/' + encodeURIComponent(pid), { headers: { 'X-Express-Key': DS_KEY } })
+    .then(r=>r.json())
+    .then(j=>{
+      if(!j || !j.ok) return;                 // unknown store — leave the quiz as-is
+      if(j.unlocked && j.resume_url){ window.location.href = j.resume_url; return; }
+      dsBuild  = { ok:true, project_id: Number(pid) };
+      dsStatus = { ready:true, store_name: j.store_name, preview_image: j.preview_image };
+      try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
+      document.getElementById('s-landing').classList.remove('active');
+      document.getElementById('s-preview').classList.add('active');
+      current = 's-preview'; setBar('s-preview'); updateBack(); onEnter('s-preview');
+    })
+    .catch(()=>{});
   return true;
 }
 
@@ -2787,13 +3020,33 @@ function dsResumeAfterPayment(){
 let doneRan = false;
 function runDone(){
   if(doneRan) return; doneRan = true;
-  document.getElementById('doneName').textContent = chosen ? chosen.name : 'new';
+  const nm = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || (chosen ? chosen.name : 'new');
+  document.getElementById('doneName').textContent = nm;
   document.getElementById('doneEmail').textContent = userEmail || 'your inbox';
+
+  // Post-payment (we have a sell-domain resume link): swap the "what's next"
+  // framing for the finish-on-Shopify button, and hide the pre-payment risk copy.
+  if(dsResumeUrl){
+    const setup = document.getElementById('doneSetup');
+    const note  = document.getElementById('doneSetupNote');
+    const risk  = document.getElementById('doneRisk');
+    const step2 = document.getElementById('dn2');
+    if(setup) setup.style.display = 'block';
+    if(note)  note.style.display = 'block';
+    if(risk)  risk.style.display = 'none';
+    if(step2) step2.style.display = 'none'; // the $1 unlock is already done
+    const h = document.querySelector('#s-done h2');
+    if(h) h.innerHTML = 'Your <span class="gold-text">' + nm + '</span> store is ready! 🎉';
+    const sub = document.querySelector('#s-done .sub');
+    if(sub) sub.textContent = 'One last step:';
+  }
+
   playTada();
   confettiBurst(window.innerWidth/2, 140, 120);
   coinCannon(window.innerWidth/2, window.innerHeight*0.3);
   ['dn1','dn2','dn3'].forEach((id,i)=>{
-    setTimeout(()=>{ document.getElementById(id).classList.add('in'); playPop(0.8+i*0.15); }, 500+i*450);
+    const el = document.getElementById(id);
+    if(el && el.style.display !== 'none') setTimeout(()=>{ el.classList.add('in'); playPop(0.8+i*0.15); }, 500+i*450);
   });
 }
 
@@ -2955,7 +3208,20 @@ function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40
 /* boot */
 setBar('s-landing');
 updateBack();
-dsResumeAfterPayment();
+// Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
+// upsell), or ?resume={id} (reminder email).
+if(!dsResumeAfterUpsell() && !dsResumeAfterPayment()) dsResumeFromEmail();
 </script>
+<!-- In-page Stripe checkout (mounted by dsOpenPay) -->
+<div id="dsPayModal" style="display:none;position:fixed;inset:0;z-index:200;align-items:flex-start;justify-content:center;background:rgba(7,11,21,.72);backdrop-filter:blur(4px);overflow-y:auto;padding:24px 14px;">
+  <div style="width:100%;max-width:480px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);margin:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #eef0f3;">
+      <span style="font-weight:800;font-size:.92rem;color:#0d0e12;">Secure checkout</span>
+      <button onclick="dsClosePay()" aria-label="Close" style="border:none;background:#f1f3f6;width:28px;height:28px;border-radius:50%;font-size:15px;color:#6b7280;cursor:pointer;">✕</button>
+    </div>
+    <div id="dsPayTest" style="display:none;background:#fff8e1;color:#8a6d00;font-size:.76rem;font-weight:700;text-align:center;padding:7px 12px;">⚙️ TEST MODE — use card 4242 4242 4242 4242, any future date + CVC. No real charge.</div>
+    <div id="dsPayEmbed"></div>
+  </div>
+</div>
 </body>
 </html>
