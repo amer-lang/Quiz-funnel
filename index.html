@@ -2293,6 +2293,21 @@ function spLog(e, v){
 addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') spFlush(); });
 addEventListener('pagehide', spFlush);
 
+/* ActiveCampaign bridge — server-side at /api/lead (the key never ships here).
+   optin → list 5 · unlocked ($1 paid) → list 6 · videoads ($299 paid) → list 7 */
+function spLead(stage, email){
+  try{
+    if(!email){
+      try{ email = (JSON.parse(localStorage.getItem('spai_lead') || '{}').email) || ''; }catch(e){ email = ''; }
+    }
+    if(!email || !/^https?:/.test(location.protocol)) return;
+    fetch('/api/lead', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: email, stage: stage }), keepalive: true
+    }).catch(()=>{});
+  }catch(err){}
+}
+
 function dsTrack(id){
   if(!DS_LIVE || !DS_STEPS[id]) return;
   fetch(DS_API + '/track', {
@@ -2328,6 +2343,7 @@ function startBuild(e){
   };
   try{ localStorage.setItem('spai_lead', JSON.stringify(lead)); }catch(err){}
   window.dsFire && window.dsFire('Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured
+  spLead('optin', userEmail); // → ActiveCampaign list 5
   if(EMAIL_ENDPOINT){
     fetch(EMAIL_ENDPOINT, {
       method:'POST',
@@ -3011,6 +3027,7 @@ function dsResumeAfterPayment(){
     // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
     window.dsFire && window.dsFire('Purchase', { value: 1, currency: 'USD' }, 'purchase_' + j.project_id);
     spLog('paid_1dollar', j.project_id);
+    spLead('unlocked'); // → ActiveCampaign list 6
     if(j.unlocked){ /* already fully done — nothing to upsell */ }
     dsPaidCs = cs;
     dsBuild  = { ok:true, project_id: j.project_id };
@@ -3037,6 +3054,7 @@ function dsResumeAfterUpsell(){
   if(dsBuild && dsBuild.project_id && q.get('upsell_cs')){
     window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' }, 'upsell_purchase_' + dsBuild.project_id);
     spLog('paid_upsell', dsBuild.project_id);
+    spLead('videoads'); // → ActiveCampaign list 7
   }
   dsFinalize({ upsell_cs: q.get('upsell_cs') || '' }); // → s-done with the setup link
   return true;
