@@ -121,6 +121,34 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, wrote: 1 });
       }
 
+      if(q.stats === READ_KEY){
+        const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 1));
+        const idx = await loadIndex();
+        const wanted = [];
+        for(let i = 0; i < days; i++){
+          const d = dayKey(Date.now() - i * 864e5);
+          if(idx.days[d]) wanted.push(idx.days[d]);
+        }
+        const parts = await Promise.all(wanted.map(id => jbGet(id).catch(() => [])));
+        const evs = parts.flat().filter(e => e && e.t && e.e && e.sid !== 'selftest');
+        const uniq = pred => new Set(evs.filter(pred).map(e => e.sid)).size;
+        const S = id => uniq(e => e.e === 'screen' && e.v === id);
+        const E = n => uniq(e => e.e === n);
+        const steps = {};
+        ['s-landing','s-intro','s-q1','s-q2','s-q3','s-q4','s-q5','s-reality','s-blueprint',
+         's-scan','s-pick','s-email','s-build','s-preview','s-upsell'].forEach(id => steps[id] = S(id));
+        return res.status(200).json({
+          ok: true, days, totalEvents: evs.length,
+          visitors: new Set(evs.map(e => e.sid)).size,
+          steps,
+          emails: E('email_submitted'),
+          claims: E('claim_click'),
+          paid1: E('paid_1dollar'),
+          upsellClicks: E('upsell_click'),
+          paid299: E('paid_upsell')
+        });
+      }
+
       if(q.key !== READ_KEY) return res.status(403).json({ error: 'bad key' });
       const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 30));
       const idx = await loadIndex();

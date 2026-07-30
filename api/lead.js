@@ -58,6 +58,66 @@ module.exports = async (req, res) => {
         const r = await ac('/api/3/lists/' + id);
         out[stage] = { listId: id, name: r.ok && r.j.list ? r.j.list.name : ('ERROR ' + r.status) };
       }
+      if((req.query || {}).backfill === TEST_KEY){
+        const q2 = req.query;
+        const dry = q2.dry !== '0';
+        // Manual mode: ?emails=a@b.com,c@d.com&stage=unlocked|videoads|optin
+        // (owner-attested — used when purchases predate event tracking)
+        if(q2.emails){
+          const CUMUL = { optin: [5], unlocked: [5, 6], videoads: [5, 6, 7] };
+          const lists = CUMUL[String(q2.stage || '')];
+          if(!lists) return res.status(400).json({ error: 'stage must be optin|unlocked|videoads' });
+          const emails = String(q2.emails).split(',').map(s => s.trim().toLowerCase())
+            .filter(s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s)).slice(0, 100);
+          const results = [];
+          for(const em of emails){
+            if(dry){ results.push({ email: em, lists, dry: true }); continue; }
+            const sync = await ac('/api/3/contact/sync', 'POST', { contact: { email: em } });
+            const cid = sync.ok && sync.j.contact ? sync.j.contact.id : null;
+            const done = [];
+            for(const L of lists){
+              if(!cid) break;
+              const s = await ac('/api/3/contactLists', 'POST', { contactList: { list: L, contact: cid, status: 1 } });
+              done.push(L + ':' + (s.ok ? 'ok' : 'fail'));
+            }
+            results.push({ email: em, contactId: cid, lists: done });
+          }
+          return res.status(200).json({ ok: true, dry, mode: 'manual', results });
+        }
+        // Auto mode: read today's verified purchase events, resolve each store's
+        // email via the payment backend, subscribe to the cumulative lists.
+        const days = Math.min(7, Math.max(1, parseInt(q2.days, 10) || 1));
+        const evr = await fetch('https://www.sellproducts.ai/api/collect?key=' + TEST_KEY + '&days=' + days);
+        const events = (await evr.json().catch(() => [])) || [];
+        const pidsOf = name => [...new Set(events.filter(e => e && e.e === name && e.v && /^\d+$/.test(e.v)).map(e => e.v))];
+        const paid1 = pidsOf('paid_1dollar'), paid299 = pidsOf('paid_upsell');
+        const found = [];
+        for(const pid of new Set([...paid1, ...paid299])){
+          const r = await fetch(DS_API + '/status/' + pid, { headers: { 'X-Express-Key': DS_KEY } });
+          const j = await r.json().catch(() => ({}));
+          const email = (j && (j.email || j.customer_email || j.contact_email || (j.lead && j.lead.email))) || null;
+          found.push({ pid, upsell: paid299.includes(pid), email,
+            statusKeys: dry ? Object.keys(j || {}) : undefined });
+        }
+        const results = [];
+        if(!dry){
+          for(const f of found){
+            if(!f.email){ results.push({ pid: f.pid, skipped: 'no email in status' }); continue; }
+            const lists = f.upsell ? [5, 6, 7] : [5, 6];
+            const sync = await ac('/api/3/contact/sync', 'POST', { contact: { email: f.email } });
+            const cid = sync.ok && sync.j.contact ? sync.j.contact.id : null;
+            const done = [];
+            for(const L of lists){
+              if(!cid) break;
+              const s = await ac('/api/3/contactLists', 'POST', { contactList: { list: L, contact: cid, status: 1 } });
+              done.push(L + ':' + (s.ok ? 'ok' : 'fail'));
+            }
+            results.push({ pid: f.pid, email: f.email, lists: done });
+          }
+        }
+        return res.status(200).json({ ok: true, dry, mode: 'auto', paid1, paid299, found, results });
+      }
+
       if((req.query || {}).verifytest){
         // key-gated: exercise the payment-verification call with any cs and
         // report the raw outcome — never subscribes anyone.
