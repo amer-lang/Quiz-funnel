@@ -434,6 +434,11 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   .act-red{padding:7px 6px;width:64px}
 }
 @media (max-height:700px){
+  #claimBar{padding:8px 20px calc(5px + env(safe-area-inset-bottom))}
+  #claimBar .cta{padding:13px 22px;font-size:1rem}
+  #claimBar .claim-sub{margin-top:3px;font-size:.68rem}
+  #claimBar .claim-legal{font-size:.55rem;margin-top:2px;line-height:1.3}
+  #claimBar .price-slash{margin-bottom:5px;font-size:.7rem}
   #s-reality .kicker{display:none}
   #s-reality h2{font-size:1.22rem}
   #s-reality .huge{font-size:3.3rem}
@@ -739,6 +744,11 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .email-input:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(59,130,246,.18)}
 .email-input::placeholder{color:#5B6residual780}
 .email-input::placeholder{color:#5B6780}
+.legal-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.legal-links a{color:var(--muted);opacity:.75;font-size:.66rem;font-weight:600;text-decoration:none}
+.legal-links a:hover{opacity:1}
+.claim-legal{font-size:.6rem;color:var(--muted);opacity:.8;text-align:center;margin-top:4px;line-height:1.4}
+.claim-legal a{color:inherit;text-decoration:underline}
 .privacy-note{
   display:flex;align-items:center;justify-content:center;gap:6px;
   font-size:.72rem;color:var(--muted);margin-top:12px;
@@ -1140,6 +1150,7 @@ window.dsFire('PageView');
     <div class="price-slash"><span class="was">$49</span><span>→</span><span class="tag">✨ $1 today</span><span class="hold">⏳ <b id="resvTimer">15:00</b></span></div>
     <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $1 🔓</button>
     <p class="claim-sub"><b>$1 today</b> · 3-day full access · then $49/mo · cancel anytime</p>
+    <p class="claim-legal">By claiming you agree to the <a href="/terms" target="_blank">Terms</a>, <a href="/purchase-agreement" target="_blank">Purchase Agreement</a> &amp; <a href="/refund-policy" target="_blank">30-day Refund Policy</a></p>
   </div>
 </div>
 
@@ -1213,6 +1224,13 @@ window.dsFire('PageView');
           <div class="av">🧔</div><div class="av">👩</div><div class="av">👨‍🦱</div><div class="av">👩‍🦰</div>
         </div>
         <p><b>319 people</b> started a store this week</p>
+      </div>
+
+      <div class="legal-links">
+        <a href="/terms" target="_blank">Terms</a>
+        <a href="/privacy" target="_blank">Privacy</a>
+        <a href="/purchase-agreement" target="_blank">Purchase Agreement</a>
+        <a href="/refund-policy" target="_blank">30-Day Refunds</a>
       </div>
     </section>
 
@@ -1547,7 +1565,7 @@ window.dsFire('PageView');
 
       <input type="email" class="email-input" id="emailInput" placeholder="you@email.com" autocomplete="email" inputmode="email" oninput="emailCheck()">
       <button class="cta gold" id="emailBtn" disabled onclick="startBuild(event)">Build My Store 🔨</button>
-      <p class="privacy-note">🛡️ No spam, ever. Your store preview lands in this inbox.</p>
+      <p class="privacy-note">🛡️ No spam, ever. Your store preview lands in this inbox. <a href="/privacy" target="_blank" style="color:inherit;text-decoration:underline">Privacy Policy</a></p>
     </section>
 
     <!-- ======================= 12 · BUILDING STORE ======================= -->

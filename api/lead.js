@@ -1,8 +1,11 @@
 /* Sell Products AI — ActiveCampaign bridge.
    Runs server-side so the AC API key never reaches the browser.
 
-   POST {email, stage}   stage: optin → list 5 · unlocked → list 6 · videoads → list 7
+   POST {email, stage, cs?}  stage: optin → list 5 · unlocked → list 6 · videoads → list 7
      Syncs the contact into ActiveCampaign and subscribes it to the mapped list.
+     Paid stages (unlocked/videoads) require `cs` (a verified PAID session); the
+     verified store id is written to the AC custom field %ACTIVATION_LINK% (id 2)
+     as the buyer's durable …/?resume=<id> setup link.
    GET  ?actest=<KEY>    Verifies the AC connection and returns the three lists'
                          names so the mapping can be sanity-checked. */
 
@@ -15,13 +18,14 @@ const DS_API = 'https://chat.dropstart.app/api/express';
 const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 
 const STAGE_LIST = { optin: 5, unlocked: 6, videoads: 7 };
+const ACTIVATION_FIELD_ID = 2; // AC custom field %ACTIVATION_LINK% ("Activation link")
 const OK_ORIGINS = /^https:\/\/(www\.)?sellproducts\.ai$/;
 
 /* Paid stages require a Stripe checkout-session id that the payment backend
    confirms as PAID. Presence of return-URL params is NOT proof of payment —
    failed charges can bounce back through the same URLs. */
 async function verifyPaid(cs){
-  if(!cs || typeof cs !== 'string' || cs.length > 300) return false;
+  if(!cs || typeof cs !== 'string' || cs.length > 300) return { paid: false, projectId: null };
   try{
     const r = await fetch(DS_API + '/verify-checkout', {
       method: 'POST',
@@ -29,8 +33,10 @@ async function verifyPaid(cs){
       body: JSON.stringify({ cs })
     });
     const j = await r.json().catch(() => ({}));
-    return !!(j && j.ok && j.paid);
-  }catch(err){ return false; } // verification unreachable → fail CLOSED
+    // Also return the verified store id so callers can build the buyer's durable
+    // activation link (…/?resume=<id>) straight from the paid session.
+    return { paid: !!(j && j.ok && j.paid), projectId: (j && j.project_id) || null };
+  }catch(err){ return { paid: false, projectId: null }; } // verification unreachable → fail CLOSED
 }
 
 async function ac(path, method, body){
@@ -104,7 +110,9 @@ module.exports = async (req, res) => {
           for(const f of found){
             if(!f.email){ results.push({ pid: f.pid, skipped: 'no email in status' }); continue; }
             const lists = f.upsell ? [5, 6, 7] : [5, 6];
-            const sync = await ac('/api/3/contact/sync', 'POST', { contact: { email: f.email } });
+            const bfContact = { email: f.email };
+            if(f.pid && /^\d+$/.test(String(f.pid))) bfContact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: 'https://sellproducts.ai/?resume=' + encodeURIComponent(f.pid) }];
+            const sync = await ac('/api/3/contact/sync', 'POST', { contact: bfContact });
             const cid = sync.ok && sync.j.contact ? sync.j.contact.id : null;
             const done = [];
             for(const L of lists){
@@ -121,8 +129,8 @@ module.exports = async (req, res) => {
       if((req.query || {}).verifytest){
         // key-gated: exercise the payment-verification call with any cs and
         // report the raw outcome — never subscribes anyone.
-        const paid = await verifyPaid(String(req.query.verifytest === '1' ? (req.query.cs || 'cs_test_bogus') : req.query.verifytest));
-        return res.status(200).json({ ok: true, verifiedPaid: paid });
+        const v = await verifyPaid(String(req.query.verifytest === '1' ? (req.query.cs || 'cs_test_bogus') : req.query.verifytest));
+        return res.status(200).json({ ok: true, verifiedPaid: v.paid, projectId: v.projectId });
       }
       let wrote = null;
       if((req.query || {}).write === '1'){
@@ -150,13 +158,23 @@ module.exports = async (req, res) => {
       if(!listId || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(204).end();
 
       // Money lists demand a server-verified PAID Stripe session — no cs or a
-      // failed/unverifiable charge means no list add, full stop.
+      // failed/unverifiable charge means no list add, full stop. The verified
+      // store id also yields the buyer's durable activation link.
+      let activationLink = '';
       if(stage === 'unlocked' || stage === 'videoads'){
-        const paid = await verifyPaid(body.cs);
-        if(!paid) return res.status(204).end();
+        const v = await verifyPaid(body.cs);
+        if(!v.paid) return res.status(204).end();
+        if(v.projectId) activationLink = 'https://sellproducts.ai/?resume=' + encodeURIComponent(v.projectId);
       }
 
-      const sync = await ac('/api/3/contact/sync', 'POST', { contact: { email } });
+      // Write the activation link into AC custom field %ACTIVATION_LINK% (id 2) so
+      // the partner's emails can send the buyer back to finish store setup at any
+      // time. Server-derived from the verified session, so it always matches the
+      // store they actually paid for.
+      const contact = { email };
+      if(activationLink) contact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: activationLink }];
+
+      const sync = await ac('/api/3/contact/sync', 'POST', { contact });
       const contactId = sync.ok && sync.j.contact ? sync.j.contact.id : null;
       if(!contactId) return res.status(502).json({ error: 'ac sync failed' });
 
