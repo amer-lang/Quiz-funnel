@@ -144,7 +144,8 @@ nav.solid{background:rgba(7,11,21,.78);backdrop-filter:blur(18px);-webkit-backdr
 }
 .b-el{opacity:0;transform:translateY(14px) scale(.98);transition:opacity .55s,transform .55s cubic-bezier(.34,1.4,.64,1)}
 .b-el.on{opacity:1;transform:none}
-.b-hero{height:120px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.28),rgba(34,197,94,.24));display:flex;align-items:center;justify-content:center;font-size:52px;position:relative;overflow:hidden;margin-bottom:16px}
+.b-hero{height:150px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.28),rgba(34,197,94,.24));display:flex;align-items:center;justify-content:center;font-size:52px;position:relative;overflow:hidden;margin-bottom:16px}
+.b-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .b-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.09) 50%,transparent 70%);animation:shine 4s infinite}
 .b-name{height:20px;width:62%;border-radius:6px;background:linear-gradient(90deg,#243250,#2C3B5E);margin-bottom:10px}
 .b-line{height:11px;width:88%;border-radius:5px;background:#1B2740;margin-bottom:8px}
@@ -201,8 +202,9 @@ nav.solid{background:rgba(7,11,21,.78);backdrop-filter:blur(18px);-webkit-backdr
 @keyframes scroll2{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
 .pcard{width:252px;background:linear-gradient(180deg,var(--card),#0C1424);border:1px solid var(--line);border-radius:18px;overflow:hidden;flex-shrink:0;transition:transform .3s,border-color .3s}
 .pcard:hover{transform:translateY(-5px);border-color:rgba(59,130,246,.45)}
-.pcard .pimg{height:108px;background:linear-gradient(135deg,rgba(59,130,246,.16),rgba(34,197,94,.13));display:flex;align-items:center;justify-content:center;font-size:44px;position:relative}
-.pcard .sup{position:absolute;top:9px;left:9px;font-size:.58rem;font-weight:800;color:#7CF0A9;background:rgba(7,11,21,.75);border:1px solid rgba(34,197,94,.35);padding:3px 8px;border-radius:99px}
+.pcard .pimg{height:150px;background:linear-gradient(135deg,rgba(59,130,246,.16),rgba(34,197,94,.13));display:flex;align-items:center;justify-content:center;font-size:44px;position:relative;overflow:hidden}
+.pcard .pimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pcard .sup{position:absolute;top:9px;left:9px;z-index:2;font-size:.58rem;font-weight:800;color:#7CF0A9;background:rgba(7,11,21,.75);border:1px solid rgba(34,197,94,.35);padding:3px 8px;border-radius:99px}
 .pcard .pbody{padding:13px 15px 15px}
 .pcard .pname{font-weight:800;font-size:.88rem;margin-bottom:3px}
 .pcard .pcat{font-size:.66rem;color:var(--muted);margin-bottom:8px}
@@ -834,7 +836,7 @@ const BUILDS = [
   {emoji:'🥗', url:'minichef-chopper-pro.myshopify.com',  price:'$36.99', slash:'$52.99'}
 ];
 const MSGS = ['Locking product & supplier…','Designing your storefront…','Writing product copy…','Wiring secure checkout…','Store ready ✓'];
-let bIdx = 0;
+let bIdx = 0, buildTimers = [];
 const els = ['be1','be2','be3','be4','be5','be6'].map(id => document.getElementById(id));
 const typedUrl = document.getElementById('typedUrl');
 const buildMsg = document.getElementById('buildMsg');
@@ -848,9 +850,25 @@ function typeUrl(str, done){
   })();
 }
 function runBuild(){
+  buildTimers.forEach(clearTimeout); buildTimers = [];
   const b = BUILDS[bIdx % BUILDS.length]; bIdx++;
   els.forEach(el => el.classList.remove('on'));
-  document.getElementById('beEmoji').textContent = b.emoji;
+  const em = document.getElementById('beEmoji');
+  const heroBox = document.getElementById('be1');
+  let heroImg = document.getElementById('beImg');
+  if(b.img){
+    em.style.display = 'none';
+    if(!heroImg){
+      heroImg = document.createElement('img');
+      heroImg.id = 'beImg'; heroImg.alt = 'product photo'; heroImg.decoding = 'async';
+      heroBox.appendChild(heroImg);
+    }
+    heroImg.src = b.img; heroImg.style.display = '';
+  } else {
+    em.style.display = '';
+    em.textContent = b.emoji;
+    if(heroImg) heroImg.style.display = 'none';
+  }
   document.getElementById('bePrice').textContent = b.price;
   document.getElementById('beSlash').textContent = b.slash;
   buildFill.style.width = '0%';
@@ -863,43 +881,85 @@ function runBuild(){
     {at:3300, el:4, bar:80, msg:3},
     {at:4100, el:5, bar:100, msg:4},
   ];
-  steps.forEach(s => setTimeout(() => {
+  steps.forEach(s => buildTimers.push(setTimeout(() => {
     if(s.el !== undefined) els[s.el].classList.add('on');
     if(s.bar) buildFill.style.width = s.bar + '%';
     if(s.msg !== undefined) buildMsg.textContent = MSGS[s.msg];
-  }, s.at));
-  setTimeout(() => { // store ready — celebrate, funnel-style
+  }, s.at)));
+  buildTimers.push(setTimeout(() => { // store ready — celebrate, funnel-style
     if(document.hidden) return;
     const r = document.getElementById('buildStage').getBoundingClientRect();
     if(r.bottom < 0 || r.top > innerHeight) return;
     confettiBurst(r.left + r.width/2, r.top + r.height/2, 34);
-  }, 4200);
-  setTimeout(runBuild, 7600);
+  }, 4200));
+  buildTimers.push(setTimeout(runBuild, 7600));
 }
 runBuild();
 
 /* ---------- product marquee ---------- */
-/* the same products the AI surfaces inside the quiz funnel */
-const PRODUCTS = [
-  {e:'🌅', n:'Aurora Sunset Lamp',     cat:'Home & Vibes',      c:'$11.20', p:'$39.99', m:'72%'},
-  {e:'🐶', n:'PawPro Grooming Kit',    cat:'Pets',              c:'$9.80',  p:'$34.99', m:'72%'},
-  {e:'💆', n:'NeckRelax Pro Massager', cat:'Health & Wellness', c:'$14.60', p:'$49.99', m:'71%'},
-  {e:'✨', n:'GlowSkin LED Wand',      cat:'Beauty',            c:'$12.30', p:'$44.99', m:'73%'},
-  {e:'💪', n:'FlexBand Home Gym',      cat:'Fitness',           c:'$13.40', p:'$45.99', m:'71%'},
-  {e:'🥗', n:'MiniChef Chopper Pro',   cat:'Kitchen',           c:'$10.90', p:'$36.99', m:'71%'}
+/* Products: the LIVE DropStart catalogue — the same real products (and real
+   photos) the quiz funnel shows. Falls back to the funnel's baked-in set if
+   the API can't be reached. Same endpoint + key the funnel already ships. */
+const FALLBACK = [
+  {e:'🌅', n:'Aurora Sunset Lamp',     cat:'Home & Vibes',      cost:11.20, price:39.99},
+  {e:'🐶', n:'PawPro Grooming Kit',    cat:'Pets',              cost:9.80,  price:34.99},
+  {e:'💆', n:'NeckRelax Pro Massager', cat:'Health & Wellness', cost:14.60, price:49.99},
+  {e:'✨', n:'GlowSkin LED Wand',      cat:'Beauty',            cost:12.30, price:44.99},
+  {e:'💪', n:'FlexBand Home Gym',      cat:'Fitness',           cost:13.40, price:45.99},
+  {e:'🥗', n:'MiniChef Chopper Pro',   cat:'Kitchen',           cost:10.90, price:36.99}
 ];
+const DS_API = 'https://chat.dropstart.app/api/express';
+const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+const money = v => '$' + Number(v).toFixed(2);
+const marginPct = p => Math.round((p.price - p.cost) / p.price * 100) + '%';
 function pcard(p){
-  return `<div class="pcard"><div class="pimg"><span class="sup">✓ SUPPLIER SECURED</span>${p.e}</div>
+  const visual = p.img
+    ? `<img src="${p.img}" alt="${p.n}" loading="lazy" decoding="async">`
+    : p.e;
+  return `<div class="pcard"><div class="pimg">${visual}<span class="sup">✓ SUPPLIER SECURED</span></div>
   <div class="pbody"><div class="pname">${p.n}</div>
   <div class="pcat">${p.cat} · 🔥 trending</div>
-  <div class="prow"><span>🏭 Supplier cost</span><b>${p.c}</b></div>
-  <div class="prow"><span>🏷️ Suggested price</span><b>${p.p}</b></div>
-  <div class="prow hl"><span>💰 Margin<span class="mpill">${p.m}</span></span><b>before your costs</b></div></div></div>`;
+  <div class="prow"><span>🏭 Supplier cost</span><b>${money(p.cost)}</b></div>
+  <div class="prow"><span>🏷️ Suggested price</span><b>${money(p.price)}</b></div>
+  <div class="prow hl"><span>💰 Margin<span class="mpill">${marginPct(p)}</span></span><b>before your costs</b></div></div></div>`;
 }
-const half1 = PRODUCTS.map(pcard).join('');
-const half2 = [...PRODUCTS].reverse().map(pcard).join('');
-document.getElementById('track1').innerHTML = half1 + half1;
-document.getElementById('track2').innerHTML = half2 + half2;
+function buildTracks(list){
+  const half1 = list.map(pcard).join('');
+  const half2 = [...list].reverse().map(pcard).join('');
+  document.getElementById('track1').innerHTML = half1 + half1;
+  document.getElementById('track2').innerHTML = half2 + half2;
+}
+buildTracks(FALLBACK);
+
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(j => {
+    const list = ((j && j.products) || [])
+      .filter(p => p && p.label && (p.image_card || p.image) && Number(p.price) > 0)
+      .map(p => ({
+        img: p.image_card || p.image,
+        n: p.label,
+        cat: p.badge || 'Winning product',
+        cost: Number(p.cost || 0),
+        price: Number(p.price || 0)
+      }));
+    if(!list.length) return;
+    // warm the photos so the marquee & hero never show a blank frame
+    list.slice(0, 10).forEach(p => { const im = new Image(); im.decoding = 'async'; im.src = p.img; });
+    buildTracks(list.slice(0, 12));
+    // the hero store now builds itself around the real products too
+    BUILDS.length = 0;
+    list.slice(0, 6).forEach(p => BUILDS.push({
+      img: p.img,
+      url: slug(p.n).slice(0, 34) + '.myshopify.com',
+      price: money(p.price),
+      slash: money(Math.ceil(p.price * 1.4) - 0.01)
+    }));
+    bIdx = 0;
+    runBuild(); // restart the hero loop on the real catalogue immediately
+  })
+  .catch(() => {});
 
 /* ---------- typing effect ---------- */
 const LINES = [
