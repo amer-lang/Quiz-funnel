@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact Us — Sell Products AI</title>
+<meta name="description" content="Questions, billing, refunds, or help with your store — reach the Sell Products AI team. We reply within 1 business day.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B15;--card:#0F172A;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.16);
+  --text:#F5F8FF;--muted:#93A0BC;--blue:#3B82F6;--green:#22C55E;--gold:#FFC93C;--gold-deep:#F59E0B;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:radial-gradient(110% 55% at 50% -10%,#0E1830 0%,var(--bg) 60%),var(--bg);
+  color:var(--text);min-height:100vh;padding:0 20px 70px}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font-family:inherit}
+.wrap{max-width:860px;margin:0 auto}
+
+/* nav */
+nav{display:flex;align-items:center;gap:14px;padding:20px 0 0;max-width:860px;margin:0 auto}
+.logo{display:flex;align-items:center;gap:9px;user-select:none}
+.logo-icon{position:relative;flex-shrink:0;filter:drop-shadow(0 4px 12px rgba(59,130,246,.45))}
+.logo-icon svg{display:block}
+.logo-spark{position:absolute;top:-6px;right:-7px;font-size:.72em;color:var(--gold);
+  animation:sparkTwinkle 2.2s ease infinite;text-shadow:0 0 10px rgba(255,201,60,.9)}
+@keyframes sparkTwinkle{0%,100%{transform:scale(1) rotate(0);opacity:1}50%{transform:scale(.55) rotate(40deg);opacity:.55}}
+.logo-word{display:flex;align-items:center;gap:7px;font-weight:800;letter-spacing:-.02em;line-height:1;font-size:1rem;white-space:nowrap}
+.logo-ai{background:var(--grad-money);color:#241500;font-weight:800;border-radius:7px;padding:.18em .42em;
+  box-shadow:0 4px 14px -2px rgba(245,158,11,.55);transform:rotate(-3deg);font-size:.82em}
+.back{margin-left:auto;font-size:.84rem;font-weight:700;color:var(--muted);padding:9px 16px;border-radius:11px;
+  border:1px solid var(--line-strong);background:rgba(255,255,255,.03);transition:.2s;white-space:nowrap}
+.back:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+
+/* header */
+header{text-align:center;padding:58px 0 34px}
+h1{font-size:clamp(1.9rem,4.6vw,2.7rem);font-weight:800;letter-spacing:-.02em;line-height:1.12;margin-bottom:12px}
+.grad{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:1rem;line-height:1.65;max-width:520px;margin:0 auto}
+.sub b{color:#C6D2EA}
+
+/* contact channel cards */
+.channels{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.chan{background:linear-gradient(180deg,var(--card),#0C1424);border:1px solid var(--line);border-radius:18px;
+  padding:20px 18px;text-align:center;transition:transform .3s,border-color .3s;display:block}
+.chan:hover{transform:translateY(-4px);border-color:rgba(59,130,246,.4)}
+.chan .ic{width:44px;height:44px;margin:0 auto 12px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;background:rgba(59,130,246,.13);border:1px solid rgba(59,130,246,.3)}
+.chan.g .ic{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3)}
+.chan.y .ic{background:rgba(255,201,60,.11);border-color:rgba(255,201,60,.3)}
+.chan b{display:block;font-size:.92rem;margin-bottom:4px}
+.chan span{font-size:.78rem;color:var(--muted);line-height:1.5;display:block}
+.chan .val{color:#8EC5FF;font-weight:700;font-size:.82rem;margin-top:6px;word-break:break-all}
+
+/* quick topics */
+.quick{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:26px 0 40px}
+.qbtn{font-size:.78rem;font-weight:700;color:#C6D2EA;background:rgba(255,255,255,.045);border:1px solid var(--line);
+  padding:9px 16px;border-radius:999px;transition:.2s;cursor:pointer}
+.qbtn:hover{border-color:rgba(59,130,246,.5);color:#fff;background:rgba(59,130,246,.1)}
+
+/* form card */
+.formcard{background:linear-gradient(180deg,var(--card),#0C1424);border:1px solid var(--line);border-radius:22px;
+  padding:30px 28px;position:relative;overflow:hidden}
+.formcard::before{content:'';position:absolute;inset:-1px;border-radius:23px;padding:1.5px;pointer-events:none;
+  background:linear-gradient(160deg,rgba(59,130,246,.5),transparent 40%,transparent 70%,rgba(34,197,94,.3));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.formcard h2{font-size:1.15rem;font-weight:800;margin-bottom:4px}
+.formcard .fc-sub{font-size:.82rem;color:var(--muted);margin-bottom:22px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.field input,.field select,.field textarea{width:100%;background:#0B1322;border:1px solid var(--line-strong);border-radius:12px;
+  color:var(--text);font-size:.92rem;font-weight:600;padding:13px 15px;outline:none;transition:border-color .2s;appearance:none}
+.field textarea{min-height:130px;resize:vertical;line-height:1.6}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(59,130,246,.6)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2393A0BC' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 15px center}
+.send{width:100%;margin-top:6px;background:var(--grad-money);color:#241500;font-weight:800;font-size:1rem;
+  padding:16px;border-radius:14px;border:0;cursor:pointer;box-shadow:0 18px 50px -12px rgba(245,158,11,.5);transition:transform .2s}
+.send:hover{transform:translateY(-2px)}
+.form-note{margin-top:14px;text-align:center;font-size:.72rem;color:var(--muted);line-height:1.6}
+.form-note a{color:#8EC5FF;text-decoration:underline}
+
+/* promises */
+.promises{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:34px 0 0;font-size:.78rem;color:var(--muted);font-weight:600}
+.promises span{display:inline-flex;align-items:center;gap:7px}
+.promises i{font-style:normal;color:var(--green);font-weight:800}
+
+footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);font-size:.74rem;color:var(--muted);
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;max-width:860px;margin-left:auto;margin-right:auto}
+footer .links{display:flex;gap:14px;flex-wrap:wrap}
+footer a:hover{color:#fff}
+
+@media (max-width:680px){
+  .channels{grid-template-columns:1fr}
+  .frow{grid-template-columns:1fr}
+  header{padding:44px 0 28px}
+  .formcard{padding:24px 18px}
+}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="/home">
+    <span class="logo-icon">
+      <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+        <defs><linearGradient id="lgc" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#3B82F6"/><stop offset="1" stop-color="#22C55E"/>
+        </linearGradient></defs>
+        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#lgc)"/>
+        <path d="M17 19.5h14l-1.6 13.4a3.2 3.2 0 0 1-3.2 2.8h-4.4a3.2 3.2 0 0 1-3.2-2.8L17 19.5z" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" fill="rgba(255,255,255,.12)"/>
+        <path d="M20 19.5v-2.3a4 4 0 0 1 8 0v2.3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M25.4 22.5 21.6 28h2.7l-1.3 5 4.4-6.4h-2.7l1.6-4.1h-0.9z" fill="#FFC93C" stroke="#FFC93C" stroke-width=".8" stroke-linejoin="round"/>
+      </svg>
+      <span class="logo-spark">✦</span>
+    </span>
+    <span class="logo-word">Sell Products <span class="logo-ai">AI</span></span>
+  </a>
+  <a class="back" href="/home">← Back to home</a>
+</nav>
+
+<header>
+  <h1>We're here to <span class="grad">help.</span></h1>
+  <p class="sub">Billing, refunds, your store, or anything else — a <b>real human</b> reads every message and replies within <b>1 business day</b>.</p>
+</header>
+
+<div class="wrap">
+  <div class="channels">
+    <a class="chan" href="mailto:support@sellproducts.ai">
+      <span class="ic">📧</span>
+      <b>Email us</b>
+      <span>Fastest way to reach us, for anything at all</span>
+      <span class="val">support@sellproducts.ai</span>
+    </a>
+    <a class="chan g" href="tel:+19165428463">
+      <span class="ic">📞</span>
+      <b>Call or text</b>
+      <span>Mon–Fri, 9am–5pm Pacific</span>
+      <span class="val">+1 (916) 542-8463</span>
+    </a>
+    <div class="chan y">
+      <span class="ic">📍</span>
+      <b>Mailing address</b>
+      <span>Ecom Websites LLC d/b/a Sell Products AI</span>
+      <span class="val">6835 E Camelback Rd #1002<br>Scottsdale, AZ 85251</span>
+    </div>
+  </div>
+
+  <div class="quick">
+    <button class="qbtn" onclick="preset('Cancel my subscription','Hi — please cancel my subscription. The email I signed up with is: ')">✂️ Cancel my subscription</button>
+    <button class="qbtn" onclick="preset('Refund request','Hi — I&#39;d like a refund under the 30-day guarantee. The email I used at checkout is: ')">💸 Request a refund</button>
+    <button class="qbtn" onclick="preset('Billing question','Hi — I have a question about a charge: ')">💳 Billing question</button>
+    <button class="qbtn" onclick="preset('Help with my store','Hi — I need help with my store: ')">🛍️ Help with my store</button>
+  </div>
+
+  <div class="formcard">
+    <h2>Send us a message</h2>
+    <p class="fc-sub">This opens the email app on your device with everything filled in — sent from your inbox straight to ours.</p>
+    <form onsubmit="return sendMsg(event)">
+      <div class="frow">
+        <div class="field"><label for="cname">Your name</label><input id="cname" required placeholder="Jane Doe"></div>
+        <div class="field"><label for="cemail">Your email</label><input id="cemail" type="email" required placeholder="you@email.com"></div>
+      </div>
+      <div class="field"><label for="ctopic">Topic</label>
+        <select id="ctopic">
+          <option>General question</option>
+          <option>Billing question</option>
+          <option>Refund request</option>
+          <option>Cancel my subscription</option>
+          <option>Help with my store</option>
+          <option>Legal / privacy request</option>
+        </select>
+      </div>
+      <div class="field"><label for="cmsg">Message</label><textarea id="cmsg" required placeholder="Tell us what's going on — include the email you used at checkout if it's about billing."></textarea></div>
+      <button class="send" type="submit">Send to support@sellproducts.ai ✉️</button>
+    </form>
+    <p class="form-note">Prefer to write directly? Email <a href="mailto:support@sellproducts.ai">support@sellproducts.ai</a> — same inbox, same humans.<br>Refunds &amp; cancellations are honored per our <a href="/refund-policy">30-day Refund Policy</a>.</p>
+  </div>
+
+  <div class="promises">
+    <span><i>✓</i> Reply within 1 business day</span>
+    <span><i>✓</i> Refunds processed within 2 business days</span>
+    <span><i>✓</i> Cancel anytime — no retention maze</span>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 Ecom Websites LLC d/b/a Sell Products AI · Scottsdale, Arizona</span>
+  <span class="links">
+    <a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/purchase-agreement">Purchase Agreement</a><a href="/refund-policy">Refund Policy</a>
+  </span>
+</footer>
+
+<script>
+const SUPPORT = 'support@sellproducts.ai';
+function preset(topic, body){
+  location.href = 'mailto:' + SUPPORT
+    + '?subject=' + encodeURIComponent(topic)
+    + '&body=' + encodeURIComponent(body);
+}
+function sendMsg(e){
+  e.preventDefault();
+  const n = document.getElementById('cname').value.trim();
+  const em = document.getElementById('cemail').value.trim();
+  const t = document.getElementById('ctopic').value;
+  const m = document.getElementById('cmsg').value.trim();
+  const subject = '[' + t + '] ' + n;
+  const body = m + '\n\n—\nName: ' + n + '\nReply-to: ' + em;
+  location.href = 'mailto:' + SUPPORT
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body);
+  return false;
+}
+</script>
+</body>
+</html>
