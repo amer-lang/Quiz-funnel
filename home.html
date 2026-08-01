@@ -152,20 +152,79 @@ nav.solid{background:rgba(7,11,21,.78);backdrop-filter:blur(18px);-webkit-backdr
 /* ---------- stats band ---------- */
 
 /* ---------- how it works ---------- */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:52px}
-.step{position:relative;background:linear-gradient(180deg,var(--card),#0C1424);border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px 26px;transition:transform .35s cubic-bezier(.22,1,.36,1),border-color .35s,box-shadow .35s;overflow:hidden}
-.step:hover{transform:translateY(-7px);border-color:rgba(59,130,246,.4);box-shadow:0 30px 70px -30px rgba(59,130,246,.4)}
-.step .num{position:absolute;top:14px;right:18px;font-size:3.6rem;font-weight:800;color:rgba(255,255,255,.045);line-height:1}
-.step .s-ico{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:25px;margin-bottom:18px;background:rgba(59,130,246,.13);border:1px solid rgba(59,130,246,.3)}
-.step:nth-child(2) .s-ico{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3)}
-.step:nth-child(3) .s-ico{background:rgba(255,201,60,.11);border-color:rgba(255,201,60,.3)}
-.step h3{font-size:1.13rem;font-weight:800;margin-bottom:9px}
-.step p{font-size:.9rem;color:var(--muted);line-height:1.6}
-.step .tag{display:inline-block;margin-top:16px;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:999px;background:rgba(59,130,246,.12);color:#8EC5FF;border:1px solid rgba(59,130,246,.3)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:52px;position:relative}
+.steps-conn{position:absolute;top:48%;left:6%;right:6%;height:2px;z-index:0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0 8px,transparent 8px 16px)}
+.steps-conn i{position:absolute;top:-3px;left:0;width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 12px 3px rgba(59,130,246,.55);animation:travel 7s linear infinite}
+.step{position:relative;z-index:1;background:linear-gradient(180deg,var(--card),#0C1424);border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px 24px;transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;overflow:hidden;display:flex;flex-direction:column}
+.step::before{content:'';position:absolute;inset:-1px;border-radius:21px;padding:1.5px;pointer-events:none;
+  background:linear-gradient(165deg,var(--sc,var(--blue)) 0%,transparent 42%,transparent 68%,rgba(255,255,255,.06) 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.65;transition:opacity .35s}
+.step::after{content:'';position:absolute;top:-70px;left:-40px;width:200px;height:200px;pointer-events:none;
+  background:radial-gradient(circle,var(--sca,rgba(59,130,246,.2)),transparent 68%);filter:blur(26px);opacity:.5}
+.step.s2{--sc:var(--green);--sca:rgba(34,197,94,.18)}
+.step.s3{--sc:var(--gold);--sca:rgba(255,201,60,.15)}
+.step:hover{transform:translateY(-8px);box-shadow:0 34px 80px -30px var(--sca,rgba(59,130,246,.4))}
+.step:hover::before{opacity:1}
+.step .num{position:absolute;top:6px;right:16px;font-size:5rem;font-weight:800;line-height:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),transparent 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.step .s-ico{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:25px;margin-bottom:16px;background:rgba(59,130,246,.13);border:1px solid rgba(59,130,246,.3);animation:hover1 5s ease-in-out infinite}
+.step.s2 .s-ico{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);animation-delay:.6s}
+.step.s3 .s-ico{background:rgba(255,201,60,.11);border-color:rgba(255,201,60,.3);animation-delay:1.2s}
+.step h3{font-size:1.13rem;font-weight:800;margin-bottom:8px}
+.step p{font-size:.88rem;color:var(--muted);line-height:1.6}
+.step .tag{align-self:flex-start;margin-top:16px;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:999px;background:rgba(59,130,246,.12);color:#8EC5FF;border:1px solid rgba(59,130,246,.3)}
 .step .tag.ai{background:rgba(34,197,94,.11);color:#7CF0A9;border-color:rgba(34,197,94,.3)}
 .step .tag.gold{background:rgba(255,201,60,.1);color:var(--gold);border-color:rgba(255,201,60,.3)}
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
-.chips i{font-style:normal;font-size:.7rem;font-weight:700;color:#C6D2EA;background:rgba(255,255,255,.05);border:1px solid var(--line);padding:5px 11px;border-radius:99px}
+
+/* the living demo panel inside each step card */
+.demo{margin-top:18px;background:#0B1322;border:1px solid var(--line);border-radius:14px;padding:14px;position:relative;overflow:hidden;flex:1}
+/* — step 1: the quiz answers itself — */
+.dq-q{font-size:.74rem;font-weight:800;color:#C6D2EA;margin-bottom:9px}
+.dq-opt{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:#AAB8D4;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:7px;position:relative}
+.dq-opt .ck{margin-left:auto;width:17px;height:17px;border-radius:6px;background:var(--blue);color:#fff;font-size:.58rem;font-weight:800;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.4)}
+.dq-opt.o2{animation:dqPick 6s ease infinite}
+.dq-opt.o2 .ck{animation:dqCheck 6s cubic-bezier(.34,1.8,.64,1) infinite}
+@keyframes dqPick{0%,28%{border-color:var(--line);background:rgba(255,255,255,.035);color:#AAB8D4}
+  36%,88%{border-color:rgba(59,130,246,.65);background:rgba(59,130,246,.13);color:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+  96%,100%{border-color:var(--line);background:rgba(255,255,255,.035);color:#AAB8D4}}
+@keyframes dqCheck{0%,30%{opacity:0;transform:scale(.4)}38%,88%{opacity:1;transform:scale(1)}96%,100%{opacity:0;transform:scale(.4)}}
+.dq-dots{display:flex;gap:5px;margin-top:10px}
+.dq-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.14)}
+.dq-dots i.on{background:var(--blue)}
+.dq-dots i.i2{animation:dqDot 6s ease infinite}
+@keyframes dqDot{0%,36%{background:rgba(255,255,255,.14)}44%,88%{background:var(--blue);box-shadow:0 0 8px rgba(59,130,246,.7)}96%,100%{background:rgba(255,255,255,.14)}}
+/* — step 2: the store assembles itself — */
+.db-bar{height:4px;border-radius:99px;background:#1B2740;overflow:hidden;margin-bottom:11px}
+.db-bar i{display:block;height:100%;background:var(--grad-brand);border-radius:99px;animation:dbBar 6s ease infinite}
+@keyframes dbBar{0%{width:4%}14%{width:26%}38%{width:55%}62%{width:82%}80%,92%{width:100%}100%{width:4%}}
+.db-el{animation:dbIn 6s ease infinite;opacity:0}
+.db-img{height:64px;border-radius:10px;background:linear-gradient(135deg,rgba(59,130,246,.3),rgba(34,197,94,.26));display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:9px;position:relative;overflow:hidden}
+.db-img::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.1) 50%,transparent 70%);animation:shine 3.5s infinite}
+.db-line{height:8px;border-radius:4px;background:#243250;margin-bottom:7px;width:86%}
+.db-line.s{width:58%}
+.db-el.t2{animation-name:dbIn2}
+.db-el.t3{animation-name:dbIn3}
+.db-buy{height:30px;border-radius:8px;background:var(--grad-brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.64rem;letter-spacing:.05em;margin-top:9px;animation-name:dbIn4}
+@keyframes dbIn{0%,8%{opacity:0;transform:translateY(8px)}16%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
+@keyframes dbIn2{0%,26%{opacity:0;transform:translateY(8px)}34%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
+@keyframes dbIn3{0%,44%{opacity:0;transform:translateY(8px)}52%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
+@keyframes dbIn4{0%,62%{opacity:0;transform:translateY(8px) scale(.95)}72%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
+/* — step 3: preview flips to LIVE — */
+.dl-url{display:flex;align-items:center;gap:7px;font-size:.7rem;font-weight:700;color:var(--muted);background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin-bottom:11px}
+.dl-url .lk{color:var(--green)}
+.dl-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.dl-badge{font-size:.62rem;font-weight:800;letter-spacing:.09em;padding:5px 11px;border-radius:99px;border:1px solid var(--line-strong);color:#C6D2EA;animation:dlPrev 6s ease infinite}
+@keyframes dlPrev{0%,40%{opacity:1}48%,92%{opacity:.32}100%{opacity:1}}
+.dl-arrow{color:var(--muted);font-weight:800;font-size:.8rem}
+.dl-live{display:inline-flex;align-items:center;gap:6px;font-size:.62rem;font-weight:800;letter-spacing:.09em;padding:5px 11px;border-radius:99px;color:#7CF0A9;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);animation:dlLive 6s cubic-bezier(.34,1.8,.64,1) infinite}
+.dl-live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:ping 1.6s infinite}
+@keyframes dlLive{0%,42%{opacity:.28;transform:scale(.94)}50%,92%{opacity:1;transform:scale(1);box-shadow:0 0 16px rgba(34,197,94,.35)}100%{opacity:.28;transform:scale(.94)}}
+.dl-claim{position:relative;overflow:hidden;height:34px;border-radius:9px;background:var(--grad-money);color:#241500;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;letter-spacing:.03em;box-shadow:0 10px 26px -10px rgba(245,158,11,.55)}
+.dl-claim .shine{position:absolute;top:0;left:-80%;width:55%;height:100%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-22deg);animation:shine 3.2s infinite}
+.dl-orders{margin-top:11px;font-size:.66rem;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:7px}
+.dl-orders .cart{animation:dlCart 6s ease infinite;display:inline-block}
+@keyframes dlCart{0%,55%{transform:scale(1)}62%{transform:scale(1.35) rotate(-8deg)}68%,100%{transform:scale(1)}}
 
 /* ---------- marquee ---------- */
 .marq-sec{padding:88px 0 30px}
@@ -414,28 +473,47 @@ footer{border-top:1px solid var(--line);background:rgba(255,255,255,.012);paddin
     <h2 class="h2 rev d1">Three steps. <span class="grad-text">The AI does two of them.</span></h2>
     <p class="lead rev d2">No store-building experience. No inventory. No guessing what to sell.</p>
     <div class="steps">
+      <div class="steps-conn"><i></i></div>
       <div class="step rev">
         <span class="num">1</span>
         <div class="s-ico">💬</div>
         <h3>Answer 5 quick questions</h3>
         <p>Your goals, your experience, your time. Every answer tunes what the AI hunts for — so the products fit <b style="color:#C6D2EA">you</b>, not everyone else.</p>
-        <div class="chips"><i>💵 Side income</i><i>🌱 Beginner</i><i>⏰ 1 hr/day</i></div>
+        <div class="demo">
+          <div class="dq-q">💬 What's your main goal?</div>
+          <div class="dq-opt">💵 Build a side income<span class="ck">✓</span></div>
+          <div class="dq-opt o2">🔓 Fire my boss<span class="ck">✓</span></div>
+          <div class="dq-opt">🏝️ Total freedom<span class="ck">✓</span></div>
+          <div class="dq-dots"><i class="on"></i><i class="i2"></i><i></i><i></i><i></i></div>
+        </div>
         <span class="tag">You · under a minute</span>
       </div>
-      <div class="step rev d1">
+      <div class="step s2 rev d1">
         <span class="num">2</span>
         <div class="s-ico">🤖</div>
         <h3>AI builds your store</h3>
         <p>It scans 10M+ products, verifies suppliers &amp; shipping times, writes your product copy, designs the storefront, and wires in checkout — automatically.</p>
-        <div class="chips"><i>✓ Supplier verified</i><i>✓ Copy written</i><i>✓ Checkout live</i></div>
+        <div class="demo">
+          <div class="db-bar"><i></i></div>
+          <div class="db-el db-img">🛍️</div>
+          <div class="db-el t2 db-line"></div>
+          <div class="db-el t2 db-line s"></div>
+          <div class="db-el t3" style="font-weight:800;font-size:.86rem">$39.99 <s style="color:var(--muted);font-weight:600;font-size:.7rem">$59.99</s></div>
+          <div class="db-el db-buy">ADD TO CART</div>
+        </div>
         <span class="tag ai">AI · ~60 seconds</span>
       </div>
-      <div class="step rev d2">
+      <div class="step s3 rev d2">
         <span class="num">3</span>
         <div class="s-ico">🚀</div>
         <h3>Preview free, then go live</h3>
         <p>See your finished store on every device <b style="color:#C6D2EA">before paying anything</b>. Love it? Claim it for $1 and launch it on Shopify — taking real orders.</p>
-        <div class="chips"><i>👀 Preview first</i><i>🔓 $1 to claim</i><i>🛍️ Live on Shopify</i></div>
+        <div class="demo">
+          <div class="dl-url"><span class="lk">🔒</span>yourstore.myshopify.com</div>
+          <div class="dl-row"><span class="dl-badge">👀 PREVIEW</span><span class="dl-arrow">→</span><span class="dl-live"><i></i>LIVE ON SHOPIFY</span></div>
+          <div class="dl-claim"><span class="shine"></span>Claim My Store — $1 🚀</div>
+          <div class="dl-orders"><span class="cart">🛒</span> ready to take real orders</div>
+        </div>
         <span class="tag gold">You're in business</span>
       </div>
     </div>
