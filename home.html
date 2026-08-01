@@ -377,11 +377,12 @@ footer{border-top:1px solid var(--line);background:rgba(255,255,255,.012);paddin
   .hero .h1 br{display:none}
   .flowline{grid-template-columns:1fr}
   .float-card{font-size:.68rem;padding:9px 11px}
-  .float-card.f1{left:-6px}
+  .float-card.f1{top:0;left:-6px}
   .float-card.f2{left:-8px;bottom:44px}
   .float-card.f3{right:-6px}
-  .hs-scene{height:440px}
-  .hs-cards{width:236px;top:44px}
+  .hero .stage{margin:18px 0 30px}
+  .hs-scene{height:452px}
+  .hs-cards{width:236px;top:56px}
   .hs-card.backL{transform:translate(-54px,28px) rotate(-8deg) scale(.93)}
   .hs-card.backR{transform:translate(54px,32px) rotate(7deg) scale(.93)}
   .foot-grid{grid-template-columns:1fr}
@@ -895,8 +896,9 @@ const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,
 fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
   .then(r => r.ok ? r.json() : Promise.reject())
   .then(j => {
+    const HIDE = /piano/i; // products that don't fit the homepage's look
     const list = ((j && j.products) || [])
-      .filter(p => p && p.label && (p.image_card || p.image) && Number(p.price) > 0)
+      .filter(p => p && p.label && (p.image_card || p.image) && Number(p.price) > 0 && !HIDE.test(p.label))
       .map(p => ({
         img: p.image_card || p.image,
         n: p.label,
@@ -940,6 +942,17 @@ function heroCycle(){
 }
 heroRender();
 if(!REDUCED) setInterval(heroCycle, 6800);
+/* mobile: the deck sits right under the headline */
+const heroWrap = document.querySelector('.hero .wrap');
+const heroStage = document.querySelector('.hero .stage');
+const heroMq = matchMedia('(max-width:680px)');
+function heroOrder(){
+  if(heroMq.matches) document.querySelector('.hero .h1').after(heroStage);
+  else heroWrap.appendChild(heroStage);
+}
+heroOrder();
+if(heroMq.addEventListener) heroMq.addEventListener('change', heroOrder); else heroMq.addListener(heroOrder);
+
 /* subtle mouse parallax over the deck (desktop only) */
 if(matchMedia('(pointer:fine)').matches && !REDUCED){
   const stage = document.querySelector('.stage');
