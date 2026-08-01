@@ -137,6 +137,42 @@ module.exports = async (req, res) => {
 
     if(!INDEX_ID) return res.status(200).json({ ready:false, status:'not_initialized' });
 
+    /* admin: list catalogue + cache state */
+    if(q.list){
+      if(q.list !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
+      const cat = await catalogue();
+      const idx = await jbGet(INDEX_ID);
+      return res.status(200).json({ ok:true, hasKey: !!process.env.OPENAI_API_KEY,
+        products: cat.map(p => ({ name: p.label, cached: !!(idx.packs && idx.packs[slugOf(p.label)]) })) });
+    }
+
+    /* admin: warm the whole catalogue, n generations per call (call repeatedly
+       until remaining hits 0 — keeps each invocation inside the time limit) */
+    if(q.warmall){
+      if(q.warmall !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
+      if(!process.env.OPENAI_API_KEY) return res.status(200).json({ ok:false, status:'no_key' });
+      const n = Math.max(1, Math.min(3, parseInt(q.n || '2', 10) || 2));
+      const cat = await catalogue();
+      let idx = await jbGet(INDEX_ID);
+      idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
+      const missing = cat.filter(p => !idx.packs[slugOf(p.label)]);
+      const done = [], failed = [];
+      for(const prod of missing.slice(0, n)){
+        const slug = slugOf(prod.label);
+        const g = await generate(prod.label, prod.image_card || prod.image || '');
+        if(g.error){ failed.push({ name: prod.label, error: g.error, detail: g.detail || '' }); continue; }
+        const blobId = await jbCreate({ b64: g.b64, ct: 'image/webp', name: prod.label, at: Date.now() });
+        idx = await jbGet(INDEX_ID);
+        idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
+        idx.packs[slug] = { blob: blobId, at: Date.now() };
+        delete idx.pending[slug];
+        await jbPut(INDEX_ID, idx);
+        done.push(prod.label);
+      }
+      return res.status(200).json({ ok:true, generated: done, failed,
+        remaining: Math.max(0, missing.length - done.length - failed.length) });
+    }
+
     /* serve a cached pack shot */
     if(q.serve){
       const idx = await jbGet(INDEX_ID);
