@@ -20,7 +20,7 @@
 
 const JB = 'https://jsonblob.com/api/jsonBlob';
 const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
-const INDEX_ID = ''; // pasted in after ?init creates it
+const INDEX_ID = '019fbc07-ee55-7e05-b141-00d139a13064';
 
 const DS_API = 'https://chat.dropstart.app/api/express';
 const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
