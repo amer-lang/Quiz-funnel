@@ -27,23 +27,32 @@ const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 
 const PENDING_TTL = 150000; // ms — treat older "generating" marks as stale
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function jbFetch(url, opts, label){
+  let last;
+  for(let i = 0; i < 4; i++){
+    if(i) await sleep(1200 * i); // jsonblob throttles bursts — back off and retry
+    const r = await fetch(url, opts).catch(e => ({ ok:false, status:'net', _e:e }));
+    if(r.ok) return r;
+    last = r.status;
+    if(r.status !== 429 && r.status < 500 && r.status !== 'net') break;
+  }
+  throw new Error(label + ' ' + last);
+}
 async function jbGet(id){
-  const r = await fetch(JB + '/' + id, { headers: { Accept: 'application/json' } });
-  if(!r.ok) throw new Error('jb get ' + r.status);
+  const r = await jbFetch(JB + '/' + id, { headers: { Accept: 'application/json' } }, 'jb get');
   return r.json();
 }
 async function jbPut(id, data){
-  const r = await fetch(JB + '/' + id, {
+  await jbFetch(JB + '/' + id, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
-  });
-  if(!r.ok) throw new Error('jb put ' + r.status);
+  }, 'jb put');
 }
 async function jbCreate(data){
-  const r = await fetch(JB, {
+  const r = await jbFetch(JB, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(data)
-  });
-  if(!r.ok) throw new Error('jb create ' + r.status);
+  }, 'jb create');
   const id = (r.headers.get('location') || '').split('/').pop();
   if(!id) throw new Error('jb create: no id');
   return id;
