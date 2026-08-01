@@ -900,6 +900,16 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   .engine-note{margin-top:5px;font-size:.62rem}
   .stack-line .chip{font-size:.56rem;padding:4px 8px}
 }
+/* Desktop (mouse) viewers: 1x displays give the small device frames very few
+   physical pixels, which reads as blur. Grow the whole scene to the column
+   width so the tablet/phone screenshots get ~40% more pixels to render into,
+   and hold the devices still — continuously animated (rotated) layers get
+   resampled every frame, which softens the bitmap further. */
+@media (min-width:640px) and (pointer:fine){
+  .mock-scene{max-width:480px}
+  #s-preview .dev-tablet{animation:devLeft .8s cubic-bezier(.34,1.3,.64,1) .35s both}
+  #s-preview .dev-phone{animation:devRight .8s cubic-bezier(.34,1.3,.64,1) .55s both}
+}
 .scene-glow{
   position:absolute;left:8%;right:8%;bottom:-4px;height:70px;border-radius:50%;
   background:radial-gradient(ellipse at center,rgba(59,130,246,.4),rgba(34,197,94,.18) 55%,transparent 75%);
@@ -2547,19 +2557,22 @@ function runPreview(){
   const tab = document.getElementById('scrTablet');
   const ph  = document.getElementById('scrPhone');
 
-  // All three devices show DESIGNED storefronts generated from the product
-  // photo + brand, laid out at true device width and scaled down — text and
-  // UI stay razor-sharp at any size. (The DropStart preview_image is a
-  // low-res mobile capture: squeezed into the small tablet/phone frames it
-  // renders blurry, so it's no longer mounted on any device.)
+  const src = dsStatus && dsStatus.preview_image;
+  // The monitor always shows a DESIGNED desktop storefront generated from the
+  // product photo + brand at true 1200px proportions, slowly scrolling.
+  // (DropStart screenshots are mobile captures — they'd look stretched here.)
   mountScaledPanHtml(mon, desktopStore(p, brand), 1200);
-  if(PREVIEW_URL){
+  if(src){
+    // The real store on the devices it was captured for.
+    mountCoverImage(tab, src);
+    mountPanImage(ph, src, brand);
+  } else if(PREVIEW_URL){
     const url = PREVIEW_URL.replace('{{PRODUCT}}', encodeURIComponent(slug));
     mountScaledIframe(tab, url, 768);
     mountScaledIframe(ph, url, 390);
   } else {
-    mountScaledHtml(tab, mockStore(p, brand), 420);
-    mountScaledPanHtml(ph, mockStore(p, brand), 375);
+    mountScaledHtml(tab, mockStore(p), 420);
+    mountScaledHtml(ph, mockStore(p), 375);
   }
 
   playTada();
@@ -2779,9 +2792,9 @@ function mountScaledPanHtml(clip, html, natW){
   });
 }
 
-/* generated mock storefront — brand falls back to the product's first word */
-function mockStore(p, brandName){
-  const brand = brandName || (p.name||'Your Store').split(' ')[0];
+/* generated mock storefront — placeholder until the real preview is wired in */
+function mockStore(p){
+  const brand = (p.name||'Your Store').split(' ')[0];
   const price = Number(p.price).toFixed(2);
   const wasP = (Math.ceil(Number(p.price)*1.8)-0.01).toFixed(2);
   const save = Math.round((1 - p.price/(Math.ceil(p.price*1.8)-0.01))*100);
