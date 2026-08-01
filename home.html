@@ -126,44 +126,62 @@ nav.solid{background:rgba(7,11,21,.78);backdrop-filter:blur(18px);-webkit-backdr
   background:radial-gradient(ellipse at center,rgba(59,130,246,.42),rgba(34,197,94,.18) 55%,transparent 75%);
   filter:blur(20px);pointer-events:none;
 }
-.browser{position:relative;z-index:2;background:linear-gradient(180deg,#101A2E,#0C1424);border:1px solid var(--line-strong);border-radius:18px;box-shadow:0 40px 90px -30px rgba(0,0,0,.75),0 0 0 1px rgba(59,130,246,.08),0 30px 80px -40px rgba(59,130,246,.35);overflow:hidden;transform:rotateY(-6deg) rotateX(2deg);transition:transform .6s cubic-bezier(.22,1,.36,1)}
-.stage:hover .browser{transform:rotateY(-2deg) rotateX(1deg)}
-.chrome{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
-.dots{display:flex;gap:6px}
-.dots i{width:10px;height:10px;border-radius:50%;background:#2A3442}
-.dots i:nth-child(1){background:#FF5F57}.dots i:nth-child(2){background:#FEBC2E}.dots i:nth-child(3){background:#28C840}
-.urlbar{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:9px;padding:7px 13px;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:7px;overflow:hidden;white-space:nowrap}
-.urlbar span:last-child{overflow:hidden;text-overflow:ellipsis}
-.urlbar .lock{color:var(--green)}
-.live-pill{display:inline-flex;align-items:center;gap:6px;font-size:.66rem;font-weight:800;color:#7CF0A9;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);padding:4px 10px;border-radius:999px}
-.live-pill i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:ping 1.6s infinite}
-.canvas{padding:22px 22px 60px;min-height:352px;position:relative}
-.browser::after{ /* glass reflection, same as funnel device screens */
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(115deg,rgba(255,255,255,.07) 0%,transparent 30%);
-}
-.b-el{opacity:0;transform:translateY(14px) scale(.98);transition:opacity .55s,transform .55s cubic-bezier(.34,1.4,.64,1)}
-.b-el.on{opacity:1;transform:none}
-.b-hero{height:150px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.28),rgba(34,197,94,.24));display:flex;align-items:center;justify-content:center;font-size:52px;position:relative;overflow:hidden;margin-bottom:16px}
-.b-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.b-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.09) 50%,transparent 70%);animation:shine 4s infinite}
-.b-name{height:20px;width:62%;border-radius:6px;background:linear-gradient(90deg,#243250,#2C3B5E);margin-bottom:10px}
-.b-line{height:11px;width:88%;border-radius:5px;background:#1B2740;margin-bottom:8px}
-.b-line.s{width:64%}
-.b-price-row{display:flex;align-items:center;gap:12px;margin:14px 0 14px}
-.b-price{font-weight:800;font-size:1.3rem;color:#fff}
-.b-slash{color:var(--muted);text-decoration:line-through;font-size:.9rem}
-.b-off{font-size:.68rem;font-weight:800;color:#7CF0A9;background:rgba(34,197,94,.13);padding:3px 9px;border-radius:999px}
-.b-buy{height:46px;border-radius:12px;background:var(--grad-brand);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.92rem;letter-spacing:.04em;box-shadow:0 12px 30px -10px rgba(59,130,246,.55)}
-.build-status{position:absolute;left:22px;right:22px;bottom:14px;display:flex;align-items:center;gap:9px;font-size:.74rem;color:var(--muted);font-weight:600}
-.build-bar{flex:1;height:5px;border-radius:99px;background:#1B2740;overflow:hidden}
-.build-fill{height:100%;width:0;background:var(--grad-brand);border-radius:99px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+/* the showcase: real product cards on the left, the live store they become
+   on the right — cycling through the catalogue with a rebuild flash */
+.hs-scene{position:relative;z-index:2;height:560px}
+.hs-cards{position:absolute;left:0;top:48px;width:262px;z-index:2;transition:transform .4s ease}
+.hs-card{position:absolute;left:0;top:0;width:100%;transition:transform .6s cubic-bezier(.22,1,.36,1),opacity .6s,filter .6s}
+.hs-card .pcard{width:100%;box-shadow:0 30px 70px -24px rgba(0,0,0,.75)}
+.hs-card.back{transform:translate(-28px,38px) rotate(-7deg) scale(.94);opacity:.5;filter:saturate(.7) brightness(.75);z-index:1}
+.hs-card.front{transform:rotate(-2deg);z-index:2}
+.hs-card.front .pcard{border-color:rgba(255,201,60,.55);box-shadow:0 0 0 4px rgba(255,201,60,.12),0 34px 80px -26px rgba(0,0,0,.8)}
+.hs-card.out{transform:translateY(-48px) rotate(-10deg) scale(.9);opacity:0}
+.hs-beam{position:absolute;left:252px;right:250px;top:265px;height:2px;z-index:1;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 7px,transparent 7px 14px)}
+.hs-beam .hb-dot{position:absolute;top:-3px;left:0;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px 3px rgba(34,197,94,.6);animation:travel 2.6s linear infinite}
+.hs-phone{position:absolute;right:4px;top:0;width:248px;aspect-ratio:9/18.2;z-index:3;
+  border:7px solid #101725;border-radius:36px;background:#101725;overflow:hidden;
+  box-shadow:0 46px 100px -28px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.09),0 34px 90px -40px rgba(59,130,246,.4);
+  animation:phFloat 6s ease-in-out 1.4s infinite;transition:translate .4s ease}
+@keyframes phFloat{0%,100%{transform:translateY(0) rotate(1.6deg)}50%{transform:translateY(-10px) rotate(1.6deg)}}
+.hs-notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:36%;height:9px;border-radius:99px;background:#101725;z-index:6}
+.hs-screen{position:absolute;inset:0;border-radius:28px;overflow:hidden;background:#0E1626}
+.hs-screen::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:7;
+  background:linear-gradient(115deg,rgba(255,255,255,.1) 0%,transparent 26%)}
+.hs-fit{position:absolute;top:0;left:0;width:375px;transform-origin:top left}
+.hs-flash{position:absolute;inset:0;z-index:5;opacity:0;pointer-events:none;transition:opacity .3s;
+  background:linear-gradient(100deg,#0F1A2E 40%,#1A2A48 50%,#0F1A2E 60%);background-size:200% 100%;animation:skelh 1.1s linear infinite}
+.hs-flash.on{opacity:1}
+@keyframes skelh{to{background-position:-200% 0}}
+/* the storefront inside the phone — laid out at 375px, scaled = always crisp */
+.hst{font-family:'Plus Jakarta Sans',sans-serif;width:375px;background:#FBFAF7;color:#141414;text-align:left}
+.hst-announce{background:#141414;color:#FFC93C;text-align:center;font-size:12px;font-weight:800;letter-spacing:.14em;padding:30px 10px 12px}
+.hst-nav{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid #ECEAE4}
+.hst-brand{font-weight:800;font-size:19px;letter-spacing:.18em;text-transform:uppercase}
+.hst-cart{font-size:17px}
+.hst-img{height:290px;background:#EFECE5;display:flex;align-items:center;justify-content:center;font-size:90px;position:relative;overflow:hidden}
+.hst-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hst-badge{position:absolute;top:12px;left:12px;background:#141414;color:#FFC93C;font-size:11px;font-weight:800;letter-spacing:.12em;padding:6px 12px;border-radius:99px;z-index:2}
+.hst-body{padding:18px 18px 20px}
+.hst-name{font-size:21px;font-weight:800;line-height:1.25;margin-bottom:9px}
+.hst-price{display:flex;align-items:baseline;gap:10px;margin-bottom:15px}
+.hst-now{font-size:24px;font-weight:800}
+.hst-was{color:#9A968E;text-decoration:line-through;font-size:15px}
+.hst-off{font-size:11px;font-weight:800;color:#0E7C3A;background:#DCF5E5;padding:4px 9px;border-radius:99px}
+.hst-buy{background:#141414;color:#fff;text-align:center;font-weight:800;font-size:15px;letter-spacing:.06em;padding:16px;border-radius:12px;margin-bottom:13px}
+.hst-trust{display:flex;gap:7px;flex-wrap:wrap;font-size:11px;font-weight:700;color:#565656;margin-bottom:4px}
+.hst-trust span{background:#F1EFE9;border:1px solid #E5E2D9;padding:6px 10px;border-radius:99px}
+.hst-sec{padding:6px 18px 26px}
+.hst-sec b{display:block;font-size:15px;font-weight:800;margin-bottom:11px}
+.hst-line{height:10px;border-radius:5px;background:#E9E6DE;margin-bottom:8px}
+.hst-line.s{width:70%}
 .float-card{position:absolute;z-index:3;background:rgba(15,23,42,.92);backdrop-filter:blur(8px);border:1px solid var(--line-strong);border-radius:14px;padding:11px 14px;font-size:.76rem;font-weight:700;box-shadow:0 22px 50px -18px rgba(0,0,0,.7);display:flex;align-items:center;gap:9px;animation:hover1 5.5s ease-in-out infinite}
 .float-card .em{font-size:20px}
 .float-card small{display:block;font-weight:600;color:var(--muted);font-size:.64rem;margin-top:1px}
-.float-card.f1{top:-24px;left:-28px;animation-delay:.4s}
-.float-card.f2{bottom:34px;left:-34px;animation:hover2 6.5s ease-in-out infinite}
-.float-card.f3{top:38%;right:-42px;animation:hover1 7s ease-in-out infinite;animation-delay:1.2s}
+.float-card{z-index:4}
+.float-card.f1{top:-20px;left:-16px;animation-delay:.4s}
+.float-card.f2{bottom:56px;left:-26px;animation:hover2 6.5s ease-in-out infinite}
+.float-card.f3{bottom:-16px;right:-24px;animation:hover1 7s ease-in-out infinite;animation-delay:1.2s}
 .float-card .pill{font-size:.62rem;color:#7CF0A9;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:99px}
 @keyframes hover1{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
 @keyframes hover2{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(10px) rotate(-1.5deg)}}
@@ -326,7 +344,7 @@ footer{border-top:1px solid var(--line);background:rgba(255,255,255,.012);paddin
 /* ---------- responsive ---------- */
 @media (max-width:1020px){
   .hero .wrap{grid-template-columns:minmax(0,1fr);gap:60px}
-  .stage{max-width:560px;margin:0 auto}
+  .stage{width:100%;max-width:560px;margin:0 auto}
   .steps{grid-template-columns:1fr}
   .bento{grid-template-columns:repeat(2,1fr)}
   .t-a,.t-b,.t-c,.t-d,.t-e,.t-f{grid-column:span 2}
@@ -345,8 +363,14 @@ footer{border-top:1px solid var(--line);background:rgba(255,255,255,.012);paddin
   .flowline{grid-template-columns:1fr}
   .float-card{font-size:.68rem;padding:9px 11px}
   .float-card.f1{left:-6px}
-  .float-card.f2{left:-8px}
-  .float-card.f3{right:-8px}
+  .float-card.f2{left:-8px;bottom:44px}
+  .float-card.f3{right:-6px}
+  .hs-scene{height:470px}
+  .hs-cards{width:188px;top:34px}
+  .hs-card.back{transform:translate(-12px,24px) rotate(-6deg) scale(.95)}
+  .hs-card .prow.hl b{display:none}
+  .hs-phone{width:186px;right:0}
+  .hs-beam{display:none}
   .foot-grid{grid-template-columns:1fr}
   .cta-row{flex-direction:column;align-items:stretch}
   .cta-main,.cta-ghost{text-align:center;justify-content:center}
@@ -414,32 +438,23 @@ footer{border-top:1px solid var(--line);background:rgba(255,255,255,.012);paddin
       <div class="orb b" style="top:-40px;right:-60px"></div>
       <div class="stage-spot"></div>
       <div class="stage-glow"></div>
-      <div class="browser" id="buildStage">
-        <div class="chrome">
-          <span class="dots"><i></i><i></i><i></i></span>
-          <span class="urlbar"><span class="lock">🔒</span><span id="typedUrl">&nbsp;</span></span>
-          <span class="live-pill"><i></i>LIVE</span>
+      <div class="hs-scene">
+        <div class="hs-cards" id="hsCards">
+          <div class="hs-card back" id="hsCardB"></div>
+          <div class="hs-card front" id="hsCardF"></div>
         </div>
-        <div class="canvas">
-          <div class="b-el b-hero" id="be1"><span id="beEmoji">🐶</span></div>
-          <div class="b-el b-name" id="be2"></div>
-          <div class="b-el b-line" id="be3"></div>
-          <div class="b-el b-line s" id="be4"></div>
-          <div class="b-el b-price-row" id="be5">
-            <span class="b-price" id="bePrice">$49.99</span>
-            <span class="b-slash" id="beSlash">$69.99</span>
-            <span class="b-off">SAVE 28%</span>
-          </div>
-          <div class="b-el b-buy" id="be6">ADD TO CART</div>
-          <div class="build-status">
-            <span id="buildMsg">AI is building…</span>
-            <span class="build-bar"><span class="build-fill" id="buildFill"></span></span>
+        <div class="hs-beam"><span class="hb-dot"></span></div>
+        <div class="hs-phone" id="hsPhone">
+          <span class="hs-notch"></span>
+          <div class="hs-screen" id="hsScreen">
+            <div class="hs-fit" id="hsFit"></div>
+            <div class="hs-flash" id="hsFlash"></div>
           </div>
         </div>
+        <div class="float-card f1"><span class="em">🧠</span><span>10,247,391 products scanned<small>winners matched to your answers</small></span></div>
+        <div class="float-card f2"><span class="em">🏭</span><span>Supplier connected<small>ships direct to your customer</small></span></div>
+        <div class="float-card f3"><span class="em">🛒</span><span>Checkout ready <span class="pill">Stripe · Shop Pay</span></span></div>
       </div>
-      <div class="float-card f1"><span class="em">🏭</span><span>Supplier connected<small>ships direct to your customer</small></span></div>
-      <div class="float-card f2"><span class="em">🧠</span><span>10,247,391 products scanned<small>winners matched to your answers</small></span></div>
-      <div class="float-card f3"><span class="em">🛒</span><span>Checkout ready <span class="pill">Stripe · Shop Pay</span></span></div>
     </div>
   </div>
 </header>
@@ -792,13 +807,13 @@ function loopFx(){
 /* ambient gold dust, like the store-preview screen */
 if(!REDUCED){
   setInterval(()=>{ if(!document.hidden) goldDust(); }, 800);
-  /* coins drip out of the hero store while it's on screen */
+  /* coins drip out of the hero phone while it's on screen */
   setInterval(()=>{
     if(document.hidden) return;
-    const br = document.getElementById('buildStage');
-    const r = br.getBoundingClientRect();
+    const ph = document.getElementById('hsPhone');
+    const r = ph.getBoundingClientRect();
     if(r.bottom < 0 || r.top > innerHeight) return;
-    coinDrip(r.left + r.width/2, r.top + r.height*0.45);
+    coinDrip(r.left + r.width/2, r.top + r.height*0.42);
   }, 6500);
 }
 
@@ -825,76 +840,6 @@ const cio = new IntersectionObserver(es => es.forEach(e => {
   if(e.isIntersecting){ countUp(e.target, +e.target.dataset.count, 1800); cio.unobserve(e.target); }
 }), {threshold:.5});
 document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
-
-/* ---------- hero: store builds itself on loop ---------- */
-const BUILDS = [
-  {emoji:'🌅', url:'aurora-sunset-lamp.myshopify.com',    price:'$39.99', slash:'$59.99'},
-  {emoji:'🐶', url:'pawpro-grooming-kit.myshopify.com',   price:'$34.99', slash:'$49.99'},
-  {emoji:'💆', url:'neckrelax-pro.myshopify.com',         price:'$49.99', slash:'$69.99'},
-  {emoji:'✨', url:'glowskin-led-wand.myshopify.com',     price:'$44.99', slash:'$64.99'},
-  {emoji:'💪', url:'flexband-home-gym.myshopify.com',     price:'$45.99', slash:'$64.99'},
-  {emoji:'🥗', url:'minichef-chopper-pro.myshopify.com',  price:'$36.99', slash:'$52.99'}
-];
-const MSGS = ['Locking product & supplier…','Designing your storefront…','Writing product copy…','Wiring secure checkout…','Store ready ✓'];
-let bIdx = 0, buildTimers = [];
-const els = ['be1','be2','be3','be4','be5','be6'].map(id => document.getElementById(id));
-const typedUrl = document.getElementById('typedUrl');
-const buildMsg = document.getElementById('buildMsg');
-const buildFill = document.getElementById('buildFill');
-
-function typeUrl(str, done){
-  let i = 0; typedUrl.textContent = '';
-  (function tick(){
-    typedUrl.textContent = str.slice(0, ++i);
-    if(i < str.length) setTimeout(tick, 34); else done && done();
-  })();
-}
-function runBuild(){
-  buildTimers.forEach(clearTimeout); buildTimers = [];
-  const b = BUILDS[bIdx % BUILDS.length]; bIdx++;
-  els.forEach(el => el.classList.remove('on'));
-  const em = document.getElementById('beEmoji');
-  const heroBox = document.getElementById('be1');
-  let heroImg = document.getElementById('beImg');
-  if(b.img){
-    em.style.display = 'none';
-    if(!heroImg){
-      heroImg = document.createElement('img');
-      heroImg.id = 'beImg'; heroImg.alt = 'product photo'; heroImg.decoding = 'async';
-      heroBox.appendChild(heroImg);
-    }
-    heroImg.src = b.img; heroImg.style.display = '';
-  } else {
-    em.style.display = '';
-    em.textContent = b.emoji;
-    if(heroImg) heroImg.style.display = 'none';
-  }
-  document.getElementById('bePrice').textContent = b.price;
-  document.getElementById('beSlash').textContent = b.slash;
-  buildFill.style.width = '0%';
-  typeUrl(b.url);
-  const steps = [
-    {at:600,  el:0, bar:22, msg:0},
-    {at:1500, el:1, bar:38, msg:1},
-    {at:2100, el:2, bar:52},
-    {at:2600, el:3, bar:63, msg:2},
-    {at:3300, el:4, bar:80, msg:3},
-    {at:4100, el:5, bar:100, msg:4},
-  ];
-  steps.forEach(s => buildTimers.push(setTimeout(() => {
-    if(s.el !== undefined) els[s.el].classList.add('on');
-    if(s.bar) buildFill.style.width = s.bar + '%';
-    if(s.msg !== undefined) buildMsg.textContent = MSGS[s.msg];
-  }, s.at)));
-  buildTimers.push(setTimeout(() => { // store ready — celebrate, funnel-style
-    if(document.hidden) return;
-    const r = document.getElementById('buildStage').getBoundingClientRect();
-    if(r.bottom < 0 || r.top > innerHeight) return;
-    confettiBurst(r.left + r.width/2, r.top + r.height/2, 34);
-  }, 4200));
-  buildTimers.push(setTimeout(runBuild, 7600));
-}
-runBuild();
 
 /* ---------- product marquee ---------- */
 /* Products: the LIVE DropStart catalogue — the same real products (and real
@@ -948,18 +893,82 @@ fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
     // warm the photos so the marquee & hero never show a blank frame
     list.slice(0, 10).forEach(p => { const im = new Image(); im.decoding = 'async'; im.src = p.img; });
     buildTracks(list.slice(0, 12));
-    // the hero store now builds itself around the real products too
-    BUILDS.length = 0;
-    list.slice(0, 6).forEach(p => BUILDS.push({
-      img: p.img,
-      url: slug(p.n).slice(0, 34) + '.myshopify.com',
-      price: money(p.price),
-      slash: money(Math.ceil(p.price * 1.4) - 0.01)
-    }));
-    bIdx = 0;
-    runBuild(); // restart the hero loop on the real catalogue immediately
+    // the hero showcase cycles the real catalogue too
+    CATALOG = list.slice(0, 8);
+    heroIdx = 0;
+    heroRender();
   })
   .catch(() => {});
+
+/* ---------- hero showcase: real card on the left, the store it becomes on the right ---------- */
+let CATALOG = FALLBACK.slice();
+let heroIdx = 0;
+const hsCardF = document.getElementById('hsCardF');
+const hsCardB = document.getElementById('hsCardB');
+const hsFit   = document.getElementById('hsFit');
+const hsFlash = document.getElementById('hsFlash');
+const brandOf = p => (p.n.split(' ')[0] || 'YOURSTORE').toUpperCase();
+function storefront(p){
+  const wasN = Math.ceil(p.price * 1.4) - 0.01;
+  const save = Math.round((1 - p.price / wasN) * 100);
+  const visual = p.img ? `<img src="${p.img}" alt="${p.n}">` : (p.e || '📦');
+  return `<div class="hst">
+    <div class="hst-announce">FREE SHIPPING · TODAY ONLY</div>
+    <div class="hst-nav"><span class="hst-brand">${brandOf(p)}</span><span class="hst-cart">🛍️</span></div>
+    <div class="hst-img"><span class="hst-badge">⭐ BESTSELLER</span>${visual}</div>
+    <div class="hst-body">
+      <div class="hst-name">${p.n}</div>
+      <div class="hst-price"><span class="hst-now">${money(p.price)}</span><span class="hst-was">${money(wasN)}</span><span class="hst-off">SAVE ${save}%</span></div>
+      <div class="hst-buy">ADD TO CART — ${money(p.price)}</div>
+      <div class="hst-trust"><span>🚚 Fast free shipping</span><span>🔒 Secure checkout</span><span>↩️ 30-day returns</span></div>
+    </div>
+    <div class="hst-sec"><b>Why you'll love it</b><div class="hst-line"></div><div class="hst-line"></div><div class="hst-line s"></div></div>
+  </div>`;
+}
+function fitPhone(){
+  const screen = document.getElementById('hsScreen');
+  if(screen && hsFit) hsFit.style.transform = 'scale(' + (screen.clientWidth / 375) + ')';
+}
+function heroRender(){
+  const a = CATALOG[heroIdx % CATALOG.length];
+  const b = CATALOG[(heroIdx + 1) % CATALOG.length];
+  hsCardF.innerHTML = pcard(a);
+  hsCardB.innerHTML = pcard(b);
+  hsFit.innerHTML = storefront(a);
+  fitPhone();
+}
+function heroCycle(){
+  heroIdx++;
+  hsCardF.classList.add('out');
+  hsFlash.classList.add('on');
+  setTimeout(() => {
+    heroRender();
+    hsCardF.classList.remove('out');
+    setTimeout(() => {
+      hsFlash.classList.remove('on');
+      if(document.hidden) return;
+      const r = document.getElementById('hsPhone').getBoundingClientRect();
+      if(r.bottom < 0 || r.top > innerHeight) return;
+      confettiBurst(r.left + r.width / 2, r.top + r.height * .22, 18);
+    }, 520);
+  }, 560);
+}
+heroRender();
+addEventListener('resize', fitPhone);
+if(!REDUCED) setInterval(heroCycle, 6800);
+/* subtle mouse parallax over the showcase (desktop only) */
+if(matchMedia('(pointer:fine)').matches && !REDUCED){
+  const stage = document.querySelector('.stage');
+  const cards = document.getElementById('hsCards');
+  const phone = document.getElementById('hsPhone');
+  stage.addEventListener('mousemove', e => {
+    const r = stage.getBoundingClientRect();
+    const dx = (e.clientX - r.left) / r.width - .5, dy = (e.clientY - r.top) / r.height - .5;
+    cards.style.transform = `translate(${dx * 10}px, ${dy * 8}px)`;
+    phone.style.translate = `${dx * -8}px ${dy * -6}px`;
+  });
+  stage.addEventListener('mouseleave', () => { cards.style.transform = ''; phone.style.translate = ''; });
+}
 
 /* ---------- typing effect ---------- */
 const LINES = [
