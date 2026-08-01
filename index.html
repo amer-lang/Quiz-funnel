@@ -1092,6 +1092,10 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .ads-dots{display:flex;justify-content:center;gap:5px;margin:0 0 12px}
 .ads-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16);transition:.25s}
 .ads-dots i.on{background:var(--gold);box-shadow:0 0 8px rgba(255,201,60,.6)}
+.ads-pack{margin:2px auto 14px;max-width:330px;width:100%;position:relative}
+.ads-pack img{width:100%;display:block;border-radius:18px;border:1px solid rgba(255,201,60,.35);
+  box-shadow:0 0 0 4px rgba(255,201,60,.08),0 30px 70px -22px rgba(0,0,0,.8);
+  animation:screenIn .6s cubic-bezier(.22,1,.36,1) both}
 .ads-value{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:.64rem;color:var(--muted);font-weight:700}
 .ads-value span{background:rgba(255,255,255,.04);border:1px solid var(--line);padding:6px 11px;border-radius:99px}
 .ads-value b{color:#C6D2EA}
@@ -1723,8 +1727,9 @@ window.dsFire('PageView');
       <div class="ads-hello"><span>🎉</span><span><b>Payment confirmed — your store is being prepared.</b> One quick add-on before we hand you the keys:</span></div>
 
       <h2 style="margin-top:14px;text-align:center">We already designed <span class="grad-text">10 ready-to-run ads</span> for <span class="gold-text" id="adsProdName">your product</span></h2>
-      <p class="sub" style="margin-bottom:10px">A store only makes sales when people see it. These are sized for Facebook &amp; Instagram — post them the minute you go live. Swipe through yours 👇</p>
+      <p class="sub" style="margin-bottom:10px" id="adsSub">A store only makes sales when people see it. These are sized for Facebook &amp; Instagram — post them the minute you go live. Swipe through yours 👇</p>
 
+      <div class="ads-pack" id="adsPack" style="display:none"></div>
       <div class="ads-strip" id="adsStrip"></div>
       <div class="ads-dots" id="adsDots"></div>
 
@@ -2305,6 +2310,9 @@ function pickChoose(e){
     name: chosen.name, image: chosen.image || '', emoji: chosen.emoji || '📦',
     price: chosen.price, cost: chosen.cost, category: chosen.category || ''
   })); }catch(err){}
+  // warm the AI pack-shot for this product now (generated once per product,
+  // cached forever) so it's ready by the time the upsell shows
+  try{ fetch('/api/adpack?warm=1&product=' + encodeURIComponent(chosen.name)).catch(()=>{}); }catch(err){}
   initAudio(); playTada(); playCoin(); vibrate([15,50,15]);
   const r = e.target.getBoundingClientRect();
   confettiBurst(r.left + r.width/2, r.top, 90);
@@ -3073,6 +3081,22 @@ function runUpsellAds(){
   const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
   document.getElementById('adsProdName').textContent = p.name;
   document.getElementById('adsProdName2').textContent = p.name;
+
+  // Preferred visual: the AI-generated pack shot for THIS product (cached
+  // server-side, one generation per product ever). Falls back silently to
+  // the built-in mockup strip if it isn't ready or the key isn't set.
+  fetch('/api/adpack?fast=1&product=' + encodeURIComponent(p.name))
+    .then(r => r.json())
+    .then(j => {
+      if(!(j && j.ready && j.src)) return;
+      const pack = document.getElementById('adsPack');
+      pack.innerHTML = '<img src="' + j.src + '" alt="Preview of your 10-ad pack">';
+      pack.style.display = 'block';
+      document.getElementById('adsStrip').style.display = 'none';
+      document.getElementById('adsDots').style.display = 'none';
+      document.getElementById('adsSub').innerHTML = 'A store only makes sales when people see it. Ten scroll-stopping ads, made for your product, sized for Facebook &amp; Instagram — here\'s a peek at the pack 👇';
+    })
+    .catch(() => {});
 
   const T = adTemplates(p);
   const strip = document.getElementById('adsStrip');
