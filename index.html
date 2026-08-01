@@ -2547,22 +2547,19 @@ function runPreview(){
   const tab = document.getElementById('scrTablet');
   const ph  = document.getElementById('scrPhone');
 
-  const src = dsStatus && dsStatus.preview_image;
-  // The monitor always shows a DESIGNED desktop storefront generated from the
-  // product photo + brand at true 1200px proportions, slowly scrolling.
-  // (DropStart screenshots are mobile captures — they'd look stretched here.)
+  // All three devices show DESIGNED storefronts generated from the product
+  // photo + brand, laid out at true device width and scaled down — text and
+  // UI stay razor-sharp at any size. (The DropStart preview_image is a
+  // low-res mobile capture: squeezed into the small tablet/phone frames it
+  // renders blurry, so it's no longer mounted on any device.)
   mountScaledPanHtml(mon, desktopStore(p, brand), 1200);
-  if(src){
-    // The real store on the devices it was captured for.
-    mountCoverImage(tab, src);
-    mountPanImage(ph, src, brand);
-  } else if(PREVIEW_URL){
+  if(PREVIEW_URL){
     const url = PREVIEW_URL.replace('{{PRODUCT}}', encodeURIComponent(slug));
     mountScaledIframe(tab, url, 768);
     mountScaledIframe(ph, url, 390);
   } else {
-    mountScaledHtml(tab, mockStore(p), 420);
-    mountScaledHtml(ph, mockStore(p), 375);
+    mountScaledHtml(tab, mockStore(p, brand), 420);
+    mountScaledPanHtml(ph, mockStore(p, brand), 375);
   }
 
   playTada();
@@ -2782,9 +2779,9 @@ function mountScaledPanHtml(clip, html, natW){
   });
 }
 
-/* generated mock storefront — placeholder until the real preview is wired in */
-function mockStore(p){
-  const brand = (p.name||'Your Store').split(' ')[0];
+/* generated mock storefront — brand falls back to the product's first word */
+function mockStore(p, brandName){
+  const brand = brandName || (p.name||'Your Store').split(' ')[0];
   const price = Number(p.price).toFixed(2);
   const wasP = (Math.ceil(Number(p.price)*1.8)-0.01).toFixed(2);
   const save = Math.round((1 - p.price/(Math.ceil(p.price*1.8)-0.01))*100);
