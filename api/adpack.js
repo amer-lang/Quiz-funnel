@@ -27,6 +27,19 @@ const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 
 const PENDING_TTL = 150000; // ms — treat older "generating" marks as stale
 
+/* Images live in Vercel Blob (public CDN URLs) — jsonblob caps payloads far
+   below image size, so it only holds the small index JSON. */
+async function storeImage(slug, b64){
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if(!token) return { error: 'no_blob_store' };
+  const { put } = await import('@vercel/blob');
+  const out = await put('adpack/' + slug + '.webp', Buffer.from(b64, 'base64'), {
+    access: 'public', token, contentType: 'image/webp',
+    addRandomSuffix: false, cacheControlMaxAge: 31536000
+  });
+  return { url: out.url };
+}
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function jbFetch(url, opts, label){
   let last;
@@ -146,6 +159,19 @@ module.exports = async (req, res) => {
 
     if(!INDEX_ID) return res.status(200).json({ ready:false, status:'not_initialized' });
 
+    /* admin: probe jsonblob's tolerated payload size */
+    if(q.jbtest){
+      if(q.jbtest !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
+      const kb = Math.max(1, Math.min(900, parseInt(q.kb || '200', 10) || 200));
+      try{
+        const id = await jbCreate({ probe: 'x'.repeat(kb * 1024) });
+        fetch(JB + '/' + id, { method:'DELETE' }).catch(()=>{});
+        return res.status(200).json({ ok:true, kb });
+      }catch(e){
+        return res.status(200).json({ ok:false, kb, detail: String(e.message || e) });
+      }
+    }
+
     /* admin: list catalogue + cache state */
     if(q.list){
       if(q.list !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
@@ -170,10 +196,11 @@ module.exports = async (req, res) => {
         const slug = slugOf(prod.label);
         const g = await generate(prod.label, prod.image_card || prod.image || '');
         if(g.error){ failed.push({ name: prod.label, error: g.error, detail: g.detail || '' }); continue; }
-        const blobId = await jbCreate({ b64: g.b64, ct: 'image/webp', name: prod.label, at: Date.now() });
+        const st = await storeImage(slug, g.b64);
+        if(st.error){ failed.push({ name: prod.label, error: st.error }); continue; }
         idx = await jbGet(INDEX_ID);
         idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
-        idx.packs[slug] = { blob: blobId, at: Date.now() };
+        idx.packs[slug] = { url: st.url, at: Date.now() };
         delete idx.pending[slug];
         await jbPut(INDEX_ID, idx);
         done.push(prod.label);
@@ -202,7 +229,10 @@ module.exports = async (req, res) => {
     const idx = await jbGet(INDEX_ID);
     idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
 
-    if(idx.packs[slug]) return res.status(200).json({ ready:true, src:'/api/adpack?serve=' + slug });
+    if(idx.packs[slug]){
+      const rec = idx.packs[slug];
+      return res.status(200).json({ ready:true, src: rec.url || ('/api/adpack?serve=' + slug) });
+    }
 
     const pendingAt = idx.pending[slug] || 0;
     if(q.fast === '1' || (pendingAt && Date.now() - pendingAt < PENDING_TTL)){
@@ -220,21 +250,21 @@ module.exports = async (req, res) => {
     await jbPut(INDEX_ID, idx);
 
     const g = await generate(prod.label, prod.image_card || prod.image || '');
-    if(g.error){
+    const st = g.error ? g : await storeImage(slug, g.b64);
+    if(st.error){
       const idx2 = await jbGet(INDEX_ID);
       if(idx2.pending) delete idx2.pending[slug];
       await jbPut(INDEX_ID, idx2);
-      return res.status(200).json({ ready:false, status:g.error, detail:g.detail || '' });
+      return res.status(200).json({ ready:false, status:st.error, detail:st.detail || '' });
     }
 
-    const blobId = await jbCreate({ b64: g.b64, ct: 'image/webp', name: prod.label, at: Date.now() });
     const idx3 = await jbGet(INDEX_ID);
     idx3.packs = idx3.packs || {}; idx3.pending = idx3.pending || {};
-    idx3.packs[slug] = { blob: blobId, at: Date.now() };
+    idx3.packs[slug] = { url: st.url, at: Date.now() };
     delete idx3.pending[slug];
     await jbPut(INDEX_ID, idx3);
 
-    return res.status(200).json({ ready:true, src:'/api/adpack?serve=' + slug });
+    return res.status(200).json({ ready:true, src: st.url });
   }catch(e){
     return res.status(200).json({ ready:false, status:'error', detail: String(e && e.message || e).slice(0, 200) });
   }
