@@ -130,19 +130,19 @@ async function makePack(prod){
   const slug = slugOf(prod.label);
   const { put, del } = await import('@vercel/blob');
   await put('adpack/.pending-' + slug, String(Date.now()), blobOpts({
-    access: 'public', contentType: 'text/plain', addRandomSuffix: false
+    access: 'private', contentType: 'text/plain', addRandomSuffix: false
   })).catch(() => {});
   const g = await generate(prod.label, prod.image_card || prod.image || '');
   if(g.error){
     del('adpack/.pending-' + slug, blobOpts()).catch(() => {});
     return g;
   }
-  const outBlob = await put('adpack/' + slug + '.webp', Buffer.from(g.b64, 'base64'), blobOpts({
-    access: 'public', contentType: 'image/webp',
+  await put('adpack/' + slug + '.webp', Buffer.from(g.b64, 'base64'), blobOpts({
+    access: 'private', contentType: 'image/webp',
     addRandomSuffix: false, cacheControlMaxAge: 31536000
   }));
   del('adpack/.pending-' + slug, blobOpts()).catch(() => {});
-  return { url: outBlob.url };
+  return { url: '/api/adpack?serve=' + slug };
 }
 
 module.exports = async (req, res) => {
@@ -150,6 +150,21 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try{
+    /* serve a pack shot from the private store via a signed redirect */
+    if(q.serve){
+      const slug = slugOf(q.serve);
+      try{
+        const { head } = await import('@vercel/blob');
+        const h = await head('adpack/' + slug + '.webp', blobOpts());
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        res.statusCode = 302;
+        res.setHeader('Location', h.downloadUrl || h.url);
+        return res.end();
+      }catch(e){
+        return res.status(404).json({ ok:false });
+      }
+    }
+
     /* admin: catalogue + cache state */
     if(q.list){
       if(q.list !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
@@ -159,7 +174,7 @@ module.exports = async (req, res) => {
         // env KEY NAMES only (never values) — shows what the store connection injected
         envKeys: Object.keys(process.env).filter(k => /BLOB|READ_WRITE|STORE/i.test(k)),
         products: cat.map(p => ({ name: p.label, cached: !!st.packs[slugOf(p.label)],
-          url: st.packs[slugOf(p.label)] || null })) });
+          url: st.packs[slugOf(p.label)] ? '/api/adpack?serve=' + slugOf(p.label) : null })) });
     }
 
     /* admin: warm the whole catalogue, n generations per call */
@@ -188,7 +203,7 @@ module.exports = async (req, res) => {
     const slug = slugOf(name);
 
     const st = await packState();
-    if(st.packs[slug]) return res.status(200).json({ ready:true, src: st.packs[slug] });
+    if(st.packs[slug]) return res.status(200).json({ ready:true, src: '/api/adpack?serve=' + slug });
 
     const pendingAt = st.pending[slug] || 0;
     if(q.fast === '1' || (pendingAt && Date.now() - pendingAt < PENDING_TTL)){
