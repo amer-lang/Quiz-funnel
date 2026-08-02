@@ -150,16 +150,21 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try{
-    /* serve a pack shot from the private store via a signed redirect */
+    /* serve a pack shot: stream the private blob through our own origin so
+       buyers never depend on the store's URL signing. Edge-cached hard. */
     if(q.serve){
       const slug = slugOf(q.serve);
       try{
         const { head } = await import('@vercel/blob');
         const h = await head('adpack/' + slug + '.webp', blobOpts());
-        res.setHeader('Cache-Control', 'public, max-age=300');
-        res.statusCode = 302;
-        res.setHeader('Location', h.downloadUrl || h.url);
-        return res.end();
+        const t = blobToken();
+        let r = await fetch(h.downloadUrl || h.url, t ? { headers: { authorization: 'Bearer ' + t } } : undefined);
+        if(!r.ok) r = await fetch(h.url, t ? { headers: { authorization: 'Bearer ' + t } } : undefined);
+        if(!r.ok) return res.status(404).json({ ok:false, status: 'blob_fetch_' + r.status });
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.setHeader('Content-Type', 'image/webp');
+        res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=2592000, immutable');
+        return res.status(200).send(buf);
       }catch(e){
         return res.status(404).json({ ok:false });
       }
