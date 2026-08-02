@@ -1,79 +1,56 @@
 /* Sell Products AI — "10-Ad Pack" teaser image generator.
    Vercel serverless function at /api/adpack.
 
-   Generates ONE premium pack-shot mockup per catalogue product (the fanned
-   deck of ad cards with a gold "10-AD PACK" ribbon) using OpenAI gpt-image-1
-   with the product's real photo as the reference, then caches it forever in
-   jsonblob storage. Every future buyer of that product gets the cached image
-   instantly — each product costs one generation, ever.
+   Generates ONE premium pack-shot mockup per catalogue product (fanned deck
+   of ad cards, gold "10-AD PACK" ribbon) with OpenAI gpt-image-1, using the
+   product's real photo as reference, and stores it in Vercel Blob at a
+   deterministic path (adpack/<slug>.webp). The Blob listing itself is the
+   cache index — no external index service. Each product costs one
+   generation, ever; every future buyer gets the CDN-cached image.
 
-   GET ?product=<name>&warm=1     — ensure the pack shot exists (generate if
-                                    missing; ~20-40s on first call per product)
-   GET ?product=<name>&fast=1     — report only, never generates (upsell UI)
-   GET ?serve=<slug>              — serve the cached image (immutable cache)
-   GET ?init=<READ_KEY>           — one-time: create the index blob
+   GET ?product=<name>&warm=1   — ensure the pack shot exists (generates if
+                                  missing, ~20-40s first time per product)
+   GET ?product=<name>&fast=1   — report only, never generates (upsell UI)
+   GET ?list=<READ_KEY>         — admin: catalogue + cache state
+   GET ?warmall=<READ_KEY>&n=2  — admin: generate up to n missing per call
 
-   Products are validated against the live DropStart catalogue, so strangers
-   can't burn generation credits on made-up names. Requires OPENAI_API_KEY in
-   the environment; until it's set every response is {ready:false,
-   status:'no_key'} and the funnel shows its built-in fallback. */
+   Products are validated against the live DropStart catalogue so strangers
+   can't burn generation credits. Requires OPENAI_API_KEY and a connected
+   Vercel Blob store; degrades to {ready:false} so the funnel's built-in
+   fallback shows. */
 
-const JB = 'https://jsonblob.com/api/jsonBlob';
 const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
-const INDEX_ID = '019fbc07-ee55-7e05-b141-00d139a13064';
-
 const DS_API = 'https://chat.dropstart.app/api/express';
 const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
-
-const PENDING_TTL = 150000; // ms — treat older "generating" marks as stale
-
-/* Images live in Vercel Blob (public CDN URLs) — jsonblob caps payloads far
-   below image size, so it only holds the small index JSON. */
-async function storeImage(slug, b64){
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if(!token) return { error: 'no_blob_store' };
-  const { put } = await import('@vercel/blob');
-  const out = await put('adpack/' + slug + '.webp', Buffer.from(b64, 'base64'), {
-    access: 'public', token, contentType: 'image/webp',
-    addRandomSuffix: false, cacheControlMaxAge: 31536000
-  });
-  return { url: out.url };
-}
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function jbFetch(url, opts, label){
-  let last;
-  for(let i = 0; i < 4; i++){
-    if(i) await sleep(1200 * i); // jsonblob throttles bursts — back off and retry
-    const r = await fetch(url, opts).catch(e => ({ ok:false, status:'net', _e:e }));
-    if(r.ok) return r;
-    last = r.status;
-    if(r.status !== 429 && r.status < 500 && r.status !== 'net') break;
-  }
-  throw new Error(label + ' ' + last);
-}
-async function jbGet(id){
-  const r = await jbFetch(JB + '/' + id, { headers: { Accept: 'application/json' } }, 'jb get');
-  return r.json();
-}
-async function jbPut(id, data){
-  await jbFetch(JB + '/' + id, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
-  }, 'jb put');
-}
-async function jbCreate(data){
-  const r = await jbFetch(JB, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(data)
-  }, 'jb create');
-  const id = (r.headers.get('location') || '').split('/').pop();
-  if(!id) throw new Error('jb create: no id');
-  return id;
-}
+const PENDING_TTL = 180000; // ms — ignore generating-markers older than this
 
 const slugOf = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
-/* live catalogue (per-instance cache, 10 min) — the allow-list */
+function blobToken(){
+  if(process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  const k = Object.keys(process.env).find(key =>
+    /READ_WRITE_TOKEN/i.test(key) && String(process.env[key]).startsWith('vercel_blob_rw'));
+  return k ? process.env[k] : '';
+}
+
+/* one Blob listing per request = the whole cache state */
+async function packState(token){
+  const { list } = await import('@vercel/blob');
+  const out = { packs: {}, pending: {} };
+  let cursor;
+  do{
+    const page = await list({ prefix: 'adpack/', token, limit: 1000, cursor });
+    for(const b of page.blobs){
+      const m = b.pathname.match(/^adpack\/\.pending-(.+)$/);
+      if(m){ out.pending[m[1]] = new Date(b.uploadedAt).getTime(); continue; }
+      const s = b.pathname.match(/^adpack\/(.+)\.webp$/);
+      if(s) out.packs[s[1]] = b.url;
+    }
+    cursor = page.cursor;
+  }while(cursor);
+  return out;
+}
+
 let catCache = null, catAt = 0;
 async function catalogue(){
   if(catCache && Date.now() - catAt < 600000) return catCache;
@@ -111,7 +88,6 @@ async function generate(name, imgUrl){
   let out;
   const imgRes = imgUrl ? await fetch(imgUrl).catch(() => null) : null;
   if(imgRes && imgRes.ok){
-    // reference-based: the pack shot shows THEIR product
     const buf = Buffer.from(await imgRes.arrayBuffer());
     const ct = imgRes.headers.get('content-type') || 'image/png';
     const fd = new FormData();
@@ -129,7 +105,6 @@ async function generate(name, imgUrl){
     if(!r.ok) out = null;
   }
   if(!out || !out.data || !out.data[0] || !out.data[0].b64_json){
-    // no usable reference image — generate from the description alone
     const r = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
@@ -144,127 +119,82 @@ async function generate(name, imgUrl){
   return { b64: out.data[0].b64_json };
 }
 
+async function makePack(prod, token){
+  const slug = slugOf(prod.label);
+  const { put, del } = await import('@vercel/blob');
+  await put('adpack/.pending-' + slug, String(Date.now()), {
+    access: 'public', token, contentType: 'text/plain', addRandomSuffix: false
+  }).catch(() => {});
+  const g = await generate(prod.label, prod.image_card || prod.image || '');
+  if(g.error){
+    del('adpack/.pending-' + slug, { token }).catch(() => {});
+    return g;
+  }
+  const outBlob = await put('adpack/' + slug + '.webp', Buffer.from(g.b64, 'base64'), {
+    access: 'public', token, contentType: 'image/webp',
+    addRandomSuffix: false, cacheControlMaxAge: 31536000
+  });
+  del('adpack/.pending-' + slug, { token }).catch(() => {});
+  return { url: outBlob.url };
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const q = req.query || {};
+  const token = blobToken();
 
   try{
-    /* one-time init */
-    if(q.init){
-      if(q.init !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
-      if(INDEX_ID) return res.status(200).json({ ok:true, index: INDEX_ID, note:'already set' });
-      const id = await jbCreate({ packs:{}, pending:{} });
-      return res.status(200).json({ ok:true, index:id, note:'paste into INDEX_ID and redeploy' });
-    }
-
-    if(!INDEX_ID) return res.status(200).json({ ready:false, status:'not_initialized' });
-
-    /* admin: probe jsonblob's tolerated payload size */
-    if(q.jbtest){
-      if(q.jbtest !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
-      const kb = Math.max(1, Math.min(900, parseInt(q.kb || '200', 10) || 200));
-      try{
-        const id = await jbCreate({ probe: 'x'.repeat(kb * 1024) });
-        fetch(JB + '/' + id, { method:'DELETE' }).catch(()=>{});
-        return res.status(200).json({ ok:true, kb });
-      }catch(e){
-        return res.status(200).json({ ok:false, kb, detail: String(e.message || e) });
-      }
-    }
-
-    /* admin: list catalogue + cache state */
+    /* admin: catalogue + cache state */
     if(q.list){
       if(q.list !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
       const cat = await catalogue();
-      const idx = await jbGet(INDEX_ID);
-      return res.status(200).json({ ok:true, hasKey: !!process.env.OPENAI_API_KEY,
-        products: cat.map(p => ({ name: p.label, cached: !!(idx.packs && idx.packs[slugOf(p.label)]) })) });
+      const st = token ? await packState(token) : { packs:{} };
+      return res.status(200).json({ ok:true, hasKey: !!process.env.OPENAI_API_KEY, hasBlob: !!token,
+        products: cat.map(p => ({ name: p.label, cached: !!st.packs[slugOf(p.label)],
+          url: st.packs[slugOf(p.label)] || null })) });
     }
 
-    /* admin: warm the whole catalogue, n generations per call (call repeatedly
-       until remaining hits 0 — keeps each invocation inside the time limit) */
+    /* admin: warm the whole catalogue, n generations per call */
     if(q.warmall){
       if(q.warmall !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
+      if(!token) return res.status(200).json({ ok:false, status:'no_blob_store' });
       if(!process.env.OPENAI_API_KEY) return res.status(200).json({ ok:false, status:'no_key' });
       const n = Math.max(1, Math.min(3, parseInt(q.n || '2', 10) || 2));
       const cat = await catalogue();
-      let idx = await jbGet(INDEX_ID);
-      idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
-      const missing = cat.filter(p => !idx.packs[slugOf(p.label)]);
+      const st = await packState(token);
+      const missing = cat.filter(p => !st.packs[slugOf(p.label)]);
       const done = [], failed = [];
       for(const prod of missing.slice(0, n)){
-        const slug = slugOf(prod.label);
-        const g = await generate(prod.label, prod.image_card || prod.image || '');
-        if(g.error){ failed.push({ name: prod.label, error: g.error, detail: g.detail || '' }); continue; }
-        const st = await storeImage(slug, g.b64);
-        if(st.error){ failed.push({ name: prod.label, error: st.error }); continue; }
-        idx = await jbGet(INDEX_ID);
-        idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
-        idx.packs[slug] = { url: st.url, at: Date.now() };
-        delete idx.pending[slug];
-        await jbPut(INDEX_ID, idx);
-        done.push(prod.label);
+        const r = await makePack(prod, token);
+        if(r.error) failed.push({ name: prod.label, error: r.error, detail: r.detail || '' });
+        else done.push({ name: prod.label, url: r.url });
       }
       return res.status(200).json({ ok:true, generated: done, failed,
         remaining: Math.max(0, missing.length - done.length - failed.length) });
     }
 
-    /* serve a cached pack shot */
-    if(q.serve){
-      const idx = await jbGet(INDEX_ID);
-      const rec = idx.packs && idx.packs[slugOf(q.serve)];
-      if(!rec || !rec.blob) return res.status(404).json({ ok:false });
-      const img = await jbGet(rec.blob);
-      if(!img || !img.b64) return res.status(404).json({ ok:false });
-      res.setHeader('Content-Type', img.ct || 'image/webp');
-      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
-      return res.status(200).send(Buffer.from(img.b64, 'base64'));
-    }
-
-    /* status / generation */
+    /* buyer-facing: status / warm */
     const name = String(q.product || '').slice(0, 120);
     if(!name) return res.status(400).json({ ready:false, status:'no_product' });
+    if(!token) return res.status(200).json({ ready:false, status:'no_blob_store' });
     const slug = slugOf(name);
 
-    const idx = await jbGet(INDEX_ID);
-    idx.packs = idx.packs || {}; idx.pending = idx.pending || {};
+    const st = await packState(token);
+    if(st.packs[slug]) return res.status(200).json({ ready:true, src: st.packs[slug] });
 
-    if(idx.packs[slug]){
-      const rec = idx.packs[slug];
-      return res.status(200).json({ ready:true, src: rec.url || ('/api/adpack?serve=' + slug) });
-    }
-
-    const pendingAt = idx.pending[slug] || 0;
+    const pendingAt = st.pending[slug] || 0;
     if(q.fast === '1' || (pendingAt && Date.now() - pendingAt < PENDING_TTL)){
       return res.status(200).json({ ready:false, status: pendingAt ? 'generating' : 'missing' });
     }
 
-    /* generate — but only for real catalogue products */
     const cat = await catalogue();
     const prod = cat.find(p => slugOf(p.label) === slug);
     if(!prod) return res.status(404).json({ ready:false, status:'unknown_product' });
-
     if(!process.env.OPENAI_API_KEY) return res.status(200).json({ ready:false, status:'no_key' });
 
-    idx.pending[slug] = Date.now();
-    await jbPut(INDEX_ID, idx);
-
-    const g = await generate(prod.label, prod.image_card || prod.image || '');
-    const st = g.error ? g : await storeImage(slug, g.b64);
-    if(st.error){
-      const idx2 = await jbGet(INDEX_ID);
-      if(idx2.pending) delete idx2.pending[slug];
-      await jbPut(INDEX_ID, idx2);
-      return res.status(200).json({ ready:false, status:st.error, detail:st.detail || '' });
-    }
-
-    const idx3 = await jbGet(INDEX_ID);
-    idx3.packs = idx3.packs || {}; idx3.pending = idx3.pending || {};
-    idx3.packs[slug] = { url: st.url, at: Date.now() };
-    delete idx3.pending[slug];
-    await jbPut(INDEX_ID, idx3);
-
-    return res.status(200).json({ ready:true, src: st.url });
+    const r = await makePack(prod, token);
+    if(r.error) return res.status(200).json({ ready:false, status:r.error, detail:r.detail || '' });
+    return res.status(200).json({ ready:true, src: r.url });
   }catch(e){
     return res.status(200).json({ ready:false, status:'error', detail: String(e && e.message || e).slice(0, 200) });
   }
