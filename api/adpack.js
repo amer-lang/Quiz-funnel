@@ -32,14 +32,21 @@ function blobToken(){
     /READ_WRITE_TOKEN/i.test(key) && String(process.env[key]).startsWith('vercel_blob_rw'));
   return k ? process.env[k] : '';
 }
+/* new-style store connections inject BLOB_STORE_ID and the SDK auths via the
+   deployment's OIDC identity — no token env var at all */
+function blobReady(){ return !!(blobToken() || process.env.BLOB_STORE_ID); }
+function blobOpts(extra){
+  const t = blobToken();
+  return t ? Object.assign({ token: t }, extra || {}) : (extra || {});
+}
 
 /* one Blob listing per request = the whole cache state */
-async function packState(token){
+async function packState(){
   const { list } = await import('@vercel/blob');
   const out = { packs: {}, pending: {} };
   let cursor;
   do{
-    const page = await list({ prefix: 'adpack/', token, limit: 1000, cursor });
+    const page = await list(blobOpts({ prefix: 'adpack/', limit: 1000, cursor }));
     for(const b of page.blobs){
       const m = b.pathname.match(/^adpack\/\.pending-(.+)$/);
       if(m){ out.pending[m[1]] = new Date(b.uploadedAt).getTime(); continue; }
@@ -119,37 +126,38 @@ async function generate(name, imgUrl){
   return { b64: out.data[0].b64_json };
 }
 
-async function makePack(prod, token){
+async function makePack(prod){
   const slug = slugOf(prod.label);
   const { put, del } = await import('@vercel/blob');
-  await put('adpack/.pending-' + slug, String(Date.now()), {
-    access: 'public', token, contentType: 'text/plain', addRandomSuffix: false
-  }).catch(() => {});
+  await put('adpack/.pending-' + slug, String(Date.now()), blobOpts({
+    access: 'public', contentType: 'text/plain', addRandomSuffix: false
+  })).catch(() => {});
   const g = await generate(prod.label, prod.image_card || prod.image || '');
   if(g.error){
-    del('adpack/.pending-' + slug, { token }).catch(() => {});
+    del('adpack/.pending-' + slug, blobOpts()).catch(() => {});
     return g;
   }
-  const outBlob = await put('adpack/' + slug + '.webp', Buffer.from(g.b64, 'base64'), {
-    access: 'public', token, contentType: 'image/webp',
+  const outBlob = await put('adpack/' + slug + '.webp', Buffer.from(g.b64, 'base64'), blobOpts({
+    access: 'public', contentType: 'image/webp',
     addRandomSuffix: false, cacheControlMaxAge: 31536000
-  });
-  del('adpack/.pending-' + slug, { token }).catch(() => {});
+  }));
+  del('adpack/.pending-' + slug, blobOpts()).catch(() => {});
   return { url: outBlob.url };
 }
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const q = req.query || {};
-  const token = blobToken();
 
   try{
     /* admin: catalogue + cache state */
     if(q.list){
       if(q.list !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
       const cat = await catalogue();
-      const st = token ? await packState(token) : { packs:{} };
-      return res.status(200).json({ ok:true, hasKey: !!process.env.OPENAI_API_KEY, hasBlob: !!token,
+      const st = blobReady() ? await packState() : { packs:{} };
+      return res.status(200).json({ ok:true, hasKey: !!process.env.OPENAI_API_KEY, hasBlob: blobReady(),
+        // env KEY NAMES only (never values) — shows what the store connection injected
+        envKeys: Object.keys(process.env).filter(k => /BLOB|READ_WRITE|STORE/i.test(k)),
         products: cat.map(p => ({ name: p.label, cached: !!st.packs[slugOf(p.label)],
           url: st.packs[slugOf(p.label)] || null })) });
     }
@@ -157,15 +165,15 @@ module.exports = async (req, res) => {
     /* admin: warm the whole catalogue, n generations per call */
     if(q.warmall){
       if(q.warmall !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
-      if(!token) return res.status(200).json({ ok:false, status:'no_blob_store' });
+      if(!blobReady()) return res.status(200).json({ ok:false, status:'no_blob_store' });
       if(!process.env.OPENAI_API_KEY) return res.status(200).json({ ok:false, status:'no_key' });
       const n = Math.max(1, Math.min(3, parseInt(q.n || '2', 10) || 2));
       const cat = await catalogue();
-      const st = await packState(token);
+      const st = await packState();
       const missing = cat.filter(p => !st.packs[slugOf(p.label)]);
       const done = [], failed = [];
       for(const prod of missing.slice(0, n)){
-        const r = await makePack(prod, token);
+        const r = await makePack(prod);
         if(r.error) failed.push({ name: prod.label, error: r.error, detail: r.detail || '' });
         else done.push({ name: prod.label, url: r.url });
       }
@@ -176,10 +184,10 @@ module.exports = async (req, res) => {
     /* buyer-facing: status / warm */
     const name = String(q.product || '').slice(0, 120);
     if(!name) return res.status(400).json({ ready:false, status:'no_product' });
-    if(!token) return res.status(200).json({ ready:false, status:'no_blob_store' });
+    if(!blobReady()) return res.status(200).json({ ready:false, status:'no_blob_store' });
     const slug = slugOf(name);
 
-    const st = await packState(token);
+    const st = await packState();
     if(st.packs[slug]) return res.status(200).json({ ready:true, src: st.packs[slug] });
 
     const pendingAt = st.pending[slug] || 0;
@@ -192,7 +200,7 @@ module.exports = async (req, res) => {
     if(!prod) return res.status(404).json({ ready:false, status:'unknown_product' });
     if(!process.env.OPENAI_API_KEY) return res.status(200).json({ ready:false, status:'no_key' });
 
-    const r = await makePack(prod, token);
+    const r = await makePack(prod);
     if(r.error) return res.status(200).json({ ready:false, status:r.error, detail:r.detail || '' });
     return res.status(200).json({ ready:true, src: r.url });
   }catch(e){
