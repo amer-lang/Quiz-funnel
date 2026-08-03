@@ -1765,6 +1765,14 @@ window.dsFire('PageView');
       <a href="#" class="oto-decline" onclick="upsellNo(event)">No thanks — I'll create my own ads</a>
     </section>
 
+    <!-- Interstitial for returns from Stripe: shown synchronously at boot so
+         the quiz start never flashes while the charge verifies. -->
+    <section class="screen" id="s-paywait" style="justify-content:center;text-align:center">
+      <div class="done-check">✓</div>
+      <h2 style="text-align:center">Payment received!</h2>
+      <p class="sub" style="text-align:center">One moment — securing your order…</p>
+    </section>
+
     <!-- ======================= 14 · DONE ======================= -->
     <section class="screen" id="s-done">
       <div class="done-check">✓</div>
@@ -3264,6 +3272,16 @@ function dsGoSetup(e){
   if(dsResumeUrl){ window.location.href = dsResumeUrl; }
 }
 
+/* Swap the quiz start for the "payment received" interstitial (and back).
+   Called synchronously by the resume handlers so the landing screen never
+   flashes while a verification request is in flight. */
+function payWait(on){
+  const land = document.getElementById('s-landing');
+  const wait = document.getElementById('s-paywait');
+  if(on){ land.classList.remove('active'); wait.classList.add('active'); current = 's-paywait'; }
+  else  { wait.classList.remove('active'); land.classList.add('active'); current = 's-landing'; }
+}
+
 /* Coming back from the $1 checkout: Stripe returns to
    …/?paid=1&cs={CHECKOUT_SESSION_ID}. Pick the build back up and show the
    upsell rather than restarting the quiz. */
@@ -3276,6 +3294,7 @@ function dsResumeAfterPayment(){
   // server-verified paid session does. No cs → not a genuine return; fall
   // through to the normal quiz. TG11793.
   if(!cs) return false;
+  payWait(true); // no quiz flash while the charge verifies
 
   const body = { cs };
   if(DS_TEST) body.test = DS_TEST;
@@ -3285,7 +3304,7 @@ function dsResumeAfterPayment(){
   })
   .then(r=>r.json())
   .then(j=>{
-    if(!(j && j.ok && j.paid && j.project_id)) return; // not a real paid session → stay on the quiz
+    if(!(j && j.ok && j.paid && j.project_id)){ payWait(false); return; } // not a real paid session → back to the quiz
     // Meta Purchase for the $1 unlock — SAME onceKey as the /store page fires, so
     // whichever the buyer reaches, Meta counts it once. Fired here off the
     // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
@@ -3300,11 +3319,12 @@ function dsResumeAfterPayment(){
     // the page reloaded across checkout — bring the picked product back for the upsell
     if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
     const upScreen = UPSELL_ADS ? 's-upsell-ads' : 's-upsell';
+    document.getElementById('s-paywait').classList.remove('active');
     document.getElementById('s-landing').classList.remove('active');
     document.getElementById(upScreen).classList.add('active');
     current = upScreen; setBar(upScreen); updateBack(); onEnter(upScreen);
   })
-  .catch(()=>{}); // network hiccup → leave them on the quiz, not a broken upsell
+  .catch(()=>{ payWait(false); }); // network hiccup → back to the quiz, not a broken upsell
   return true; // we've claimed the ?paid param either way (don't also run ?resume)
 }
 
@@ -3315,6 +3335,7 @@ function dsResumeAfterUpsell(){
   if(q.get('upsold') !== '1') return false;
   const cs = q.get('cs') || '';
   if(!cs) return false;
+  payWait(true); // no quiz flash while finalize runs (go('s-done') transitions from here)
   try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
   dsPaidCs = cs;
   // Meta Purchase for the $299 upsell — same onceKey as the /store page, deduped.
@@ -3336,6 +3357,7 @@ function dsResumeAfterUpsell49(){
   const cs = q.get('cs') || '';
   const ucs = q.get('upsell_cs') || '';
   if(!cs) return false;
+  payWait(true); // no quiz flash while finalize runs (go('s-done') transitions from here)
   try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
   dsPaidCs = cs;
   if(ucs){
