@@ -1820,12 +1820,21 @@ const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
 // The VSL shown on the video-ads upsell screen (same one DropStart uses).
 const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: '6a4d92062406c7e3ffb37813' };
 /* Image-ads upsell (10 custom image ads · $49 one-time).
-   FLIP UPSELL_ADS TO true ONLY after the backend /upsell-checkout charges
-   $49 for sku "image_ads_10" — the price on screen must always match the
-   charge. Until then the $299 video upsell keeps running.
-   Preview the new screen safely anytime with ?upsellpreview=1 (checkout
-   disabled in preview). */
-const UPSELL_ADS = false;
+   /api/upsell49 charges exactly $49 on our own Stripe account and
+   /api/adsorder + /ads deliver the pack — screen price and charge match.
+   FLIP UPSELL_ADS TO true to show it to everyone (falls back to the $299
+   video upsell while false). Private end-to-end test lane: open the funnel
+   once with ?ads49test=1 and THAT browser gets the $49 flow (sticks through
+   the Stripe redirects via localStorage; ?ads49test=0 turns it off).
+   Preview the screen without checkout anytime with ?upsellpreview=1. */
+const UPSELL_ADS = false || (function(){
+  try{
+    const v = new URLSearchParams(location.search).get('ads49test');
+    if(v === '1') localStorage.setItem('spai_ads49test', '1');
+    if(v === '0') localStorage.removeItem('spai_ads49test');
+    return localStorage.getItem('spai_ads49test') === '1';
+  }catch(e){ return false; }
+})();
 const UPSELL_ADS_PRICE = 49;
 let upsellPreviewMode = false;
 const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
