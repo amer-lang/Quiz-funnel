@@ -102,6 +102,38 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok:true, hasSecret: !!sk, secretType: sk.slice(0, 3), hasPublishable: !!pk });
     }
 
+    /* key-gated one-click DRY RUN (GET) — walks the exact lookup chain the
+       live charge uses on a REAL paid $1 session (latest one, or ?cs=…) and
+       reports what it would charge, without creating any PaymentIntent. */
+    if(q.dryrun){
+      if(q.dryrun !== READ_KEY) return res.status(403).json({ ok:false });
+      let base = null;
+      if(q.cs){
+        base = await stripe('checkout/sessions/' + encodeURIComponent(String(q.cs).slice(0, 300)));
+      }else{
+        const l = await stripe('checkout/sessions?limit=20');
+        base = ((l && l.data) || []).find(s => s.payment_status === 'paid' &&
+          (s.metadata && s.metadata.type) !== 'image_ads_10') || null;
+      }
+      if(!base) return res.status(200).json({ ok:false, status:'no_paid_base_found' });
+      const cust = typeof base.customer === 'string' ? base.customer : '';
+      const pm = cust ? await defaultPm(cust, typeof base.subscription === 'string' ? base.subscription : '') : '';
+      let pmType = '';
+      if(pm){ try{ const p = await stripe('payment_methods/' + pm); pmType = p.type + (p.card ? ':' + p.card.brand : ''); }catch(e){} }
+      let prior = [];
+      if(cust){
+        try{
+          const prev = await stripe('payment_intents?customer=' + cust + '&limit=20');
+          prior = ((prev && prev.data) || []).filter(p => p.metadata && p.metadata.type === 'image_ads_10')
+            .map(p => ({ id: p.id, status: p.status, amount: p.amount }));
+        }catch(e){}
+      }
+      return res.status(200).json({ ok:true, base_cs: base.id, base_paid: base.payment_status === 'paid',
+        base_amount: base.amount_total, customer: cust || null, has_pm: !!pm, pm_type: pmType || null,
+        would_charge: pm ? AMOUNT : null, prior_49_charges: prior,
+        one_click_ready: !!(cust && pm) });
+    }
+
     /* key-gated permission probe (GET) — creates a $49 session with no base
        session purely to prove the key's scopes; it simply expires unused */
     if(q.probe){
