@@ -3139,6 +3139,21 @@ function upsellYes(){
   if(upsellPreviewMode){ showToast('👀','Preview mode — checkout is off'); return; }
   spLog('upsell_click');
   initAudio(); playCoin(); vibrate([15,50,15]);
+  // $49 image-ads pack charges on OUR Stripe account via /api/upsell49 —
+  // same embedded popup, card prefilled from the $1 purchase.
+  if(UPSELL_ADS){
+    fetch('/api/upsell49', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ cs: dsPaidCs || '', project_id: (dsBuild && dsBuild.project_id) || '' })
+    })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.ok && j.client_secret){ return dsOpenPay(j.client_secret, j.publishable_key, false); }
+      throw new Error(j && j.status || 'upsell49');
+    })
+    .catch(()=>{ dsFinalize({ upsell: 0 }); }); // never trap them — settle & continue
+    return;
+  }
   // Open the $299 video-ads checkout as an in-page popup (same as the $1). It
   // pre-fills the card saved on the $1 subscription, so it's still one tap. On
   // completion Stripe returns to the hand-off, which unlocks the store, records
@@ -3262,6 +3277,33 @@ function dsResumeAfterUpsell(){
     spLead('videoads', null, q.get('upsell_cs')); // → AC list 7 only if the $299 session verifies as PAID
   }
   dsFinalize({ upsell_cs: q.get('upsell_cs') || '' }); // → s-done with the setup link
+  return true;
+}
+
+/* Returning from the $49 image-ads checkout: …/?upsold49=1&cs=<base>&upsell_cs=<49>.
+   The $49 session lives on OUR Stripe account — verify it there, record the
+   sale, then settle the store unlock exactly like the decline path. */
+function dsResumeAfterUpsell49(){
+  const q = new URLSearchParams(location.search);
+  if(q.get('upsold49') !== '1') return false;
+  const cs = q.get('cs') || '';
+  const ucs = q.get('upsell_cs') || '';
+  if(!cs) return false;
+  try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
+  dsPaidCs = cs;
+  if(ucs){
+    fetch('/api/upsell49?verify=' + encodeURIComponent(ucs))
+      .then(r=>r.json())
+      .then(j=>{
+        if(!(j && j.paid)) return; // unpaid bounce-back → just settle the store below
+        window.dsFire && window.dsFire('Purchase', { value: 49, currency: 'USD' },
+          'upsell49_' + ((dsBuild && dsBuild.project_id) || ucs));
+        spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
+        spLead('videoads', j.email || null, ucs); // → AC list 7 (bridge verifies via Stripe)
+      })
+      .catch(()=>{});
+  }
+  dsFinalize({}); // unlock + land on s-done (the $49 is recorded on our side)
   return true;
 }
 
@@ -3487,7 +3529,7 @@ updateBack();
 if(!/paid=1|upsold=1|resume=/.test(location.search)) spLog('screen', 's-landing');
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
-if(!dsResumeAfterUpsell() && !dsResumeAfterPayment()) dsResumeFromEmail();
+if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment()) dsResumeFromEmail();
 
 /* Safe visual preview of the image-ads upsell (?upsellpreview=1): renders the
    screen with checkout disabled so it can be reviewed on production without

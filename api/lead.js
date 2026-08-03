@@ -35,8 +35,21 @@ async function verifyPaid(cs){
     const j = await r.json().catch(() => ({}));
     // Also return the verified store id so callers can build the buyer's durable
     // activation link (…/?resume=<id>) straight from the paid session.
-    return { paid: !!(j && j.ok && j.paid), projectId: (j && j.project_id) || null };
-  }catch(err){ return { paid: false, projectId: null }; } // verification unreachable → fail CLOSED
+    if(j && j.ok && j.paid) return { paid: true, projectId: (j && j.project_id) || null };
+  }catch(err){ /* fall through to the Stripe check */ }
+  // The $49 image-ads sessions are created on OUR Stripe account (not through
+  // the payment backend above), so verify those directly with Stripe. Only a
+  // PAID session carrying our image_ads_10 metadata counts. Fail CLOSED.
+  try{
+    const sk = process.env.STRIPE_SECRET_KEY || '';
+    if(!sk) return { paid: false, projectId: null };
+    const r2 = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(cs), {
+      headers: { Authorization: 'Bearer ' + sk }
+    });
+    const s = await r2.json().catch(() => ({}));
+    const paid = r2.ok && s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'image_ads_10';
+    return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null };
+  }catch(err){ return { paid: false, projectId: null }; }
 }
 
 async function ac(path, method, body){
