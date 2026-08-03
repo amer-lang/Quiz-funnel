@@ -209,6 +209,10 @@ module.exports = async (req, res) => {
         if(!r.ok) r = await fetch(h.url, t ? { headers: { authorization: 'Bearer ' + t } } : undefined);
         if(!r.ok) return res.status(404).json({ ok:false });
         const buf = Buffer.from(await r.arrayBuffer());
+        if(q.b64 === '1'){ // QA: text-safe payload for tooling that mangles binary
+          res.setHeader('Content-Type', 'text/plain');
+          return res.status(200).send(buf.toString('base64'));
+        }
         res.setHeader('Content-Type', 'image/webp');
         res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=2592000, immutable');
         if(q.dl === '1') res.setHeader('Content-Disposition', 'attachment; filename="ad-' + (i + 1) + '-' + slugOf(ADS[i].label) + '.webp"');
