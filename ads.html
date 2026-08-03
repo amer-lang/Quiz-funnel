@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Your 10 Custom Image Ads — Sell Products AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-text-size-adjust:100%}
+body{
+  font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#070B14;color:#E5EAF3;min-height:100vh;
+}
+a{color:#8EC5FF}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 20px 80px;position:relative}
+.glow{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.glow::before{content:'';position:absolute;top:-220px;left:50%;transform:translateX(-50%);
+  width:900px;height:520px;border-radius:50%;filter:blur(90px);opacity:.22;
+  background:radial-gradient(closest-side,#3B82F6,transparent 70%)}
+.glow::after{content:'';position:absolute;bottom:-260px;right:-140px;
+  width:640px;height:520px;border-radius:50%;filter:blur(100px);opacity:.14;
+  background:radial-gradient(closest-side,#22C55E,transparent 70%)}
+header{display:flex;align-items:center;gap:10px;position:relative;z-index:1;margin-bottom:34px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:-.02em;color:#fff;text-decoration:none}
+.logo .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#3B82F6,#22C55E);font-size:15px}
+.logo .ai{font-size:10px;font-weight:800;letter-spacing:.06em;color:#0A1020;
+  background:linear-gradient(135deg,#FFC93C,#F59E0B);border-radius:6px;padding:2px 6px;margin-left:2px}
+.hero{position:relative;z-index:1;text-align:center;margin-bottom:30px}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:#7CF0A9;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);
+  border-radius:999px;padding:7px 14px;margin-bottom:16px}
+.kicker .dot{width:7px;height:7px;border-radius:50%;background:#22C55E;box-shadow:0 0 10px #22C55E;
+  animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+h1{font-size:clamp(26px,4.6vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.15;color:#fff}
+h1 .gold{background:linear-gradient(92deg,#FFC93C,#F59E0B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:#93A0B4;font-size:15px;margin-top:10px;line-height:1.55}
+.progress{position:relative;z-index:1;max-width:520px;margin:22px auto 0}
+.p-row{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px}
+.p-row .cnt{color:#7CF0A9}
+.p-bar{height:9px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;
+  border:1px solid rgba(255,255,255,.06)}
+.p-fill{height:100%;width:0%;border-radius:999px;transition:width .8s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(90deg,#3B82F6,#22C55E)}
+.p-note{font-size:12.5px;color:#93A0B4;margin-top:9px;text-align:center;line-height:1.5}
+.grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;margin-top:34px;grid-auto-flow:dense}
+.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;
+  overflow:hidden;display:flex;flex-direction:column;transition:transform .25s,border-color .25s}
+.card:hover{transform:translateY(-3px);border-color:rgba(255,201,60,.35)}
+.card.story{grid-row:span 2}
+.frame{position:relative;width:100%;flex:1;min-height:0;background:#0A1020}
+.card.feed .frame{aspect-ratio:1/1}
+.card.story .frame{aspect-ratio:2/3}
+.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
+  opacity:0;transition:opacity .6s}
+.frame img.in{opacity:1}
+.skel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;background:linear-gradient(110deg,rgba(255,255,255,.03) 30%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.03) 70%);
+  background-size:220% 100%;animation:shimmer 1.8s linear infinite}
+@keyframes shimmer{to{background-position:-220% 0}}
+.skel .ico{font-size:22px;opacity:.8}
+.skel .st{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#93A0B4}
+.skel.live .st{color:#8EC5FF}
+.skel.live .ico{animation:spin 1.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px}
+.meta .nm{font-size:12.5px;font-weight:700;color:#C9D4E3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta .fmt{font-size:10px;font-weight:800;letter-spacing:.05em;color:#93A0B4;border:1px solid rgba(255,255,255,.12);
+  border-radius:6px;padding:2px 6px;flex:none}
+.dlrow{padding:0 12px 12px}
+.dl{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 0;
+  border-radius:10px;font-size:12.5px;font-weight:800;text-decoration:none;color:#0A1020;
+  background:linear-gradient(92deg,#FFC93C,#F59E0B);opacity:.35;pointer-events:none;transition:opacity .3s}
+.dl.on{opacity:1;pointer-events:auto}
+.dl.on:hover{filter:brightness(1.07)}
+.tip{position:relative;z-index:1;margin:34px auto 0;max-width:640px;background:rgba(59,130,246,.07);
+  border:1px solid rgba(59,130,246,.2);border-radius:14px;padding:16px 18px;font-size:13.5px;
+  color:#B9C6D9;line-height:1.6;text-align:center}
+.err{position:relative;z-index:1;margin:60px auto;max-width:520px;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:34px 28px;text-align:center;display:none}
+.err h2{font-size:20px;color:#fff;margin-bottom:10px}
+.err p{font-size:14px;color:#93A0B4;line-height:1.6}
+@media (max-width:860px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .wrap{padding:20px 14px 60px}
+}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+  <header>
+    <a class="logo" href="/"><span class="mark">🛍️</span>Sell Products<span class="ai">AI</span></a>
+  </header>
+
+  <div class="hero" id="hero" style="display:none">
+    <div class="kicker" id="kick"><span class="dot"></span><span id="kickTxt">Designing your ads</span></div>
+    <h1>Your <span class="gold" id="prodName">product</span> ad pack</h1>
+    <p class="sub">10 ready-to-run image ads — 6 feed + 4 story. Download and launch them on Facebook, Instagram or TikTok.</p>
+    <div class="progress">
+      <div class="p-row"><span>Ad pack</span><span class="cnt" id="cnt">0 of 10 ready</span></div>
+      <div class="p-bar"><div class="p-fill" id="fill"></div></div>
+      <p class="p-note" id="note">Each ad is custom-designed for your product — the full pack takes a few minutes.
+      You can close this page and come back any time with the same link.</p>
+    </div>
+  </div>
+
+  <div class="grid" id="grid" style="display:none"></div>
+
+  <div class="tip" id="tip" style="display:none">💡 <b>Tip:</b> run 2–3 of these at once with a small daily budget and let the
+    best one win. Square ads fit feed placements; tall ads fit Stories &amp; Reels.
+    Questions? <a href="mailto:support@sellproducts.ai">support@sellproducts.ai</a></div>
+
+  <div class="err" id="err">
+    <h2 id="errH">We couldn't verify this order</h2>
+    <p id="errP">This page needs the checkout link from your purchase. If you got here from your
+    confirmation and still see this, email <a href="mailto:support@sellproducts.ai">support@sellproducts.ai</a>
+    and we'll sort it out fast.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var Q = new URLSearchParams(location.search);
+  var cs = Q.get('cs') || '';
+  var demo = Q.get('demo') || '';
+  var auth = demo ? ('demo=' + encodeURIComponent(demo) + '&product=' + encodeURIComponent(Q.get('product') || ''))
+                  : ('cs=' + encodeURIComponent(cs));
+  if(!cs && !demo){ document.getElementById('err').style.display = 'block'; return; }
+
+  var API = '/api/adsorder?' + auth;
+  var state = null;
+
+  function el(id){ return document.getElementById(id); }
+
+  function render(){
+    var g = el('grid');
+    if(!g.dataset.built){
+      g.dataset.built = '1';
+      state.ads.forEach(function(a){
+        var c = document.createElement('div');
+        c.className = 'card ' + a.format;
+        c.id = 'card' + a.i;
+        c.innerHTML =
+          '<div class="frame">' +
+            '<div class="skel" id="skel' + a.i + '"><span class="ico">✨</span><span class="st">' +
+              (a.format === 'feed' ? 'Feed ad' : 'Story ad') + '</span></div>' +
+            '<img id="img' + a.i + '" alt="' + a.label + ' ad">' +
+          '</div>' +
+          '<div class="meta"><span class="nm">' + a.label + '</span><span class="fmt">' +
+            (a.format === 'feed' ? '1:1' : '9:16') + '</span></div>' +
+          '<div class="dlrow"><a class="dl" id="dl' + a.i + '" download>⬇ Download</a></div>';
+        g.appendChild(c);
+      });
+      g.style.display = 'grid';
+      el('hero').style.display = 'block';
+      el('tip').style.display = 'block';
+    }
+    var done = 0;
+    state.ads.forEach(function(a){
+      if(!a.ready) return;
+      done++;
+      var img = el('img' + a.i);
+      if(!img.src){
+        img.src = a.src;
+        img.onload = function(){ img.classList.add('in'); el('skel' + a.i).style.display = 'none'; };
+        var dl = el('dl' + a.i);
+        dl.href = a.src + '&dl=1'; dl.classList.add('on');
+      }
+    });
+    el('cnt').textContent = done + ' of ' + state.total + ' ready';
+    el('fill').style.width = (done / state.total * 100) + '%';
+    if(done >= state.total){
+      el('kickTxt').textContent = 'Your ad pack is ready';
+      el('note').innerHTML = 'All 10 ads are done. <b>Save them to your device</b> — this link also keeps working if you want them later.';
+    }
+  }
+
+  function refresh(){
+    return fetch(API + '&status=1').then(function(r){ return r.json(); }).then(function(j){
+      if(!j || !j.ok){
+        if(j && j.status === 'not_paid'){ el('err').style.display = 'block'; }
+        throw new Error((j && j.status) || 'status');
+      }
+      state = j;
+      el('prodName').textContent = j.product || 'custom';
+      render();
+      return j;
+    });
+  }
+
+  /* two workers claim indexes from a shared queue so the pack builds ~2x faster */
+  var queue = [], failures = {};
+  function fillQueue(){
+    queue = state.ads.filter(function(a){ return !a.ready && (failures[a.i] || 0) < 2; })
+                     .map(function(a){ return a.i; });
+  }
+  function worker(){
+    if(!queue.length) return Promise.resolve();
+    var i = queue.shift();
+    return fetch(API + '&make=1&i=' + i).then(function(r){ return r.json(); }).then(function(j){
+      if(j && j.ok && j.src){
+        state.ads[i].ready = true; state.ads[i].src = j.src; render();
+      }else if(j && j.status === 'generating'){
+        /* another worker/visit owns it — poll it back in later */
+        setTimeout(function(){ if(!state.ads[i].ready) queue.push(i); }, 25000);
+      }else{
+        failures[i] = (failures[i] || 0) + 1;
+        if((failures[i] || 0) < 2) queue.push(i);
+      }
+    }).catch(function(){
+      failures[i] = (failures[i] || 0) + 1;
+      if((failures[i] || 0) < 2) queue.push(i);
+    }).then(function(){ return worker(); });
+  }
+
+  refresh().then(function(){
+    fillQueue();
+    if(!queue.length) return;
+    Promise.all([worker(), worker()]).then(function(){
+      /* final sweep: pick up anything a parallel session generated */
+      var polls = 0;
+      (function poll(){
+        refresh().then(function(j){
+          var done = j.ads.filter(function(a){ return a.ready; }).length;
+          if(done < j.total && polls++ < 20) setTimeout(poll, 15000);
+        }).catch(function(){});
+      })();
+    });
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

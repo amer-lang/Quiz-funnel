@@ -3,6 +3,9 @@
   "functions": {
     "api/adpack.js": {
       "maxDuration": 120
+    },
+    "api/adsorder.js": {
+      "maxDuration": 120
     }
   }
 }

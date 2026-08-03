@@ -38,7 +38,7 @@ async function stripe(path, method, params){
   return j;
 }
 
-async function createSession(customer, baseCs, projectId){
+async function createSession(customer, baseCs, projectId, product){
   const params = {
     'mode': 'payment',
     'ui_mode': 'embedded',
@@ -50,7 +50,8 @@ async function createSession(customer, baseCs, projectId){
     'line_items[0][price_data][product_data][description]': SKU_DESC,
     'metadata[type]': 'image_ads_10',
     'metadata[base_cs]': baseCs || '',
-    'metadata[project_id]': projectId || ''
+    'metadata[project_id]': projectId || '',
+    'metadata[product]': String(product || '').slice(0, 120)
   };
   if(customer) params['customer'] = customer;
   return stripe('checkout/sessions', 'POST', params);
@@ -91,6 +92,7 @@ module.exports = async (req, res) => {
       const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.verify).slice(0, 300)));
       const paid = s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'image_ads_10';
       return res.status(200).json({ paid, base_cs: (s.metadata && s.metadata.base_cs) || '',
+        product: (s.metadata && s.metadata.product) || '',
         email: (s.customer_details && s.customer_details.email) || '', amount: s.amount_total || 0 });
     }
 
@@ -111,7 +113,8 @@ module.exports = async (req, res) => {
     const base = await stripe('checkout/sessions/' + encodeURIComponent(baseCs));
     if(base.payment_status !== 'paid') return res.status(200).json({ ok:false, status:'base_not_paid' });
 
-    const s = await createSession(typeof base.customer === 'string' ? base.customer : '', baseCs, String(body.project_id || ''));
+    const s = await createSession(typeof base.customer === 'string' ? base.customer : '', baseCs,
+      String(body.project_id || ''), String(body.product || ''));
     return res.status(200).json({ ok:true, client_secret: s.client_secret, publishable_key: pk });
   }catch(e){
     return res.status(200).json({ ok:false, status:'error', detail: String(e && e.message || e).slice(0, 300) });
