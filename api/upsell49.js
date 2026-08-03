@@ -25,9 +25,10 @@ function keys(){
 }
 
 /* minimal Stripe REST client (form-encoded), no SDK needed */
-async function stripe(path, method, params){
+async function stripe(path, method, params, idemKey){
   const { sk } = keys();
   const opts = { method: method || 'GET', headers: { Authorization: 'Bearer ' + sk } };
+  if(idemKey) opts.headers['Idempotency-Key'] = idemKey;
   if(params){
     opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     opts.body = new URLSearchParams(params).toString();
@@ -36,6 +37,29 @@ async function stripe(path, method, params){
   const j = await r.json().catch(() => ({}));
   if(!r.ok) throw new Error((j.error && j.error.message) || ('stripe ' + r.status));
   return j;
+}
+
+/* the payment method saved by the $1 subscription — subscription default,
+   then customer default, then the newest attached method */
+async function defaultPm(customer, subId){
+  try{
+    if(subId){
+      const sub = await stripe('subscriptions/' + subId);
+      if(typeof sub.default_payment_method === 'string' && sub.default_payment_method) return sub.default_payment_method;
+    }
+  }catch(e){}
+  try{
+    const c = await stripe('customers/' + customer);
+    const d = c.invoice_settings && c.invoice_settings.default_payment_method;
+    if(typeof d === 'string' && d) return d;
+  }catch(e){}
+  try{
+    const l = await stripe('payment_methods?customer=' + customer + '&limit=10');
+    const arr = (l && l.data) || [];
+    const pick = arr.find(p => p.type === 'card') || arr.find(p => p.type === 'link') || arr[0];
+    return pick ? pick.id : '';
+  }catch(e){}
+  return '';
 }
 
 async function createSession(customer, baseCs, projectId, product){
@@ -89,7 +113,15 @@ module.exports = async (req, res) => {
 
     if(q.verify){
       if(!sk) return res.status(200).json({ paid:false, status:'no_keys' });
-      const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.verify).slice(0, 300)));
+      const id = String(q.verify).slice(0, 300);
+      if(/^pi_/.test(id)){ // one-click charge (PaymentIntent, no redirect leg)
+        const p = await stripe('payment_intents/' + encodeURIComponent(id));
+        const paid = p.status === 'succeeded' && (p.metadata && p.metadata.type) === 'image_ads_10';
+        return res.status(200).json({ paid, base_cs: (p.metadata && p.metadata.base_cs) || '',
+          product: (p.metadata && p.metadata.product) || '',
+          email: p.receipt_email || '', amount: p.amount || 0 });
+      }
+      const s = await stripe('checkout/sessions/' + encodeURIComponent(id));
       const paid = s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'image_ads_10';
       return res.status(200).json({ paid, base_cs: (s.metadata && s.metadata.base_cs) || '',
         product: (s.metadata && s.metadata.product) || '',
@@ -112,9 +144,40 @@ module.exports = async (req, res) => {
     if(!baseCs) return res.status(400).json({ ok:false, status:'no_base_cs' });
     const base = await stripe('checkout/sessions/' + encodeURIComponent(baseCs));
     if(base.payment_status !== 'paid') return res.status(200).json({ ok:false, status:'base_not_paid' });
+    const customer = typeof base.customer === 'string' ? base.customer : '';
+    const email = (base.customer_details && base.customer_details.email) || '';
+    const projectId = String(body.project_id || '');
+    const product = String(body.product || '').slice(0, 120);
 
-    const s = await createSession(typeof base.customer === 'string' ? base.customer : '', baseCs,
-      String(body.project_id || ''), String(body.product || ''));
+    /* ONE-CLICK: charge the payment method saved by the $1 subscription,
+       off-session — no checkout UI at all. The idempotency key pins one $49
+       charge per base session, so double-taps can never double-charge. */
+    if(customer){
+      /* already bought? return the existing charge instead of making another */
+      try{
+        const prev = await stripe('payment_intents?customer=' + customer + '&limit=20');
+        const hit = ((prev && prev.data) || []).find(p => p.status === 'succeeded' &&
+          p.metadata && p.metadata.type === 'image_ads_10' && p.metadata.base_cs === baseCs);
+        if(hit) return res.status(200).json({ ok:true, charged:true, pi: hit.id, email, repeat:true });
+      }catch(e){}
+
+      const pm = await defaultPm(customer, typeof base.subscription === 'string' ? base.subscription : '');
+      if(pm){
+        try{
+          const pi = await stripe('payment_intents', 'POST', {
+            amount: String(AMOUNT), currency: 'usd', customer, payment_method: pm,
+            off_session: 'true', confirm: 'true',
+            description: SKU_NAME,
+            'metadata[type]': 'image_ads_10', 'metadata[base_cs]': baseCs,
+            'metadata[project_id]': projectId, 'metadata[product]': product
+          }, 'upsell49-' + baseCs);
+          if(pi.status === 'succeeded')
+            return res.status(200).json({ ok:true, charged:true, pi: pi.id, email });
+        }catch(e){ /* declined / needs authentication → embedded checkout below */ }
+      }
+    }
+
+    const s = await createSession(customer, baseCs, projectId, product);
     return res.status(200).json({ ok:true, client_secret: s.client_secret, publishable_key: pk });
   }catch(e){
     return res.status(200).json({ ok:false, status:'error', detail: String(e && e.message || e).slice(0, 300) });

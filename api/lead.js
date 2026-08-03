@@ -37,17 +37,20 @@ async function verifyPaid(cs){
     // activation link (…/?resume=<id>) straight from the paid session.
     if(j && j.ok && j.paid) return { paid: true, projectId: (j && j.project_id) || null };
   }catch(err){ /* fall through to the Stripe check */ }
-  // The $49 image-ads sessions are created on OUR Stripe account (not through
-  // the payment backend above), so verify those directly with Stripe. Only a
-  // PAID session carrying our image_ads_10 metadata counts. Fail CLOSED.
+  // The $49 image-ads charges live on OUR Stripe account (not the payment
+  // backend above) — a Checkout Session (cs_…) from the fallback popup or a
+  // PaymentIntent (pi_…) from the one-click charge. Verify directly with
+  // Stripe; only PAID + our image_ads_10 metadata counts. Fail CLOSED.
   try{
     const sk = process.env.STRIPE_SECRET_KEY || '';
     if(!sk) return { paid: false, projectId: null };
-    const r2 = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(cs), {
+    const isPi = /^pi_/.test(cs);
+    const r2 = await fetch('https://api.stripe.com/v1/' + (isPi ? 'payment_intents/' : 'checkout/sessions/') + encodeURIComponent(cs), {
       headers: { Authorization: 'Bearer ' + sk }
     });
     const s = await r2.json().catch(() => ({}));
-    const paid = r2.ok && s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'image_ads_10';
+    const paidOk = isPi ? s.status === 'succeeded' : s.payment_status === 'paid';
+    const paid = r2.ok && paidOk && (s.metadata && s.metadata.type) === 'image_ads_10';
     return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null };
   }catch(err){ return { paid: false, projectId: null }; }
 }

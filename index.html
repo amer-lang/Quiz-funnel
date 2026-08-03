@@ -1067,8 +1067,9 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 
 /* ---- image-ads upsell ($49 · 10 ad mockups built from their product) ---- */
-.ads-hello{display:flex;align-items:flex-start;gap:9px;background:rgba(34,197,94,.09);border:1px solid rgba(34,197,94,.35);border-radius:13px;padding:11px 14px;font-size:.8rem;color:#C6D2EA;line-height:1.5}
-.ads-hello b{color:#7CF0A9}
+.ads-hello{display:flex;align-items:flex-start;gap:9px;background:rgba(255,201,60,.09);border:1px solid rgba(255,201,60,.4);border-radius:13px;padding:11px 14px;font-size:.8rem;color:#C6D2EA;line-height:1.5;animation:helloPulse 2.2s ease-in-out infinite}
+.ads-hello b{color:var(--gold)}
+@keyframes helloPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,201,60,.25)}50%{box-shadow:0 0 18px 2px rgba(255,201,60,.12)}}
 .ads-strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -20px;padding-left:20px;padding-right:20px}
 .ads-strip::-webkit-scrollbar{display:none}
 .ad{position:relative;flex:0 0 190px;height:252px;border-radius:14px;overflow:hidden;scroll-snap-align:center;border:1px solid var(--line-strong);box-shadow:0 16px 40px -14px rgba(0,0,0,.7);background:#101A2E;color:#fff}
@@ -1099,6 +1100,25 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .ads-value{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:.64rem;color:var(--muted);font-weight:700}
 .ads-value span{background:rgba(255,255,255,.04);border:1px solid var(--line);padding:6px 11px;border-radius:99px}
 .ads-value b{color:#C6D2EA}
+
+/* Mobile: the CTA must sit above the fold — compact everything, cap the pack
+   shot's height, and move the value chips + fine print BELOW the button. */
+@media (max-width:640px){
+  #s-upsell-ads{justify-content:flex-start}
+  #s-upsell-ads > *{order:6}
+  #s-upsell-ads .ads-hello{order:0;padding:9px 12px;font-size:.72rem}
+  #s-upsell-ads h2{order:1;font-size:1.06rem;margin-top:10px!important}
+  #s-upsell-ads .sub{order:2;font-size:.72rem;margin-bottom:8px!important}
+  #s-upsell-ads .ads-pack{order:3;width:min(232px,26vh);margin:0 auto 10px}
+  #s-upsell-ads .ads-strip{order:3}
+  #s-upsell-ads .ads-dots{order:3;margin-bottom:8px}
+  #s-upsell-ads .cta{order:4}
+  #s-upsell-ads .cta-note{order:5}
+  #s-upsell-ads .ads-value{order:6;margin:12px 0 0}
+  #s-upsell-ads .oto-decline{order:7}
+  #s-upsell-ads .ad{flex-basis:150px;height:200px}
+  #s-upsell-ads .ad.story{flex-basis:132px;height:232px}
+}
 
 .claim-bar{
   position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
@@ -1724,7 +1744,7 @@ window.dsFire('PageView');
          Activated by UPSELL_ADS=true once /upsell-checkout charges $49.
          Preview anytime with ?upsellpreview=1 (checkout disabled). -->
     <section class="screen" id="s-upsell-ads" style="justify-content:flex-start">
-      <div class="ads-hello"><span>🎉</span><span><b>Payment confirmed — your store is being prepared.</b> One quick add-on before we hand you the keys:</span></div>
+      <div class="ads-hello"><span>⚠️</span><span><b>Wait! Your order is not complete yet…</b> one last step before we hand you the keys:</span></div>
 
       <h2 style="margin-top:14px;text-align:center">We already designed <span class="grad-text">10 ready-to-run ads</span> for <span class="gold-text" id="adsProdName">your product</span></h2>
       <p class="sub" style="margin-bottom:10px" id="adsSub">A store only makes sales when people see it. These are sized for Facebook &amp; Instagram — post them the minute you go live. Swipe through yours 👇</p>
@@ -1740,7 +1760,7 @@ window.dsFire('PageView');
       </div>
 
       <button type="button" class="cta gold pulse" onclick="upsellYes()">Yes! Send Me All 10 Ads — $49</button>
-      <p class="cta-note">One-time <b>$49</b> · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+      <p class="cta-note">One click charges a one-time <b>$49</b> to your card on file · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
 
       <a href="#" class="oto-decline" onclick="upsellNo(event)">No thanks — I'll create my own ads</a>
     </section>
@@ -1819,22 +1839,13 @@ const DS_API  = 'https://chat.dropstart.app/api/express';
 const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
 // The VSL shown on the video-ads upsell screen (same one DropStart uses).
 const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: '6a4d92062406c7e3ffb37813' };
-/* Image-ads upsell (10 custom image ads · $49 one-time).
-   /api/upsell49 charges exactly $49 on our own Stripe account and
-   /api/adsorder + /ads deliver the pack — screen price and charge match.
-   FLIP UPSELL_ADS TO true to show it to everyone (falls back to the $299
-   video upsell while false). Private end-to-end test lane: open the funnel
-   once with ?ads49test=1 and THAT browser gets the $49 flow (sticks through
-   the Stripe redirects via localStorage; ?ads49test=0 turns it off).
-   Preview the screen without checkout anytime with ?upsellpreview=1. */
-const UPSELL_ADS = false || (function(){
-  try{
-    const v = new URLSearchParams(location.search).get('ads49test');
-    if(v === '1') localStorage.setItem('spai_ads49test', '1');
-    if(v === '0') localStorage.removeItem('spai_ads49test');
-    return localStorage.getItem('spai_ads49test') === '1';
-  }catch(e){ return false; }
-})();
+/* Image-ads upsell (10 custom image ads · $49 one-time). LIVE for everyone:
+   /api/upsell49 charges exactly $49 on our own Stripe account (one-click on
+   the card saved by the $1 purchase, embedded-checkout fallback) and
+   /api/adsorder + /ads generate and deliver the pack. Set false to fall
+   back to the $299 video upsell. Preview the screen without checkout
+   anytime with ?upsellpreview=1. */
+const UPSELL_ADS = true;
 const UPSELL_ADS_PRICE = 49;
 let upsellPreviewMode = false;
 const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
@@ -3149,26 +3160,50 @@ function upsellHandoff(extra){
   window.location.href = DS_HANDOFF + '?' + q.filter(Boolean).join('&');
 }
 
+let upsellBusy = false;
 function upsellYes(){
   if(upsellPreviewMode){ showToast('👀','Preview mode — checkout is off'); return; }
+  if(upsellBusy) return;
   spLog('upsell_click');
   initAudio(); playCoin(); vibrate([15,50,15]);
-  // $49 image-ads pack charges on OUR Stripe account via /api/upsell49 —
-  // same embedded popup, card prefilled from the $1 purchase.
+  // $49 image-ads pack: TRUE one-click — /api/upsell49 charges the card saved
+  // by the $1 purchase off-session. Only if that fails (declined / needs
+  // authentication) does the embedded checkout popup open as a fallback.
   if(UPSELL_ADS){
+    upsellBusy = true;
     let prodName = chosen && chosen.name;
     if(!prodName){ try{ prodName = (JSON.parse(localStorage.getItem('spai_chosen') || 'null') || {}).name; }catch(e){} }
+    const ub = document.querySelector('#s-upsell-ads .cta');
+    if(ub) ub.textContent = 'Processing… ⏳';
     fetch('/api/upsell49', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ cs: dsPaidCs || '', project_id: (dsBuild && dsBuild.project_id) || '',
-        product: prodName || '' }) // → session metadata → /api/adsorder knows what to design
+        product: prodName || '' }) // → charge metadata → /api/adsorder knows what to design
     })
     .then(r=>r.json())
     .then(j=>{
-      if(j && j.ok && j.client_secret){ return dsOpenPay(j.client_secret, j.publishable_key, false); }
+      if(j && j.ok && j.charged && j.pi){
+        // Charged in one click — celebrate and settle, no checkout UI at all.
+        playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 120);
+        showToast('🎉','You got the 10-ad pack!');
+        window.dsFire && window.dsFire('Purchase', { value: 49, currency: 'USD' },
+          'upsell49_' + ((dsBuild && dsBuild.project_id) || j.pi));
+        spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
+        spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
+        try{ localStorage.setItem('spai_ads_cs', j.pi); }catch(e){}
+        fetch('/api/adsorder?cs=' + encodeURIComponent(j.pi) + '&make=1').catch(()=>{}); // warm ad #1
+        dsFinalize({});
+        return;
+      }
+      if(j && j.ok && j.client_secret){
+        // saved card couldn't be charged silently → embedded checkout fallback
+        upsellBusy = false;
+        if(ub) ub.textContent = 'Yes! Send Me All 10 Ads — $49';
+        return dsOpenPay(j.client_secret, j.publishable_key, false);
+      }
       throw new Error(j && j.status || 'upsell49');
     })
-    .catch(()=>{ dsFinalize({ upsell: 0 }); }); // never trap them — settle & continue
+    .catch(()=>{ upsellBusy = false; dsFinalize({ upsell: 0 }); }); // never trap them — settle & continue
     return;
   }
   // Open the $299 video-ads checkout as an in-page popup (same as the $1). It

@@ -81,14 +81,20 @@ async function catalogue(){
   return catCache;
 }
 
-async function stripeSession(cs){
+/* the $49 order id is a Checkout Session (cs_…) from the fallback popup or a
+   PaymentIntent (pi_…) from the one-click charge — verify whichever it is */
+async function paidOrder(id){
   const sk = process.env.STRIPE_SECRET_KEY || '';
   if(!sk) return null;
-  const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(cs), {
+  const path = /^pi_/.test(id) ? 'payment_intents/' : 'checkout/sessions/';
+  const r = await fetch('https://api.stripe.com/v1/' + path + encodeURIComponent(id), {
     headers: { Authorization: 'Bearer ' + sk }
   });
   const s = await r.json().catch(() => ({}));
-  return r.ok ? s : null;
+  if(!r.ok) return null;
+  const paid = /^pi_/.test(id) ? s.status === 'succeeded' : s.payment_status === 'paid';
+  if(!(paid && (s.metadata && s.metadata.type) === 'image_ads_10')) return null;
+  return { product: (s.metadata && s.metadata.product) || '' };
 }
 
 /* one Blob listing per request = full order state */
@@ -183,17 +189,16 @@ module.exports = async (req, res) => {
       authQS = 'demo=' + q.demo + '&product=' + encodeURIComponent(product);
     }else{
       const cs = String(q.cs || '').slice(0, 300);
-      if(!/^cs_/.test(cs)) return res.status(400).json({ ok:false, status:'no_cs' });
+      if(!/^(cs|pi)_/.test(cs)) return res.status(400).json({ ok:false, status:'no_cs' });
       key = keyOf(cs);
       authQS = 'cs=' + encodeURIComponent(cs);
-      /* serve streams already-generated files: possessing the session id is the
+      /* serve streams already-generated files: possessing the order id is the
          capability (the path key is derived from it), so skip the Stripe round
          trip. status/make hit Stripe every time — make spends real money. */
       if(q.serve === undefined){
-        const s = await stripeSession(cs);
-        const paid = s && s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'image_ads_10';
-        if(!paid) return res.status(200).json({ ok:false, status:'not_paid' });
-        product = (s.metadata && s.metadata.product) || '';
+        const o = await paidOrder(cs);
+        if(!o) return res.status(200).json({ ok:false, status:'not_paid' });
+        product = o.product;
       }
     }
 
