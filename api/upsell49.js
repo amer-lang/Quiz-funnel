@@ -77,6 +77,15 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok:true, hasSecret: !!sk, secretType: sk.slice(0, 3), hasPublishable: !!pk });
     }
 
+    /* key-gated permission probe (GET) — creates a $49 session with no base
+       session purely to prove the key's scopes; it simply expires unused */
+    if(q.probe){
+      if(q.probe !== READ_KEY) return res.status(403).json({ ok:false });
+      if(!sk || !pk) return res.status(200).json({ ok:false, status:'no_keys' });
+      const s = await createSession(null, '', '');
+      return res.status(200).json({ ok:true, session: s.id, has_secret: !!s.client_secret });
+    }
+
     if(q.verify){
       if(!sk) return res.status(200).json({ paid:false, status:'no_keys' });
       const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.verify).slice(0, 300)));
