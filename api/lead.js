@@ -19,6 +19,21 @@ const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 
 const STAGE_LIST = { optin: 5, unlocked: 6, videoads: 7 };
 const ACTIVATION_FIELD_ID = 2; // AC custom field %ACTIVATION_LINK% ("Activation link")
+
+/* AC custom field %ADS_LINK% — the $49 buyer's durable /ads?cs=<order> page.
+   Resolved (and auto-created on first use) by perstag, cached per lambda. */
+let adsFieldId = null;
+async function adsField(){
+  if(adsFieldId) return adsFieldId;
+  try{
+    const r = await ac('/api/3/fields?limit=100');
+    const f = ((r.j && r.j.fields) || []).find(x => x.perstag === 'ADS_LINK');
+    if(f){ adsFieldId = Number(f.id); return adsFieldId; }
+    const c = await ac('/api/3/fields', 'POST', { field: { type: 'text', title: 'Ads link', perstag: 'ADS_LINK', visible: 1 } });
+    if(c.ok && c.j.field) adsFieldId = Number(c.j.field.id);
+  }catch(e){}
+  return adsFieldId;
+}
 const OK_ORIGINS = /^https:\/\/(www\.)?sellproducts\.ai$/;
 
 /* Paid stages require a Stripe checkout-session id that the payment backend
@@ -156,7 +171,7 @@ module.exports = async (req, res) => {
         const sub = cid ? await ac('/api/3/contactLists', 'POST', { contactList: { list: STAGE_LIST.optin, contact: cid, status: 1 } }) : { ok: false };
         wrote = { contactId: cid, subscribed: sub.ok };
       }
-      return res.status(200).json({ ok: true, lists: out, wrote });
+      return res.status(200).json({ ok: true, lists: out, wrote, adsFieldId: await adsField() });
     }
 
     if(req.method === 'POST'){
@@ -189,6 +204,15 @@ module.exports = async (req, res) => {
       // store they actually paid for.
       const contact = { email };
       if(activationLink) contact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: activationLink }];
+
+      // $49 ad-pack buyers: write their delivery page into %ADS_LINK% so the
+      // list-7 purchase email can hand them the ads (the thank-you page
+      // deliberately stays focused on Shopify setup).
+      if(stage === 'videoads' && /^(cs|pi)_/.test(String(body.cs || ''))){
+        const fid = await adsField();
+        if(fid) contact.fieldValues = (contact.fieldValues || [])
+          .concat([{ field: fid, value: 'https://sellproducts.ai/ads?cs=' + encodeURIComponent(String(body.cs)) }]);
+      }
 
       const sync = await ac('/api/3/contact/sync', 'POST', { contact });
       const contactId = sync.ok && sync.j.contact ? sync.j.contact.id : null;

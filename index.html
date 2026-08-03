@@ -1796,11 +1796,6 @@ window.dsFire('PageView');
            by runDone once a store is paid + finalized. -->
       <button type="button" id="doneSetup" class="cta gold pulse" style="display:none;margin-top:6px" onclick="dsGoSetup(event)">Set up your store on Shopify →</button>
       <p class="cta-note" id="doneSetupNote" style="display:none">Takes you to your store to connect Shopify and go live.</p>
-
-      <!-- $49 ad-pack buyers: link to the /ads delivery studio. Shown by
-           showDoneAds() when localStorage carries their paid order. -->
-      <button type="button" id="doneAds" class="cta" style="display:none;margin-top:6px" onclick="openAdsStudio()">🎨 View your 10 custom image ads →</button>
-      <p class="cta-note" id="doneAdsNote" style="display:none">Your ads are being designed right now — watch them appear live.</p>
     </section>
 
   </main>
@@ -3352,11 +3347,11 @@ function dsResumeAfterUpsell49(){
           'upsell49_' + ((dsBuild && dsBuild.project_id) || ucs));
         spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
         spLead('videoads', j.email || null, ucs); // → AC list 7 (bridge verifies via Stripe)
-        // Fulfillment: remember the order so s-done can link to the /ads studio,
-        // and kick the first generation so ads are already appearing when they open it.
+        // Fulfillment: remember the order id and kick the first generation —
+        // the buyer gets their /ads?cs=<order> link by email, not on s-done
+        // (the thank-you page stays focused on Shopify setup).
         try{ localStorage.setItem('spai_ads_cs', ucs); }catch(e){}
         fetch('/api/adsorder?cs=' + encodeURIComponent(ucs) + '&make=1').catch(()=>{});
-        showDoneAds();
       })
       .catch(()=>{});
   }
@@ -3392,22 +3387,6 @@ function dsResumeFromEmail(){
 /* ============================================================
    DONE
    ============================================================ */
-/* $49 ad-pack buyers get a button into the /ads delivery studio. Safe to call
-   any time — it only shows when a verified order id is on hand. */
-function showDoneAds(){
-  let ucs = '';
-  try{ ucs = localStorage.getItem('spai_ads_cs') || ''; }catch(e){}
-  if(!ucs) return;
-  const b = document.getElementById('doneAds');
-  const n = document.getElementById('doneAdsNote');
-  if(b) b.style.display = 'block';
-  if(n) n.style.display = 'block';
-}
-function openAdsStudio(){
-  let ucs = '';
-  try{ ucs = localStorage.getItem('spai_ads_cs') || ''; }catch(e){}
-  if(ucs) window.location.href = '/ads?cs=' + encodeURIComponent(ucs);
-}
 let doneRan = false;
 function runDone(){
   if(doneRan) return; doneRan = true;
@@ -3431,8 +3410,6 @@ function runDone(){
     const sub = document.querySelector('#s-done .sub');
     if(sub) sub.textContent = 'One last step:';
   }
-
-  showDoneAds(); // ad-pack buyers: surface the /ads studio link
 
   playTada();
   confettiBurst(window.innerWidth/2, 140, 120);
