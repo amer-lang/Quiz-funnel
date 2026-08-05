@@ -1870,31 +1870,69 @@ if(PRICE20){ document.addEventListener('DOMContentLoaded', function(){
   });
 }); }
 let upsellPreviewMode = false;
-let dsBumpReq = null;   // last /api/unlock20 request body — reused by the bump toggle
-let dsBumpBusy = false; // guards the session swap while Stripe remounts
+let _dsCheckout20 = null;      // custom-checkout instance for the $20 unlock
+let _dsPay20Element = null;    // its mounted payment element
+let dsPay20Busy = false;
 
-/* Order-bump toggle: re-create the checkout session with/without the $39
-   Unlimited line item and remount the embedded checkout (~1s repaint). */
-function dsBumpToggle(){
-  const ck = document.getElementById('dsBumpCk');
-  if(!ck || !dsBumpReq) return;
-  if(dsBumpBusy){ ck.checked = !ck.checked; return; }
-  dsBumpBusy = true; ck.disabled = true;
-  const want = ck.checked;
-  fetch('/api/unlock20', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(Object.assign({}, dsBumpReq, { bump: want ? 1 : 0 }))
-  })
-  .then(r=>r.json())
-  .then(j=>{
-    if(j && j.ok && j.client_secret){
-      spLog(want ? 'bump_on' : 'bump_off');
-      return dsOpenPay(j.client_secret, j.publishable_key, false);
+/* Order-bump toggle: pure UI — the $39 is a separate one-click charge right
+   after the $20 confirms, so ticking never touches the payment form. */
+function dsBump20(){
+  const on = document.getElementById('dsBumpCk').checked;
+  document.getElementById('dsBumpLine').style.display = on ? 'flex' : 'none';
+  document.getElementById('dsPay20Btn').textContent = on ? 'Pay $59.00 🔓' : 'Pay $20.00 🔓';
+  try{ localStorage.setItem('spai_bump_want', on ? '1' : '0'); }catch(e){}
+  spLog(on ? 'bump_on' : 'bump_off');
+}
+
+/* Mount the $20 unlock checkout (Stripe ui_mode:'custom'): our summary, the
+   payment element, the bump box, our pay button. */
+async function dsOpenPay20(clientSecret, pubKey){
+  try{
+    await dsLoadStripeJs();
+    const stripe = window.Stripe(pubKey);
+    _dsCheckout20 = await stripe.initCheckout({ clientSecret });
+    if(_dsPay20Element){ try{ _dsPay20Element.destroy(); }catch(e){} _dsPay20Element = null; }
+    _dsPay20Element = _dsCheckout20.createPaymentElement();
+    _dsPay20Element.mount('#dsPay20Element');
+    document.getElementById('dsBumpCk').checked = false;
+    document.getElementById('dsBumpLine').style.display = 'none';
+    document.getElementById('dsPay20Btn').textContent = 'Pay $20.00 🔓';
+    document.getElementById('dsPay20Err').style.display = 'none';
+    try{ localStorage.setItem('spai_bump_want', '0'); }catch(e){}
+    document.getElementById('dsPayEmbed').style.display = 'none';
+    document.getElementById('dsPay20').style.display = 'block';
+    document.getElementById('dsPayTest').style.display = 'none';
+    document.getElementById('dsPayModal').style.display = 'flex';
+  }catch(err){
+    dsClosePay();
+    showToast('⚠️','Couldn’t open checkout — try again');
+  }
+}
+
+/* Confirm the $20 — Stripe then redirects to ?paid20=1&cs=… where the bump
+   (if ticked) is charged one-click and the flow continues to the upsell. */
+async function dsPay20Go(){
+  if(dsPay20Busy || !_dsCheckout20) return;
+  dsPay20Busy = true;
+  const btn = document.getElementById('dsPay20Btn');
+  const err = document.getElementById('dsPay20Err');
+  const label = btn.textContent;
+  btn.textContent = 'Processing… ⏳'; err.style.display = 'none';
+  try{
+    const la = await _dsCheckout20.loadActions();
+    const r = await la.actions.confirm();
+    if(r && r.error){
+      err.textContent = r.error.message || 'Payment didn’t go through — try again.';
+      err.style.display = 'block';
+      btn.textContent = label;
     }
-    throw new Error();
-  })
-  .catch(()=>{ ck.checked = !want; showToast('⚠️','Couldn’t update the order — try again'); })
-  .finally(()=>{ dsBumpBusy = false; ck.disabled = false; });
+    // success → Stripe redirects; leave the button in Processing state
+  }catch(e2){
+    err.textContent = 'Payment didn’t go through — try again.';
+    err.style.display = 'block';
+    btn.textContent = label;
+  }
+  dsPay20Busy = false;
 }
 const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 const DS_LIVE = true;
@@ -3010,6 +3048,8 @@ async function dsOpenPay(clientSecret, pubKey, isTest){
     if(_dsCheckout){ try{ _dsCheckout.destroy(); }catch(e){} _dsCheckout = null; }
     _dsCheckout = await stripe.initEmbeddedCheckout({ clientSecret });
     _dsCheckout.mount('#dsPayEmbed');
+    document.getElementById('dsPay20').style.display = 'none';   // unlock-only UI stays off
+    document.getElementById('dsPayEmbed').style.display = 'block';
     document.getElementById('dsPayTest').style.display = isTest ? 'block' : 'none';
     document.getElementById('dsPayModal').style.display = 'flex';
     // On completion Stripe redirects the page to the return_url (?paid=1&cs=…).
@@ -3022,8 +3062,10 @@ async function dsOpenPay(clientSecret, pubKey, isTest){
 }
 function dsClosePay(){
   if(_dsCheckout){ try{ _dsCheckout.destroy(); }catch(e){} _dsCheckout = null; }
+  if(_dsPay20Element){ try{ _dsPay20Element.destroy(); }catch(e){} _dsPay20Element = null; }
+  _dsCheckout20 = null;
   document.getElementById('dsPayModal').style.display = 'none';
-  document.getElementById('dsBumpBox').style.display = 'none'; // bump is unlock-only
+  document.getElementById('dsPay20').style.display = 'none';
   claimed = false; // let them reopen
   const b = document.querySelector('#claimBar .cta, .claim-bar .cta, [onclick*="claimStore"]');
   if(b) b.textContent = 'Claim My Store — $20 🔓';
@@ -3046,11 +3088,10 @@ function claimStore(e){
 
   // $20 one-time unlock: charge on OUR Stripe (no DropStart checkout).
   if(PRICE20 && DS_LIVE && dsBuild && dsBuild.project_id){
-    dsBumpReq = { project_id: dsBuild.project_id, email: userEmail || '',
-      product: (chosen && chosen.name) || '' }; // remembered for the bump toggle
     fetch('/api/unlock20', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(dsBumpReq)
+      body: JSON.stringify({ project_id: dsBuild.project_id, email: userEmail || '',
+        product: (chosen && chosen.name) || '' })
     })
     .then(r=>r.json())
     .then(j=>{
@@ -3064,9 +3105,7 @@ function claimStore(e){
         return;
       }
       if(j && j.ok && j.client_secret){
-        const ck = document.getElementById('dsBumpCk'); if(ck) ck.checked = false;
-        document.getElementById('dsBumpBox').style.display = 'block';
-        return dsOpenPay(j.client_secret, j.publishable_key, false);
+        return dsOpenPay20(j.client_secret, j.publishable_key);
       }
       throw new Error();
     })
@@ -3319,7 +3358,6 @@ function upsellYes(){
       // saved card couldn't be charged silently → embedded checkout fallback
       upsellBusy = false;
       if(vb) vb.textContent = 'Yes! I want 5 Video ads created for my product';
-      document.getElementById('dsBumpBox').style.display = 'none'; // no bump on upsell checkouts
       return dsOpenPay(j.client_secret, j.publishable_key, false);
     }
     throw new Error(j && j.status || 'upsell299');
@@ -3405,10 +3443,28 @@ function dsResumeAfterPayment20(){
         'purchase_' + (j.project_id || cs));
       spLog('paid_20', j.project_id || '');
       spLead('unlocked', j.email || null, cs); // → AC list 6 (bridge verifies via Stripe)
-      if(j.bump){
-        spLog('paid_bump_unlimited', j.project_id || '');
-        try{ localStorage.setItem('spai_unlimited', '1'); }catch(e){}
-        showToast('♾️','Unlimited stores unlocked — come back anytime!');
+      // Order bump ticked at checkout → one-click the $39 on the just-saved
+      // card. Idempotent server-side; a decline never blocks the store flow.
+      let bumpWant = '0';
+      try{ bumpWant = localStorage.getItem('spai_bump_want') || '0'; }catch(e){}
+      if(bumpWant === '1'){
+        try{ localStorage.setItem('spai_bump_want', '0'); }catch(e){}
+        fetch('/api/unlock20', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ bump_charge: 1, cs })
+        })
+        .then(r=>r.json())
+        .then(b=>{
+          if(b && b.ok && b.charged){
+            window.dsFire && window.dsFire('Purchase', { value: 39, currency: 'USD' }, 'bump_' + cs);
+            spLog('paid_bump_unlimited', j.project_id || '');
+            try{ localStorage.setItem('spai_unlimited', '1'); }catch(e){}
+            showToast('♾️','Unlimited stores unlocked — come back anytime!');
+          }else{
+            spLog('bump_fail', (b && b.status) || '');
+          }
+        })
+        .catch(()=>{ spLog('bump_fail', 'network'); });
       }
       dsPaidCs = cs;
       try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
@@ -3769,17 +3825,33 @@ if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20
       <button onclick="dsClosePay()" aria-label="Close" style="border:none;background:#f1f3f6;width:28px;height:28px;border-radius:50%;font-size:15px;color:#6b7280;cursor:pointer;">✕</button>
     </div>
     <div id="dsPayTest" style="display:none;background:#fff8e1;color:#8a6d00;font-size:.76rem;font-weight:700;text-align:center;padding:7px 12px;">⚙️ TEST MODE — use card 4242 4242 4242 4242, any future date + CVC. No real charge.</div>
-    <!-- Order bump — shown only on the $20 unlock checkout, never on upsell fallbacks.
-         Toggling re-creates the Stripe session with/without the $39 line item. -->
-    <label id="dsBumpBox" style="display:none;margin:14px 16px 2px;padding:13px 14px;border:2px dashed #E3A80B;border-radius:12px;background:#FFF9E8;cursor:pointer;user-select:none;">
-      <span style="display:flex;gap:10px;align-items:center;">
-        <input type="checkbox" id="dsBumpCk" onchange="dsBumpToggle()" style="width:19px;height:19px;accent-color:#E3A80B;flex:none;">
-        <b style="font-size:.88rem;color:#241500;">YES! Upgrade me to UNLIMITED stores</b>
-        <span style="margin-left:auto;font-weight:800;color:#B07B00;white-space:nowrap;">+$39</span>
-      </span>
-      <span id="dsBumpCopy" style="display:block;font-size:.78rem;color:#6b5b2e;margin:7px 0 0 29px;line-height:1.5;">Why bet on one product? Come back <b style="color:#241500">anytime</b>, take the quiz again, and the AI builds + unlocks another store — any niche, <b style="color:#241500">as many stores as you want, forever.</b> One-time, added to this order.</span>
-    </label>
+    <!-- upsell fallback checkouts mount Stripe's embedded checkout here -->
     <div id="dsPayEmbed"></div>
+    <!-- $20 unlock uses Stripe CUSTOM checkout: we render summary, payment
+         element, order bump and pay button ourselves — bump sits right above Pay. -->
+    <div id="dsPay20" style="display:none;padding:16px 16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <b style="font-size:.95rem;color:#0d0e12;">AI Store Unlock</b>
+        <span style="font-weight:800;color:#0d0e12;">$20.00</span>
+      </div>
+      <div id="dsBumpLine" style="display:none;justify-content:space-between;align-items:baseline;margin-top:4px;">
+        <span style="font-size:.85rem;color:#0d0e12;">Unlimited AI Stores</span>
+        <span style="font-weight:700;color:#0d0e12;">$39.00</span>
+      </div>
+      <p style="font-size:.74rem;color:#6b7280;margin:4px 0 14px;">One-time — no subscription, nothing renews.</p>
+      <div id="dsPay20Element" style="min-height:120px;"></div>
+      <label id="dsBumpBox" style="display:block;margin:14px 0 12px;padding:13px 14px;border:2px dashed #E3A80B;border-radius:12px;background:#FFF9E8;cursor:pointer;user-select:none;">
+        <span style="display:flex;gap:10px;align-items:center;">
+          <input type="checkbox" id="dsBumpCk" onchange="dsBump20()" style="width:19px;height:19px;accent-color:#E3A80B;flex:none;">
+          <b style="font-size:.88rem;color:#241500;">YES! Upgrade me to UNLIMITED stores</b>
+          <span style="margin-left:auto;font-weight:800;color:#B07B00;white-space:nowrap;">+$39</span>
+        </span>
+        <span style="display:block;font-size:.78rem;color:#6b5b2e;margin:7px 0 0 29px;line-height:1.5;">Why bet on one product? Come back <b style="color:#241500">anytime</b>, take the quiz again, and the AI builds + unlocks another store — any niche, <b style="color:#241500">as many stores as you want, forever.</b> One-time, added to this order.</span>
+      </label>
+      <button id="dsPay20Btn" onclick="dsPay20Go()" style="width:100%;border:none;border-radius:9px;background:#0d0e12;color:#fff;font-weight:800;font-size:.95rem;padding:13px;cursor:pointer;">Pay $20.00 🔓</button>
+      <div id="dsPay20Err" style="display:none;color:#b91c1c;font-size:.78rem;font-weight:600;text-align:center;margin-top:8px;"></div>
+      <div style="text-align:center;font-size:.7rem;color:#9aa3b2;margin-top:9px;">🔒 Powered by Stripe</div>
+    </div>
   </div>
 </div>
 </body>
