@@ -65,7 +65,8 @@ async function verifyPaid(cs){
     });
     const s = await r2.json().catch(() => ({}));
     const paidOk = isPi ? s.status === 'succeeded' : s.payment_status === 'paid';
-    const paid = r2.ok && paidOk && (s.metadata && s.metadata.type) === 'image_ads_10';
+    const ty = (s.metadata && s.metadata.type) || '';
+    const paid = r2.ok && paidOk && (ty === 'image_ads_10' || ty === 'store_unlock20');
     return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null };
   }catch(err){ return { paid: false, projectId: null }; }
 }

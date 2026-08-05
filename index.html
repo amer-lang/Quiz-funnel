@@ -1850,6 +1850,27 @@ const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: 
    anytime with ?upsellpreview=1. */
 const UPSELL_ADS = true;
 const UPSELL_ADS_PRICE = 49;
+/* $20 ONE-TIME unlock price test (replaces the $1 trial + $49/mo sub).
+   The charge runs on OUR Stripe via /api/unlock20 — but the store unlock
+   still goes through DropStart /finalize, which must be PROVEN to accept
+   our sessions before any public flip. FLIP PRICE20 TO true only after a
+   successful end-to-end test purchase. Private test lane: open the funnel
+   once with ?price20test=1 (sticks via localStorage; ?price20test=0 clears). */
+const PRICE20 = false || (function(){
+  try{
+    const v = new URLSearchParams(location.search).get('price20test');
+    if(v === '1') localStorage.setItem('spai_price20test', '1');
+    if(v === '0') localStorage.removeItem('spai_price20test');
+    return localStorage.getItem('spai_price20test') === '1';
+  }catch(e){ return false; }
+})();
+if(PRICE20){ document.addEventListener('DOMContentLoaded', function(){
+  // test-lane cosmetics: price on the claim CTAs (full static copy sweep
+  // happens at the real flip, not here)
+  document.querySelectorAll('[onclick*="claimStore"]').forEach(function(b){
+    b.textContent = b.textContent.replace(/\$1\b/, '$20');
+  });
+}); }
 let upsellPreviewMode = false;
 const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 const DS_LIVE = true;
@@ -2994,9 +3015,28 @@ function claimStore(e){
   coinRain(1300);
   flashPulse();
   vibrate([20,60,20,60,40]);
-  // Meta InitiateCheckout — they committed to the $1 unlock.
-  window.dsFire && window.dsFire('InitiateCheckout', { value: 1, currency: 'USD' },
+  // Meta InitiateCheckout — they committed to the unlock.
+  window.dsFire && window.dsFire('InitiateCheckout', { value: PRICE20 ? 20 : 1, currency: 'USD' },
     'ic_' + ((dsBuild && dsBuild.project_id) || dsCid()));
+
+  // $20 one-time price test: charge on OUR Stripe (no DropStart checkout).
+  if(PRICE20 && DS_LIVE && dsBuild && dsBuild.project_id){
+    fetch('/api/unlock20', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ project_id: dsBuild.project_id, email: userEmail || '',
+        product: (chosen && chosen.name) || '' })
+    })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.ok && j.client_secret){ return dsOpenPay(j.client_secret, j.publishable_key, false); }
+      throw new Error();
+    })
+    .catch(()=>{
+      claimed = false; btn.textContent = 'Claim My Store — $20 🔓';
+      showToast('⚠️','Couldn’t open checkout — try again');
+    });
+    return;
+  }
 
   // Live path: ask DropStart for an EMBEDDED Stripe checkout on this store. It
   // creates the $1 / 3-day-trial / $49-mo subscription on the client's own
@@ -3280,6 +3320,36 @@ function payWait(on){
   const wait = document.getElementById('s-paywait');
   if(on){ land.classList.remove('active'); wait.classList.add('active'); current = 's-paywait'; }
   else  { wait.classList.remove('active'); land.classList.add('active'); current = 's-landing'; }
+}
+
+/* Coming back from the $20 one-time checkout (OUR Stripe): …/?paid20=1&cs=….
+   Verify on our account, then continue exactly like the $1 path — upsell next. */
+function dsResumeAfterPayment20(){
+  const q = new URLSearchParams(location.search);
+  if(q.get('paid20') !== '1') return false;
+  const cs = q.get('cs') || '';
+  if(!cs) return false;
+  payWait(true);
+  fetch('/api/unlock20?verify=' + encodeURIComponent(cs))
+    .then(r=>r.json())
+    .then(j=>{
+      if(!(j && j.paid)){ payWait(false); return; } // unpaid bounce-back → quiz
+      window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD' },
+        'purchase_' + (j.project_id || cs));
+      spLog('paid_20', j.project_id || '');
+      spLead('unlocked', j.email || null, cs); // → AC list 6 (bridge verifies via Stripe)
+      dsPaidCs = cs;
+      try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
+      if(!dsBuild && j.project_id) dsBuild = { ok:true, project_id: Number(j.project_id) };
+      if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
+      const upScreen = UPSELL_ADS ? 's-upsell-ads' : 's-upsell';
+      document.getElementById('s-paywait').classList.remove('active');
+      document.getElementById('s-landing').classList.remove('active');
+      document.getElementById(upScreen).classList.add('active');
+      current = upScreen; setBar(upScreen); updateBack(); onEnter(upScreen);
+    })
+    .catch(()=>{ payWait(false); });
+  return true;
 }
 
 /* Coming back from the $1 checkout: Stripe returns to
@@ -3603,7 +3673,7 @@ updateBack();
 if(!/paid=1|upsold=1|resume=/.test(location.search)) spLog('screen', 's-landing');
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
-if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment()) dsResumeFromEmail();
+if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment()) dsResumeFromEmail();
 
 /* Safe visual preview of the image-ads upsell (?upsellpreview=1): renders the
    screen with checkout disabled so it can be reviewed on production without

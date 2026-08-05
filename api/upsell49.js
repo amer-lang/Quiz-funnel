@@ -102,6 +102,22 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok:true, hasSecret: !!sk, secretType: sk.slice(0, 3), hasPublishable: !!pk });
     }
 
+    /* key-gated session inspector (GET) — full shape of any session on our account */
+    if(q.inspect){
+      if(q.inspect !== READ_KEY) return res.status(403).json({ ok:false });
+      const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.cs || '').slice(0, 300)) +
+        '?expand[]=line_items&expand[]=subscription');
+      return res.status(200).json({ ok:true, mode: s.mode, ui_mode: s.ui_mode, status: s.status,
+        payment_status: s.payment_status, amount_total: s.amount_total, currency: s.currency,
+        metadata: s.metadata, success_url: s.success_url, return_url: s.return_url, cancel_url: s.cancel_url,
+        customer: s.customer, customer_creation: s.customer_creation,
+        subscription: s.subscription && (typeof s.subscription === 'string' ? s.subscription :
+          { id: s.subscription.id, status: s.subscription.status, trial_end: s.subscription.trial_end }),
+        line_items: s.line_items && (s.line_items.data || []).map(li => ({ desc: li.description,
+          amount: li.amount_total, recurring: !!(li.price && li.price.recurring),
+          interval: li.price && li.price.recurring && li.price.recurring.interval })) });
+    }
+
     /* key-gated one-click DRY RUN (GET) — walks the exact lookup chain the
        live charge uses on a REAL paid $1 session (latest one, or ?cs=…) and
        reports what it would charge, without creating any PaymentIntent. */
