@@ -52,13 +52,14 @@ async function verifyPaid(cs){
     // activation link (…/?resume=<id>) straight from the paid session.
     if(j && j.ok && j.paid) return { paid: true, projectId: (j && j.project_id) || null };
   }catch(err){ /* fall through to the Stripe check */ }
-  // The $49 image-ads charges live on OUR Stripe account (not the payment
-  // backend above) — a Checkout Session (cs_…) from the fallback popup or a
-  // PaymentIntent (pi_…) from the one-click charge. Verify directly with
-  // Stripe; only PAID + our image_ads_10 metadata counts. Fail CLOSED.
+  // Our own Stripe charges (not the payment backend above) — a Checkout
+  // Session (cs_…) from a fallback popup or a PaymentIntent (pi_…) from a
+  // one-click charge: the $20 unlock, the $49 image pack, or the $299 video
+  // pack. Verify directly with Stripe; only PAID + our metadata counts.
+  // Fail CLOSED. The type is returned so callers can branch on the SKU.
   try{
     const sk = process.env.STRIPE_SECRET_KEY || '';
-    if(!sk) return { paid: false, projectId: null };
+    if(!sk) return { paid: false, projectId: null, type: '' };
     const isPi = /^pi_/.test(cs);
     const r2 = await fetch('https://api.stripe.com/v1/' + (isPi ? 'payment_intents/' : 'checkout/sessions/') + encodeURIComponent(cs), {
       headers: { Authorization: 'Bearer ' + sk }
@@ -66,9 +67,9 @@ async function verifyPaid(cs){
     const s = await r2.json().catch(() => ({}));
     const paidOk = isPi ? s.status === 'succeeded' : s.payment_status === 'paid';
     const ty = (s.metadata && s.metadata.type) || '';
-    const paid = r2.ok && paidOk && (ty === 'image_ads_10' || ty === 'store_unlock20');
-    return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null };
-  }catch(err){ return { paid: false, projectId: null }; }
+    const paid = r2.ok && paidOk && (ty === 'image_ads_10' || ty === 'store_unlock20' || ty === 'video_ads_5');
+    return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null, type: paid ? ty : '' };
+  }catch(err){ return { paid: false, projectId: null, type: '' }; }
 }
 
 async function ac(path, method, body){
@@ -206,10 +207,11 @@ module.exports = async (req, res) => {
       // Money lists demand a server-verified PAID Stripe session — no cs or a
       // failed/unverifiable charge means no list add, full stop. The verified
       // store id also yields the buyer's durable activation link.
-      let activationLink = '';
+      let activationLink = '', paidType = '';
       if(stage === 'unlocked' || stage === 'videoads'){
         const v = await verifyPaid(body.cs);
         if(!v.paid) return res.status(204).end();
+        paidType = v.type || '';
         if(v.projectId) activationLink = 'https://sellproducts.ai/?resume=' + encodeURIComponent(v.projectId);
       }
 
@@ -220,10 +222,10 @@ module.exports = async (req, res) => {
       const contact = { email };
       if(activationLink) contact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: activationLink }];
 
-      // $49 ad-pack buyers: write their delivery page into %ADS_LINK% so the
-      // list-7 purchase email can hand them the ads (the thank-you page
-      // deliberately stays focused on Shopify setup).
-      if(stage === 'videoads' && /^(cs|pi)_/.test(String(body.cs || ''))){
+      // $49 image-pack buyers ONLY: write their delivery page into %ADS_LINK%
+      // so the list-7 purchase email can hand them the ads. $299 video buyers
+      // must NOT get this link — /ads renders image packs, not videos.
+      if(stage === 'videoads' && paidType === 'image_ads_10' && /^(cs|pi)_/.test(String(body.cs || ''))){
         const fid = await adsField();
         if(fid) contact.fieldValues = (contact.fieldValues || [])
           .concat([{ field: fid, value: 'https://sellproducts.ai/ads?cs=' + encodeURIComponent(String(body.cs)) }]);
