@@ -20,7 +20,7 @@ const RETURN_URL = 'https://www.sellproducts.ai/?paid20=1&cs={CHECKOUT_SESSION_I
 const SKU_NAME = 'AI Store Unlock';
 const SKU_DESC = 'One-time unlock of your AI-built dropshipping store. Full store access, supplier connected, ready to launch on Shopify. No subscription.';
 const AMOUNT = 2000; // cents
-const STRIPE_VERSION = '2025-03-31.basil'; // ui_mode:'custom' needs this or later
+const STRIPE_VERSION = '2026-03-25.dahlia'; // ui_mode:'elements' (renamed from 'custom' in dahlia)
 
 /* Order bump — a SEPARATE one-click charge right after the $20 confirms,
    so ticking the box never rebuilds the payment form. */
@@ -67,14 +67,15 @@ function sessionParams(projectId, email, product, uiMode){
   return params;
 }
 
-/* Prefer ui_mode:'custom' (funnel renders its own form + order bump). If the
-   account/API rejects it for any reason, fall back to the embedded checkout
-   that ran the price flip — checkout must never be down over UI mode. */
+/* Prefer ui_mode:'elements' (funnel renders its own form + order bump; the
+   dahlia release renamed 'custom' to 'elements'). If the account/API rejects
+   it for any reason, fall back to the embedded checkout that ran the price
+   flip — checkout must never be down over UI mode. */
 async function createSession(projectId, email, product, forceEmbedded){
   if(!forceEmbedded){
     try{
       const s = await stripe('checkout/sessions', 'POST',
-        sessionParams(projectId, email, product, 'custom'), null, STRIPE_VERSION);
+        sessionParams(projectId, email, product, 'elements'), null, STRIPE_VERSION);
       return { s, ui: 'custom' };
     }catch(e){
       var customErr = String(e && e.message || e).slice(0, 200);

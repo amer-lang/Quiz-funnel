@@ -1890,7 +1890,11 @@ async function dsOpenPay20(clientSecret, pubKey){
   try{
     await dsLoadStripeJs();
     const stripe = window.Stripe(pubKey);
-    _dsCheckout20 = await stripe.initCheckout({ clientSecret });
+    // dahlia name first (initCheckoutElementsSdk, sync); older trains had
+    // initCheckout (async) — await handles both.
+    const initSdk = stripe.initCheckoutElementsSdk || stripe.initCheckout;
+    if(!initSdk) throw new Error('no_checkout_sdk');
+    _dsCheckout20 = await initSdk.call(stripe, { clientSecret });
     if(_dsPay20Element){ try{ _dsPay20Element.destroy(); }catch(e){} _dsPay20Element = null; }
     _dsPay20Element = _dsCheckout20.createPaymentElement();
     _dsPay20Element.mount('#dsPay20Element');
@@ -1931,9 +1935,12 @@ async function dsPay20Go(){
   btn.textContent = 'Processing… ⏳'; err.style.display = 'none';
   try{
     const la = await _dsCheckout20.loadActions();
-    const r = await la.actions.confirm();
-    if(r && r.error){
-      err.textContent = r.error.message || 'Payment didn’t go through — try again.';
+    if(la && la.type === 'error') throw new Error((la.error && la.error.message) || 'load_actions');
+    const actions = (la && la.actions) || la; // dahlia: {type:'success', actions}
+    const r = await actions.confirm();
+    const rerr = r && (r.error || (r.type === 'error' && r.error) || (r.type === 'error' ? {} : null));
+    if(rerr){
+      err.textContent = rerr.message || 'Payment didn’t go through — try again.';
       err.style.display = 'block';
       btn.textContent = label;
     }
@@ -3045,9 +3052,9 @@ function dsLoadStripeJs(){
     const ex = document.querySelector('script[src*="js.stripe.com"]');
     if(ex){ ex.addEventListener('load', ()=>res()); ex.addEventListener('error', ()=>rej()); return; }
     const s = document.createElement('script');
-    // basil bundle: required for initCheckout (custom checkout w/ order bump);
-    // initEmbeddedCheckout for the upsell fallback exists here too.
-    s.src = 'https://js.stripe.com/basil/stripe.js';
+    // dahlia bundle (current release train): carries initCheckoutElementsSdk
+    // (unlock + order bump) and createEmbeddedCheckoutPage (upsell fallback).
+    s.src = 'https://js.stripe.com/dahlia/stripe.js';
     s.onload = ()=>res(); s.onerror = ()=>rej();
     document.head.appendChild(s);
   });
@@ -3059,7 +3066,9 @@ async function dsOpenPay(clientSecret, pubKey, isTest){
     const slot = document.getElementById('dsPayEmbed');
     slot.innerHTML = '';
     if(_dsCheckout){ try{ _dsCheckout.destroy(); }catch(e){} _dsCheckout = null; }
-    _dsCheckout = await stripe.initEmbeddedCheckout({ clientSecret });
+    // dahlia renamed initEmbeddedCheckout → createEmbeddedCheckoutPage; accept both
+    const mkEmbedded = stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout;
+    _dsCheckout = await mkEmbedded.call(stripe, { clientSecret });
     _dsCheckout.mount('#dsPayEmbed');
     document.getElementById('dsPay20').style.display = 'none';   // unlock-only UI stays off
     document.getElementById('dsPayEmbed').style.display = 'block';
