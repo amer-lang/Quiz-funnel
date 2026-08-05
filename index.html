@@ -1842,13 +1842,12 @@ const DS_API  = 'https://chat.dropstart.app/api/express';
 const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
 // The VSL shown on the video-ads upsell screen (same one DropStart uses).
 const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: '6a4d92062406c7e3ffb37813' };
-/* Image-ads upsell (10 custom image ads · $49 one-time). LIVE for everyone:
-   /api/upsell49 charges exactly $49 on our own Stripe account (one-click on
-   the card saved by the $1 purchase, embedded-checkout fallback) and
-   /api/adsorder + /ads generate and deliver the pack. Set false to fall
-   back to the $299 video upsell. Preview the screen without checkout
-   anytime with ?upsellpreview=1. */
-const UPSELL_ADS = true;
+/* Upsell selector. true → $49 image-ads pack (s-upsell-ads, /api/upsell49,
+   auto-fulfilled by /api/adsorder + /ads). false → $299 video-ads VSL page
+   (s-upsell, /api/upsell299 — one-click on the card saved by the $20 unlock,
+   embedded-checkout fallback, charged on OUR Stripe). Preview either screen
+   without checkout anytime with ?upsellpreview=1. */
+const UPSELL_ADS = false;
 const UPSELL_ADS_PRICE = 49;
 /* $20 ONE-TIME unlock (replaces the $1 trial + $49/mo sub). LIVE.
    The charge runs on OUR Stripe via /api/unlock20; verified same-account
@@ -3248,28 +3247,42 @@ function upsellYes(){
     .catch(()=>{ upsellBusy = false; dsFinalize({ upsell: 0 }); }); // never trap them — settle & continue
     return;
   }
-  // Open the $299 video-ads checkout as an in-page popup (same as the $1). It
-  // pre-fills the card saved on the $1 subscription, so it's still one tap. On
-  // completion Stripe returns to the hand-off, which unlocks the store, records
-  // the upsell, and runs go-live.
-  if(dsBuild && dsBuild.project_id){
-    const body = { project_id: dsBuild.project_id, base_cs: dsPaidCs || '', embedded: true };
-    if(UPSELL_ADS) body.sku = 'image_ads_10'; // $49 · 10 image ads (backend maps sku → price)
-    if(DS_TEST) body.test = DS_TEST;
-    fetch(DS_API + '/upsell-checkout', {
-      method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
-      body: JSON.stringify(body)
-    })
-    .then(r=>r.json())
-    .then(j=>{
-      if(j && j.embedded && j.client_secret){ return dsOpenPay(j.client_secret, j.publishable_key, !!j.test); }
-      if(j && j.checkout_url){ window.location.href = j.checkout_url; return; }
-      throw new Error();
-    })
-    .catch(()=>{ upsellHandoff('upsell=0'); }); // don't trap them — send them to their store
-    return;
-  }
-  upsellHandoff('next=upsell'); // legacy fallback (no build id)
+  // $299 video-ads pack: same proven rail as the $49 — /api/upsell299 charges
+  // the card saved by the $20 unlock off-session in ONE CLICK; only if that
+  // fails (declined / needs authentication) does the embedded checkout popup
+  // open, returning to ?upsold=1 which dsResumeAfterUpsell() settles.
+  upsellBusy = true;
+  let prodName299 = chosen && chosen.name;
+  if(!prodName299){ try{ prodName299 = (JSON.parse(localStorage.getItem('spai_chosen') || 'null') || {}).name; }catch(e){} }
+  const vb = document.querySelector('#s-upsell .cta');
+  if(vb) vb.textContent = 'Processing… ⏳';
+  fetch('/api/upsell299', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ cs: dsPaidCs || '', project_id: (dsBuild && dsBuild.project_id) || '',
+      product: prodName299 || '' })
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    if(j && j.ok && j.charged && j.pi){
+      // Charged in one click — celebrate and settle, no checkout UI at all.
+      playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 120);
+      showToast('🎉','5 custom video ads are being made for you!');
+      window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' },
+        'upsell299_' + ((dsBuild && dsBuild.project_id) || j.pi));
+      spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
+      spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
+      dsFinalize({ upsell_cs: j.pi }); // record the $299 with the unlock
+      return;
+    }
+    if(j && j.ok && j.client_secret){
+      // saved card couldn't be charged silently → embedded checkout fallback
+      upsellBusy = false;
+      if(vb) vb.textContent = 'Yes! I want 5 Video ads created for my product';
+      return dsOpenPay(j.client_secret, j.publishable_key, false);
+    }
+    throw new Error(j && j.status || 'upsell299');
+  })
+  .catch(()=>{ upsellBusy = false; dsFinalize({ upsell: 0 }); }); // never trap them — settle & continue
 }
 
 function upsellNo(e){
