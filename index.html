@@ -1214,8 +1214,6 @@ window.dsFire('PageView');
   <div class="claim-inner">
     <div class="price-slash"><span class="was">$1,096</span><span>→</span><span class="tag">✨ $20 one-time</span><span class="hold">⏳ <b id="resvTimer">15:00</b></span></div>
     <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $20 🔓</button>
-    <p class="claim-sub"><b>$20 one-time</b> · the store is yours · <b>no subscription — ever</b></p>
-    <p class="claim-legal">By claiming you agree to the <a href="/terms" target="_blank">Terms</a>, <a href="/purchase-agreement" target="_blank">Purchase Agreement</a> &amp; <a href="/refund-policy" target="_blank">30-day Refund Policy</a></p>
   </div>
 </div>
 
@@ -3875,7 +3873,8 @@ if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20
       </label>
       <button id="dsPay20Btn" onclick="dsPay20Go()" style="width:100%;border:none;border-radius:9px;background:#0d0e12;color:#fff;font-weight:800;font-size:.95rem;padding:13px;cursor:pointer;">Pay $20.00 🔓</button>
       <div id="dsPay20Err" style="display:none;color:#b91c1c;font-size:.78rem;font-weight:600;text-align:center;margin-top:8px;"></div>
-      <div style="text-align:center;font-size:.7rem;color:#9aa3b2;margin-top:9px;">🔒 Powered by Stripe</div>
+      <!-- consent moved here from the claim bar — strongest at the point of payment -->
+      <div style="text-align:center;font-size:.66rem;color:#9aa3b2;margin-top:9px;line-height:1.5;">🔒 Powered by Stripe · By paying you agree to the <a href="/terms" target="_blank" style="color:#6b7280;">Terms</a>, <a href="/purchase-agreement" target="_blank" style="color:#6b7280;">Purchase Agreement</a> &amp; <a href="/refund-policy" target="_blank" style="color:#6b7280;">30-day Refund Policy</a></div>
     </div>
   </div>
 </div>
