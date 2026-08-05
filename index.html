@@ -1904,6 +1904,17 @@ async function dsOpenPay20(clientSecret, pubKey){
     document.getElementById('dsPayTest').style.display = 'none';
     document.getElementById('dsPayModal').style.display = 'flex';
   }catch(err){
+    // stripe.js couldn't run the custom form here — fall back to a fresh
+    // EMBEDDED session so the buyer still gets a working checkout (no bump).
+    spLog('custom_mount_err', String(err && err.message || err).slice(0, 120));
+    try{
+      const j = await fetch('/api/unlock20', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ embedded: 1, project_id: (dsBuild && dsBuild.project_id) || '',
+          email: userEmail || '', product: (chosen && chosen.name) || '' })
+      }).then(r=>r.json());
+      if(j && j.ok && j.client_secret) return dsOpenPay(j.client_secret, j.publishable_key, false);
+    }catch(e2){}
     dsClosePay();
     showToast('⚠️','Couldn’t open checkout — try again');
   }
@@ -3105,6 +3116,9 @@ function claimStore(e){
         return;
       }
       if(j && j.ok && j.client_secret){
+        spLog('checkout_mode', j.ui || 'custom');
+        if(j.custom_error) spLog('custom_mode_err', j.custom_error);
+        if(j.ui === 'embedded') return dsOpenPay(j.client_secret, j.publishable_key, false);
         return dsOpenPay20(j.client_secret, j.publishable_key);
       }
       throw new Error();

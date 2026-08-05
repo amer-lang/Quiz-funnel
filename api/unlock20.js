@@ -47,10 +47,10 @@ async function stripe(path, method, params, idemKey, version){
   return j;
 }
 
-async function createSession(projectId, email, product){
+function sessionParams(projectId, email, product, uiMode){
   const params = {
     'mode': 'payment',
-    'ui_mode': 'custom',
+    'ui_mode': uiMode,
     'return_url': RETURN_URL,
     'customer_creation': 'always',
     'payment_intent_data[setup_future_usage]': 'off_session',
@@ -64,7 +64,25 @@ async function createSession(projectId, email, product){
     'metadata[product]': String(product || '').slice(0, 120)
   };
   if(email) params['customer_email'] = String(email).slice(0, 120);
-  return stripe('checkout/sessions', 'POST', params, null, STRIPE_VERSION);
+  return params;
+}
+
+/* Prefer ui_mode:'custom' (funnel renders its own form + order bump). If the
+   account/API rejects it for any reason, fall back to the embedded checkout
+   that ran the price flip — checkout must never be down over UI mode. */
+async function createSession(projectId, email, product, forceEmbedded){
+  if(!forceEmbedded){
+    try{
+      const s = await stripe('checkout/sessions', 'POST',
+        sessionParams(projectId, email, product, 'custom'), null, STRIPE_VERSION);
+      return { s, ui: 'custom' };
+    }catch(e){
+      var customErr = String(e && e.message || e).slice(0, 200);
+    }
+  }
+  const s = await stripe('checkout/sessions', 'POST',
+    sessionParams(projectId, email, product, 'embedded'));
+  return { s, ui: 'embedded', custom_error: customErr || '' };
 }
 
 /* card saved by the $20 payment — customer default, else newest attached */
@@ -121,8 +139,9 @@ module.exports = async (req, res) => {
     if(q.probe){
       if(q.probe !== READ_KEY) return res.status(403).json({ ok:false });
       if(!sk || !pk) return res.status(200).json({ ok:false, status:'no_keys' });
-      const s = await createSession('0', '', 'probe');
-      return res.status(200).json({ ok:true, session: s.id, has_secret: !!s.client_secret });
+      const c = await createSession('0', '', 'probe');
+      return res.status(200).json({ ok:true, session: c.s.id, has_secret: !!c.s.client_secret,
+        ui: c.ui, custom_error: c.custom_error || '' });
     }
 
     if(q.verify){
@@ -182,13 +201,14 @@ module.exports = async (req, res) => {
     if(!projectId) return res.status(400).json({ ok:false, status:'no_project' });
     const email = String(body.email || '');
 
-    if(email){
+    if(email && !body.embedded){
       const owned = await findUnlimited(email);
       if(owned) return res.status(200).json({ ok:true, unlimited:true, cs: owned });
     }
 
-    const s = await createSession(projectId, email, String(body.product || ''));
-    return res.status(200).json({ ok:true, client_secret: s.client_secret, publishable_key: pk });
+    const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded);
+    return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
+      ui: c.ui, custom_error: c.custom_error || '' });
   }catch(e){
     return res.status(200).json({ ok:false, status:'error', detail: String(e && e.message || e).slice(0, 300) });
   }
