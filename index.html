@@ -1212,9 +1212,9 @@ window.dsFire('PageView');
 <!-- fixed $1 claim bar — visible without scrolling while the preview screen is active -->
 <div class="claim-bar" id="claimBar">
   <div class="claim-inner">
-    <div class="price-slash"><span class="was">$49</span><span>→</span><span class="tag">✨ $1 today</span><span class="hold">⏳ <b id="resvTimer">15:00</b></span></div>
-    <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $1 🔓</button>
-    <p class="claim-sub"><b>$1 today</b> · 3-day full access · then $49/mo · cancel anytime</p>
+    <div class="price-slash"><span class="was">$1,096</span><span>→</span><span class="tag">✨ $20 one-time</span><span class="hold">⏳ <b id="resvTimer">15:00</b></span></div>
+    <button class="cta gold pulse" onclick="claimStore(event)">Claim My Store — $20 🔓</button>
+    <p class="claim-sub"><b>$20 one-time</b> · the store is yours · <b>no subscription — ever</b></p>
     <p class="claim-legal">By claiming you agree to the <a href="/terms" target="_blank">Terms</a>, <a href="/purchase-agreement" target="_blank">Purchase Agreement</a> &amp; <a href="/refund-policy" target="_blank">30-day Refund Policy</a></p>
   </div>
 </div>
@@ -1278,7 +1278,7 @@ window.dsFire('PageView');
       <div class="proof-row">
         <div class="proof"><b class="blue">10M+</b><span>products scanned</span></div>
         <div class="proof"><b class="green">2,400+</b><span>stores built</span></div>
-        <div class="proof"><b class="gold">$1</b><span>to go live</span></div>
+        <div class="proof"><b class="gold">$20</b><span>to go live</span></div>
       </div>
 
       <button class="cta pulse" onclick="fromLanding(event)">Let's Get To Work 💰</button>
@@ -1531,7 +1531,7 @@ window.dsFire('PageView');
           <div class="bp-rail"><div class="bp-dot">🚀</div></div>
           <div class="bp-card">
             <b>3 · Love it? Claim it &amp; go live</b>
-            <p>Claim it with a <strong>$1 three-day trial</strong> (then $49/mo) and it's live on Shopify — taking orders.</p>
+            <p>Claim it for a <strong>one-time $20</strong> — no subscription — and it's live on Shopify, taking orders.</p>
             <span class="tag gold">You're officially in business</span>
           </div>
         </div>
@@ -1711,7 +1711,7 @@ window.dsFire('PageView');
       </div>
 
       <div class="stack-line">
-        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$1 today</b></span>
+        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$20 today</b></span>
       </div>
     </section>
 
@@ -1787,7 +1787,7 @@ window.dsFire('PageView');
         </div>
         <div class="done-step" id="dn2">
           <span class="n">2</span>
-          <p><b>Complete the <span class="gold-b">$1 unlock</span></b> — 3 days of full access, then $49/mo. Cancel anytime.</p>
+          <p><b>Complete the <span class="gold-b">$20 unlock</span></b> — one-time payment, no subscription. The store is yours.</p>
         </div>
         <div class="done-step" id="dn3">
           <span class="n">3</span>
@@ -1850,13 +1850,12 @@ const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: 
    anytime with ?upsellpreview=1. */
 const UPSELL_ADS = true;
 const UPSELL_ADS_PRICE = 49;
-/* $20 ONE-TIME unlock price test (replaces the $1 trial + $49/mo sub).
-   The charge runs on OUR Stripe via /api/unlock20 — but the store unlock
-   still goes through DropStart /finalize, which must be PROVEN to accept
-   our sessions before any public flip. FLIP PRICE20 TO true only after a
-   successful end-to-end test purchase. Private test lane: open the funnel
-   once with ?price20test=1 (sticks via localStorage; ?price20test=0 clears). */
-const PRICE20 = false || (function(){
+/* $20 ONE-TIME unlock (replaces the $1 trial + $49/mo sub). LIVE.
+   The charge runs on OUR Stripe via /api/unlock20; verified same-account
+   with DropStart's own sessions, and dsFinalize falls back to the direct
+   hand-off URL (+ finalize_fail log) if /finalize ever refuses one of
+   ours. ?price20test=0 clears the old test-lane localStorage flag. */
+const PRICE20 = true || (function(){
   try{
     const v = new URLSearchParams(location.search).get('price20test');
     if(v === '1') localStorage.setItem('spai_price20test', '1');
@@ -2992,7 +2991,7 @@ async function dsOpenPay(clientSecret, pubKey, isTest){
   }catch(err){
     claimed = false;
     const b = document.querySelector('#claimBar .cta, .claim-bar .cta, [onclick*="claimStore"]');
-    if(b) b.textContent = 'Claim My Store — $1 🔓';
+    if(b) b.textContent = 'Claim My Store — $20 🔓';
     showToast('⚠️','Couldn’t open payment — try again');
   }
 }
@@ -3001,7 +3000,7 @@ function dsClosePay(){
   document.getElementById('dsPayModal').style.display = 'none';
   claimed = false; // let them reopen
   const b = document.querySelector('#claimBar .cta, .claim-bar .cta, [onclick*="claimStore"]');
-  if(b) b.textContent = 'Claim My Store — $1 🔓';
+  if(b) b.textContent = 'Claim My Store — $20 🔓';
 }
 
 function claimStore(e){
@@ -3016,7 +3015,7 @@ function claimStore(e){
   flashPulse();
   vibrate([20,60,20,60,40]);
   // Meta InitiateCheckout — they committed to the unlock.
-  window.dsFire && window.dsFire('InitiateCheckout', { value: PRICE20 ? 20 : 1, currency: 'USD' },
+  window.dsFire && window.dsFire('InitiateCheckout', { value: 20, currency: 'USD' },
     'ic_' + ((dsBuild && dsBuild.project_id) || dsCid()));
 
   // $20 one-time price test: charge on OUR Stripe (no DropStart checkout).
@@ -3059,7 +3058,7 @@ function claimStore(e){
       throw new Error((j && j.error) || 'no checkout');
     })
     .catch(()=>{
-      claimed = false; btn.textContent = 'Claim My Store — $1 🔓';
+      claimed = false; btn.textContent = 'Claim My Store — $20 🔓';
       showToast('⚠️','Couldn’t open checkout — try again');
     });
     return;
@@ -3073,7 +3072,7 @@ function claimStore(e){
       .replace('{{STORE_ID}}', encodeURIComponent(dsBuild ? dsBuild.project_id : ''));
     setTimeout(()=>{ window.location.href = url; }, 1300);
   } else {
-    setTimeout(()=>{ claimed = false; btn.textContent = 'Claim My Store — $1 🔓'; go('s-done'); }, 1300);
+    setTimeout(()=>{ claimed = false; btn.textContent = 'Claim My Store — $20 🔓'; go('s-done'); }, 1300);
   }
 }
 
@@ -3391,7 +3390,7 @@ function dsResumeAfterPayment(){
     // Meta Purchase for the $1 unlock — SAME onceKey as the /store page fires, so
     // whichever the buyer reaches, Meta counts it once. Fired here off the
     // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
-    window.dsFire && window.dsFire('Purchase', { value: 1, currency: 'USD' }, 'purchase_' + j.project_id);
+    window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD' }, 'purchase_' + j.project_id);
     spLog('paid_1dollar', j.project_id);
     spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
     if(j.unlocked){ /* already fully done — nothing to upsell */ }
