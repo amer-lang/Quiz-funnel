@@ -158,6 +158,20 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, dry, mode: 'auto', paid1, paid299, found, results });
       }
 
+      if((req.query || {}).dsraw){
+        // key-gated: hit DropStart /verify-checkout DIRECTLY and return its raw
+        // verdict — tells us whether DS verifies sessions it didn't create.
+        if(req.query.dsraw !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+        const cs = String(req.query.cs || '').slice(0, 300);
+        const r = await fetch(DS_API + '/verify-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Express-Key': DS_KEY },
+          body: JSON.stringify({ cs })
+        });
+        const j = await r.json().catch(() => ({}));
+        return res.status(200).json({ ok: true, dsStatus: r.status, dsResponse: j });
+      }
+
       if((req.query || {}).verifytest){
         // key-gated: exercise the payment-verification call with any cs and
         // report the raw outcome — never subscribes anyone.
