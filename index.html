@@ -3302,8 +3302,21 @@ function dsFinalize(extra){
     body: JSON.stringify(body)
   })
   .then(r=>r.json())
-  .then(j=>{ if(j && j.ok && j.resume_url){ dsResumeUrl = j.resume_url; } go('s-done'); })
-  .catch(()=>{ go('s-done'); });
+  .then(j=>{
+    if(j && j.ok && j.resume_url){ dsResumeUrl = j.resume_url; }
+    else{
+      // Finalize refused (e.g. a session it didn't create) — the buyer still
+      // paid, so route go-live through the direct hand-off and raise a flag.
+      spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
+      if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
+    }
+    go('s-done');
+  })
+  .catch(()=>{
+    spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
+    if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
+    go('s-done');
+  });
 }
 
 /* Send the buyer to finish on the sell domain (Shopify go-live). */
