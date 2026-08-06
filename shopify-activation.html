@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Go Live — Sell Products AI</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   SHOPIFY ACTIVATION — final step after the Sell Products AI funnel.
+   Self-contained: no dependencies beyond the Google font above.
+
+   FOR THE DEV — the only things you need to touch:
+     1. SHOPIFY_GO (in the script at the bottom): point it at the flow that opens the
+        $1/month Shopify signup and auto-installs the buyer's store.
+        The page appends  ?store=<id>  (read from its own ?store= or
+        ?resume= query param) — change apppendStore() if you need a
+        different contract.
+     2. Serve this page wherever the funnel can link to it, passing the
+        buyer's store id:   .../thispage?store=12345
+   ===================================================================== */
+:root{
+  --bg:#070B15; --card:#0F172A; --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.16);
+  --text:#F5F8FF; --muted:#93A0BC; --blue:#3B82F6; --green:#22C55E; --gold:#FFC93C; --gold-deep:#F59E0B;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  --radius:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(120% 60% at 50% -10%,#0E1830 0%,var(--bg) 55%);
+  color:var(--text);min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;padding:26px 20px 40px}
+.kicker{display:flex;width:fit-content;margin:0 auto 16px;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;
+  font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:#FFC93C;background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.3)}
+.kicker.green{color:#7CF0A9;background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3)}
+.kicker .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blip 1.4s ease infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+h1{font-size:clamp(1.5rem,6.4vw,1.95rem);font-weight:800;text-align:center;line-height:1.18;letter-spacing:-.02em;margin-bottom:12px}
+.grad-text{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.gold-text{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;color:var(--muted);font-size:.92rem;line-height:1.6;margin:0 auto 18px;max-width:420px}
+.sub strong{color:var(--text)}
+.screen{display:none;animation:in .5s cubic-bezier(.22,1,.36,1)}
+.screen.active{display:block}
+@keyframes in{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+.receipt{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px 18px}
+.receipt h4{font-size:.62rem;letter-spacing:.14em;color:var(--muted);font-weight:800;margin-bottom:6px}
+.receipt .row{display:flex;justify-content:space-between;font-size:.85rem;padding:6px 0;color:#C6D2EA;font-variant-numeric:tabular-nums}
+.receipt .row s{color:#F87171}
+.receipt .row.tot{border-top:1px dashed var(--line-strong);margin-top:4px;padding-top:9px;font-weight:800;color:#fff}
+.crush{text-align:center;margin:18px 0 4px;font-variant-numeric:tabular-nums}
+.crush .big{font-size:2.9rem;font-weight:800;letter-spacing:-.03em}
+.crush .lbl{font-size:.74rem;color:var(--muted);margin-top:3px;font-weight:600}
+.pricebox{background:rgba(255,201,60,.09);border:1px solid rgba(255,201,60,.4);border-radius:13px;
+  padding:12px 15px;font-size:.82rem;color:#C6D2EA;line-height:1.7;text-align:center;margin-top:14px}
+.pricebox b{color:var(--gold)}
+.pricebox small{display:block;color:var(--muted);font-size:.72rem}
+
+.steps{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:4px 18px;margin-top:4px}
+.step{display:flex;gap:13px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:none}
+.step .n{flex:none;width:29px;height:29px;border-radius:50%;background:var(--grad-brand);
+  display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800}
+.step .t{font-size:.9rem;font-weight:800;line-height:1.35}
+.step .d{font-size:.76rem;color:var(--muted);margin-top:2px;line-height:1.55}
+.hold{display:flex;width:fit-content;margin:16px auto 0;align-items:center;gap:8px;background:rgba(239,68,68,.1);
+  border:1px solid rgba(239,68,68,.4);border-radius:99px;padding:8px 16px;font-size:.74rem;font-weight:800;color:#FCA5A5}
+.hold b{font-variant-numeric:tabular-nums;color:#fff}
+.trust{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:.68rem;color:var(--muted);font-weight:700}
+
+.cta{position:relative;display:block;width:100%;padding:18px 22px;border:none;border-radius:var(--radius);
+  font-family:inherit;font-size:1.02rem;font-weight:800;color:#fff;cursor:pointer;text-align:center;text-decoration:none;
+  background:var(--grad-brand);box-shadow:0 18px 50px -12px rgba(59,130,246,.45);margin-top:20px;overflow:hidden;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+.cta::after{content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);animation:sheen 2.8s ease infinite}
+@keyframes sheen{0%,55%{left:-80%}100%{left:130%}}
+.cta:active{transform:scale(.965)}
+.cta.gold{background:var(--grad-money);color:#241500;box-shadow:0 18px 50px -12px rgba(245,158,11,.5)}
+.cta.pulse{animation:pulse 1.9s ease infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.022)}}
+@media (prefers-reduced-motion: reduce){.cta::after,.cta.pulse{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= SCREEN 1 · PREFRAME ================= -->
+  <section class="screen active" id="pf">
+    <div class="kicker"><span class="dot"></span> LAST STEP · YOUR STORE'S HOME</div>
+    <h1>Every store needs an <span class="grad-text">address on the internet.</span></h1>
+    <p class="sub">Yours is <strong>Shopify</strong> — the checkout, hosting and order system behind 4,000,000+ stores. It's where your store lives and gets paid.</p>
+    <div class="receipt">
+      <h4>WHAT OPENING A STORE USED TO COST</h4>
+      <div class="row"><span>Storefront lease (1 yr)</span><s>$180,000</s></div>
+      <div class="row"><span>Staff</span><s>$96,000</s></div>
+      <div class="row"><span>Inventory up front</span><s>$40,000</s></div>
+      <div class="row"><span>Registers &amp; payment systems</span><s>$12,000</s></div>
+      <div class="row tot"><span>Just to open the doors</span><span style="color:#F87171">$328,000</span></div>
+    </div>
+    <div class="crush">
+      <div class="big gold-text" id="crushNum">$328,000</div>
+      <div class="lbl" id="crushLbl">what it used to take…</div>
+    </div>
+    <div class="pricebox"><b>$1/month</b> for your first 3 months, then $39/mo.
+      <small>Cancel anytime · no contracts · billed by Shopify, not us</small></div>
+    <button class="cta pulse" onclick="show('act')">Set Up My Store's Home →</button>
+  </section>
+
+  <!-- ================= SCREEN 2 · ACTIVATION ================= -->
+  <section class="screen" id="act">
+    <div class="kicker green"><span class="dot"></span> FINAL STEP · GO LIVE</div>
+    <h1>60 seconds from now,<br>your store is <span class="gold-text">live.</span></h1>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><span><span class="t">Tap the gold button</span><br><span class="d">It opens your <b style="color:#FFC93C">$1/month</b> Shopify deal — our partner link locks the price.</span></span></div>
+      <div class="step"><span class="n">2</span><span><span class="t">Create your account — 60 seconds</span><br><span class="d">Email + password. That's the whole job.</span></span></div>
+      <div class="step"><span class="n">3</span><span><span class="t">Your store moves in automatically</span><br><span class="d">Product, design, supplier — everything you paid for goes live.</span></span></div>
+    </div>
+    <div class="hold">⏳ Your build is reserved for <b id="holdT">23:59:44</b></div>
+    <a class="cta gold pulse" id="goBtn" href="#">Activate My Store on Shopify — $1/mo 🚀</a>
+    <div class="trust"><span>🔒 No contracts</span><span>❌ Cancel anytime</span><span>🛍️ 4M+ stores run on Shopify</span></div>
+    <p class="sub" style="font-size:.74rem;margin-top:14px">This is the only other cost of going live — and it's a dollar.</p>
+  </section>
+
+</div>
+
+<script>
+/* ============== DEV CONFIG — the one line to change ============== */
+var SHOPIFY_GO = 'https://REPLACE-ME.example.com/your-dollar-shopify-flow';
+/* The buyer's store id arrives on this page as ?store=<id> (or ?resume=<id>)
+   and is appended to SHOPIFY_GO as ?store=<id>. Adjust below if your flow
+   expects a different parameter. */
+(function(){
+  var q = new URLSearchParams(location.search);
+  var id = q.get('store') || q.get('resume') || '';
+  var url = SHOPIFY_GO + (SHOPIFY_GO.indexOf('?') > -1 ? '&' : '?') + 'store=' + encodeURIComponent(id);
+  document.getElementById('goBtn').setAttribute('href', url);
+})();
+
+/* screen switch */
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0 });
+  if(navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
+}
+
+/* $328,000 → $1 crush counter (runs once, on load) */
+(function(){
+  var el = document.getElementById('crushNum'), lbl = document.getElementById('crushLbl');
+  var DUR = 2100, t0 = null;
+  function frame(t){
+    if(!t0) t0 = t;
+    var k = Math.min(1, (t - t0) / DUR), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = '$' + Math.max(1, Math.round(328000 * (1 - e))).toLocaleString();
+    if(k < 1) requestAnimationFrame(frame);
+    else { el.textContent = '$1'; lbl.textContent = 'what it takes today. Per month.'; }
+  }
+  setTimeout(function(){ requestAnimationFrame(frame); }, 800);
+})();
+
+/* 24h reservation countdown */
+var holdS = 24 * 3600 - 16;
+setInterval(function(){
+  holdS = Math.max(0, holdS - 1);
+  var h = String(Math.floor(holdS / 3600)).padStart(2, '0'),
+      m = String(Math.floor(holdS % 3600 / 60)).padStart(2, '0'),
+      s = String(holdS % 60).padStart(2, '0');
+  document.getElementById('holdT').textContent = h + ':' + m + ':' + s;
+}, 1000);
+</script>
+</body>
+</html>
