@@ -3684,6 +3684,12 @@ function lsAddonsGo(){
         try{ localStorage.setItem('spai_unlimited', '1'); }catch(e){}
         showToast('♾️','Unlimited stores unlocked — come back anytime!');
       }
+      if(items.includes('profit_emails') && j.pi){
+        // remember the order + kick generation now so the pack is ready
+        // by the time they open their delivery page from s-done
+        try{ localStorage.setItem('spai_emails_cs', j.pi); }catch(e){}
+        fetch('/api/emailpack?cs=' + encodeURIComponent(j.pi)).catch(()=>{});
+      }
       setTimeout(()=>dsFinalize({}), 1100);
       return;
     }
@@ -3899,6 +3905,24 @@ function runDone(){
     if(h) h.innerHTML = 'Your <span class="gold-text">' + nm + '</span> store is ready! 🎉';
     const sub = document.querySelector('#s-done .sub');
     if(sub) sub.textContent = 'One last step:';
+  }
+
+  // Purchased deliverables — durable access links right on the final screen,
+  // so fulfillment never depends on the delivery email alone.
+  let adsCs = '', emCs = '';
+  try{ adsCs = localStorage.getItem('spai_ads_cs') || ''; }catch(e){}
+  try{ emCs = localStorage.getItem('spai_emails_cs') || ''; }catch(e){}
+  if((adsCs || emCs) && !document.getElementById('doneGoods')){
+    const d = document.createElement('div');
+    d.id = 'doneGoods';
+    d.style.cssText = 'background:var(--card);border:1px solid rgba(255,201,60,.35);border-radius:16px;padding:4px 16px;margin:14px 0 4px;text-align:left';
+    let rows = '';
+    if(adsCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700">🎯 Your 10 image ads<a href="/ads?cs=' + encodeURIComponent(adsCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
+    if(emCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + (adsCs ? 'border-top:1px solid var(--line)' : '') + '">✉️ Your 10 profit emails<a href="/emails?cs=' + encodeURIComponent(emCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
+    d.innerHTML = rows;
+    const sub = document.querySelector('#s-done .sub');
+    if(sub) sub.insertAdjacentElement('afterend', d);
+    else document.getElementById('s-done').appendChild(d);
   }
 
   playTada();

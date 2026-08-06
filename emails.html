@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your 10 Profit Emails — Sell Products AI</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070B15;--card:#0F172A;--card2:#131D33;--line:rgba(255,255,255,.09);--text:#F5F8FF;--muted:#93A0BC;
+  --blue:#3B82F6;--green:#22C55E;--gold:#FFC93C;--gold-deep:#F59E0B;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));--grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep))}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(120% 60% at 50% -10%,#0E1830 0%,var(--bg) 55%);
+  color:var(--text);padding:34px 18px 80px;line-height:1.6}
+.wrap{max-width:660px;margin:0 auto}
+h1{font-size:1.5rem;font-weight:800;text-align:center;letter-spacing:-.01em;line-height:1.25}
+.grad{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.goldt{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-size:.9rem;text-align:center;margin:10px auto 24px;max-width:52ch}
+.sub b{color:#fff}
+.howto{background:var(--card);border:1px solid rgba(255,201,60,.35);border-radius:16px;padding:14px 16px;
+  font-size:.8rem;color:#C6D2EA;line-height:1.7;margin-bottom:22px}
+.howto b{color:var(--gold)}
+.mail{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin-bottom:14px}
+.mail .top{display:flex;align-items:center;gap:9px;margin-bottom:8px;flex-wrap:wrap}
+.tag{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.35);color:#8EC5FF;
+  font-size:.6rem;font-weight:800;letter-spacing:.08em;border-radius:99px;padding:3px 10px}
+.copy{margin-left:auto;border:1px solid var(--line);background:var(--card2);color:#C6D2EA;font-family:inherit;
+  font-size:.68rem;font-weight:800;border-radius:99px;padding:6px 13px;cursor:pointer}
+.copy:active{transform:scale(.95)}
+.subj{font-size:.95rem;font-weight:800}
+.prev{font-size:.74rem;color:var(--muted);margin:2px 0 10px}
+.body{white-space:pre-wrap;font-size:.84rem;color:#C6D2EA;border-top:1px dashed var(--line);padding-top:10px}
+.load{text-align:center;padding:60px 0}
+.spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(255,255,255,.12);border-top-color:var(--gold);
+  margin:0 auto 16px;animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.load p{color:var(--muted);font-size:.86rem}
+.err{display:none;text-align:center;color:#FCA5A5;font-size:.85rem;padding:40px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Your <span class="grad">10 Profit Emails</span> for <span class="goldt" id="prod">your product</span></h1>
+  <p class="sub">Written for your exact product — welcome flow, abandoned-cart recovery, win-backs and a flash sale. <b>Copy each one straight into Shopify Email</b> (Marketing → Create campaign → Shopify Email), or into any email tool.</p>
+  <div class="howto">💡 <b>Where the money is:</b> set emails 3–5 as your abandoned-checkout automation (Shopify → Settings → Notifications → Abandoned checkout, or a Shopify Email automation). That's the ~70% of almost-buyers coming back on autopilot. Replace <b>[STORE LINK]</b> with your store URL and <b>[DISCOUNT CODE]</b> with a code you create in Shopify → Discounts.</div>
+
+  <div class="load" id="load"><div class="spin"></div><p id="loadMsg">Writing your emails — about 30 seconds…</p></div>
+  <div class="err" id="err">This order couldn't be verified. Open the exact link from your purchase, or contact support@sellproducts.ai.</div>
+  <div id="list"></div>
+</div>
+
+<script>
+const cs = new URLSearchParams(location.search).get('cs') || '';
+let tries = 0;
+function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function render(j){
+  document.getElementById('load').style.display = 'none';
+  document.getElementById('prod').textContent = j.product || 'your product';
+  document.getElementById('list').innerHTML = j.emails.map(function(e, i){
+    return '<div class="mail"><div class="top"><span class="tag">' + esc(e.tag || ('EMAIL ' + (i+1))) + '</span>' +
+      '<button class="copy" onclick="cp(' + i + ',this)">📋 Copy</button></div>' +
+      '<div class="subj">' + esc(e.subject) + '</div>' +
+      (e.preview ? '<div class="prev">' + esc(e.preview) + '</div>' : '') +
+      '<div class="body">' + esc(e.body) + '</div></div>';
+  }).join('');
+  window._emails = j.emails;
+}
+function cp(i, btn){
+  const e = window._emails[i];
+  const txt = 'Subject: ' + e.subject + '\n\n' + e.body;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function(){
+    btn.textContent = '✓ Copied'; setTimeout(function(){ btn.textContent = '📋 Copy'; }, 1600);
+  }).catch(function(){});
+}
+(function poll(){
+  if(!cs){ document.getElementById('load').style.display='none'; document.getElementById('err').style.display='block'; return; }
+  fetch('/api/emailpack?cs=' + encodeURIComponent(cs))
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j && j.ready && j.emails){ render(j); return; }
+      if(j && j.status === 'not_paid'){ document.getElementById('load').style.display='none'; document.getElementById('err').style.display='block'; return; }
+      if(++tries > 14){ document.getElementById('loadMsg').textContent = 'Still working — leave this page open, or refresh in a minute.'; }
+      setTimeout(poll, 6000);
+    })
+    .catch(function(){ setTimeout(poll, 8000); });
+})();
+</script>
+</body>
+</html>

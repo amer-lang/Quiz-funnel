@@ -6,6 +6,9 @@
     },
     "api/adsorder.js": {
       "maxDuration": 120
+    },
+    "api/emailpack.js": {
+      "maxDuration": 60
     }
   }
 }

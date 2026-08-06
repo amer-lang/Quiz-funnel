@@ -116,7 +116,8 @@ module.exports = async (req, res) => {
       'metadata[items]': items.join(','),
       'metadata[base_cs]': cs,
       'metadata[email]': email,
-      'metadata[project_id]': (base.metadata && base.metadata.project_id) || ''
+      'metadata[project_id]': (base.metadata && base.metadata.project_id) || '',
+      'metadata[product]': (base.metadata && base.metadata.product) || '' // → emailpack personalization
     };
     if(items.includes('unlimited_stores')) params['metadata[unlimited]'] = '1';
 
