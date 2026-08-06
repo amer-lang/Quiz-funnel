@@ -34,6 +34,21 @@ async function adsField(){
   }catch(e){}
   return adsFieldId;
 }
+/* "SPAI Subscribers" — the master buyers list. Resolved by NAME once per
+   lambda (case-insensitive) so the mapping can't drift if list ids change.
+   Every verified $20 unlock is subscribed here in addition to list 6. */
+let spaiListId = null;
+async function spaiList(){
+  if(spaiListId) return spaiListId;
+  try{
+    const r = await ac('/api/3/lists?limit=100');
+    const l = ((r.j && r.j.lists) || []).find(x =>
+      String(x.name || '').trim().toLowerCase() === 'spai subscribers');
+    if(l) spaiListId = Number(l.id);
+  }catch(e){}
+  return spaiListId;
+}
+
 const OK_ORIGINS = /^https:\/\/(www\.)?sellproducts\.ai$/;
 
 /* Paid stages require a Stripe checkout-session id that the payment backend
@@ -97,6 +112,8 @@ module.exports = async (req, res) => {
         const r = await ac('/api/3/lists/' + id);
         out[stage] = { listId: id, name: r.ok && r.j.list ? r.j.list.name : ('ERROR ' + r.status) };
       }
+      const sid = await spaiList();
+      out.spai_subscribers = sid ? { listId: sid, name: 'SPAI Subscribers' } : 'NOT FOUND — check the list name in AC';
       if((req.query || {}).backfill === TEST_KEY){
         const q2 = req.query;
         const dry = q2.dry !== '0';
@@ -239,6 +256,16 @@ module.exports = async (req, res) => {
         contactList: { list: listId, contact: contactId, status: 1 }
       });
       if(!sub.ok) return res.status(502).json({ error: 'ac list subscribe failed' });
+
+      // $20 buyers also join the master "SPAI Subscribers" list. Best-effort:
+      // a hiccup here never fails the request (the stage list already took).
+      if(stage === 'unlocked'){
+        try{
+          const sid = await spaiList();
+          if(sid && sid !== listId)
+            await ac('/api/3/contactLists', 'POST', { contactList: { list: sid, contact: contactId, status: 1 } });
+        }catch(e){}
+      }
 
       return res.status(204).end();
     }
