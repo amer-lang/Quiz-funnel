@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Launch Sequence — Sell Products AI</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B15; --bg-2:#0B1120; --card:#0F172A; --card-2:#131D33;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.16);
+  --text:#F5F8FF; --muted:#93A0BC;
+  --blue:#3B82F6; --blue-deep:#1D4ED8; --green:#22C55E; --green-deep:#16A34A;
+  --gold:#FFC93C; --gold-deep:#F59E0B; --red:#EF4444;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  --shadow-pop:0 18px 50px -12px rgba(59,130,246,.45);
+  --shadow-gold:0 18px 50px -12px rgba(245,158,11,.5);
+  --radius:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(120% 60% at 50% -10%,#0E1830 0%,var(--bg) 55%);
+  color:var(--text);overflow-x:hidden;
+}
+b{color:#fff}
+
+/* ---------- preview ribbon ---------- */
+.preview-tag{
+  position:fixed;top:10px;right:-34px;z-index:900;transform:rotate(38deg);
+  background:var(--red);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.08em;
+  padding:4px 40px;opacity:.92;pointer-events:none;
+}
+
+/* ---------- launch progress header ---------- */
+.seq-head{
+  position:sticky;top:0;z-index:50;background:rgba(7,11,21,.86);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);padding:12px 16px 10px;
+}
+.seq-row{display:flex;align-items:center;justify-content:space-between;max-width:520px;margin:0 auto}
+.seq-title{font-size:.68rem;font-weight:800;letter-spacing:.14em;color:var(--gold)}
+.seq-pct{font-size:.68rem;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums}
+.seq-bar{max-width:520px;margin:7px auto 0;height:6px;border-radius:99px;background:var(--card-2);overflow:hidden}
+.seq-fill{height:100%;width:8%;border-radius:99px;background:var(--grad-money);transition:width .9s cubic-bezier(.22,1,.36,1)}
+.seq-steps{max-width:520px;margin:6px auto 0;display:flex;justify-content:space-between;font-size:.56rem;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.seq-steps span.on{color:var(--gold)}
+
+/* ---------- screens ---------- */
+.screen{display:none;max-width:520px;margin:0 auto;padding:26px 18px 90px;animation:in .45s cubic-bezier(.22,1,.36,1)}
+.screen.active{display:block}
+@keyframes in{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+h1{font-size:1.5rem;font-weight:800;line-height:1.25;text-align:center;letter-spacing:-.01em}
+.grad-text{background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.gold-text{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-size:.9rem;text-align:center;margin:10px auto 0;max-width:42ch;line-height:1.6}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-top:18px}
+
+.cta{
+  position:relative;display:block;width:100%;padding:18px 22px;border:none;border-radius:var(--radius);
+  font-family:inherit;font-size:1.05rem;font-weight:800;letter-spacing:.01em;color:#fff;cursor:pointer;
+  background:var(--grad-brand);box-shadow:var(--shadow-pop);margin-top:20px;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1);overflow:hidden;text-align:center;text-decoration:none;
+}
+.cta::after{content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);animation:sheen 2.8s ease infinite}
+@keyframes sheen{0%,55%{left:-80%}100%{left:130%}}
+.cta:active{transform:scale(.965)}
+.cta.gold{background:var(--grad-money);color:#241500;box-shadow:var(--shadow-gold)}
+.cta.pulse{animation:ctaPulse 1.9s ease infinite}
+@keyframes ctaPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.022)}}
+.decline{display:block;text-align:center;margin:16px auto 0;font-size:.74rem;color:var(--muted);
+  text-decoration:underline;text-underline-offset:3px;background:none;border:none;cursor:pointer;font-family:inherit;opacity:.8}
+
+/* ---------- S1 systems check ---------- */
+.paychip{display:flex;align-items:center;gap:8px;justify-content:center;margin:0 auto 18px;width:fit-content;
+  background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);border-radius:99px;padding:7px 16px;
+  font-size:.74rem;font-weight:800;color:#7CF0A9}
+.sysrow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line);font-size:.88rem;font-weight:600}
+.sysrow:last-child{border-bottom:none}
+.sysrow .ok{margin-left:auto;color:#7CF0A9;font-weight:800;font-size:.8rem}
+.sysrow .warn{margin-left:auto;color:var(--gold);font-weight:800;font-size:.8rem;animation:blink 1.1s ease infinite}
+@keyframes blink{50%{opacity:.35}}
+.alertbox{border:1px solid rgba(255,201,60,.45);background:rgba(255,201,60,.07);border-radius:14px;
+  padding:13px 15px;margin-top:16px;font-size:.82rem;color:#EADFC3;line-height:1.6}
+
+/* ---------- S2 SEO scan ---------- */
+.scan{font-size:.84rem;line-height:2;color:var(--muted)}
+.scan div{opacity:0;transform:translateY(6px);transition:all .4s}
+.scan div.show{opacity:1;transform:none}
+.scan .hit{color:#7CF0A9;font-weight:700}
+.scan .miss{color:#FCA5A5;font-weight:700}
+.reco{border:2px solid rgba(255,201,60,.55);background:linear-gradient(160deg,rgba(255,201,60,.09),rgba(255,201,60,.02));
+  border-radius:var(--radius);padding:16px;margin-top:18px;position:relative}
+.reco .flag{position:absolute;top:-11px;left:14px;background:var(--grad-money);color:#241500;
+  font-size:.6rem;font-weight:800;letter-spacing:.08em;border-radius:99px;padding:4px 12px}
+.reco h3{font-size:1.02rem;margin:6px 0 6px}
+.reco p{font-size:.8rem;color:var(--muted);line-height:1.6}
+.reco ul{list-style:none;margin:10px 0 0}
+.reco li{font-size:.8rem;color:#C6D2EA;padding:3px 0}
+.reco li::before{content:"✓ ";color:#7CF0A9;font-weight:800}
+
+/* ---------- S3 ads ---------- */
+.adrow{display:flex;gap:10px;overflow-x:auto;padding:16px 2px 6px;scroll-snap-type:x mandatory}
+.adrow::-webkit-scrollbar{display:none}
+.ad{flex:0 0 140px;height:186px;border-radius:14px;position:relative;overflow:hidden;scroll-snap-align:center;
+  border:1px solid var(--line-strong);background:var(--card-2)}
+.ad .bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:52px;opacity:.9}
+.ad .shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.82))}
+.ad .cx{position:absolute;left:10px;right:10px;bottom:9px}
+.ad .k{font-size:.52rem;font-weight:800;letter-spacing:.09em;color:var(--gold)}
+.ad .h{font-size:.72rem;font-weight:800;line-height:1.25}
+.ad .p{font-size:.58rem;color:#C9D4E8;margin-top:2px}
+.ad .shop{display:inline-block;margin-top:5px;background:#fff;color:#111;font-size:.54rem;font-weight:800;border-radius:99px;padding:3px 9px}
+.ad.more{display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:.9rem;border-style:dashed}
+
+/* ---------- S4 add-ons ---------- */
+.addon{display:block;background:var(--card);border:2px solid var(--line);border-radius:var(--radius);
+  padding:15px 16px;margin-top:12px;cursor:pointer;transition:border-color .2s,transform .15s;user-select:none}
+.addon:active{transform:scale(.985)}
+.addon.on{border-color:var(--gold);background:linear-gradient(160deg,rgba(255,201,60,.08),var(--card))}
+.addon .top{display:flex;align-items:center;gap:11px}
+.addon input{width:20px;height:20px;accent-color:var(--gold);flex:none}
+.addon .name{font-weight:800;font-size:.92rem}
+.addon .price{margin-left:auto;font-weight:800;color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+.addon .why{font-size:.76rem;color:var(--muted);margin:7px 0 0 31px;line-height:1.55}
+.addon .why b{color:#EADFC3}
+
+/* ---------- S5 then vs now ---------- */
+.then{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:18px;background:var(--card)}
+.then h4{font-size:.66rem;letter-spacing:.12em;color:var(--muted);font-weight:800;margin-bottom:8px}
+.then .row{display:flex;justify-content:space-between;font-size:.84rem;padding:6px 0;color:#C6D2EA}
+.then .row s{color:#F87171;font-variant-numeric:tabular-nums}
+.then .total{border-top:1px dashed var(--line-strong);margin-top:6px;padding-top:9px;font-weight:800}
+.crush{text-align:center;margin:20px 0 4px;font-variant-numeric:tabular-nums}
+.crush .big{font-size:2.6rem;font-weight:800;letter-spacing:-.02em}
+.crush .lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+/* ---------- S6 shopify ---------- */
+.steps3{margin-top:18px}
+.step3{display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.step3:last-child{border-bottom:none}
+.step3 .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--grad-brand);
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800}
+.step3 .t{font-size:.88rem;font-weight:700;line-height:1.4}
+.step3 .d{font-size:.74rem;color:var(--muted);margin-top:2px;line-height:1.5}
+.trust{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:.68rem;color:var(--muted);font-weight:600}
+.hold-chip{display:flex;width:fit-content;margin:16px auto 0;align-items:center;gap:8px;background:rgba(239,68,68,.1);
+  border:1px solid rgba(239,68,68,.4);border-radius:99px;padding:7px 15px;font-size:.72rem;font-weight:800;color:#FCA5A5}
+.hold-chip b{font-variant-numeric:tabular-nums;color:#fff}
+
+/* ---------- order ticker ---------- */
+.order{position:fixed;left:12px;bottom:12px;z-index:80;background:rgba(15,23,42,.92);backdrop-filter:blur(8px);
+  border:1px solid var(--line-strong);border-radius:14px;padding:9px 13px;font-size:.68rem;color:var(--muted);min-width:132px}
+.order .r{display:flex;justify-content:space-between;gap:14px;padding:1px 0;font-variant-numeric:tabular-nums}
+.order .r.total{border-top:1px solid var(--line);margin-top:4px;padding-top:4px;font-weight:800;color:var(--gold)}
+.order .r span:first-child{color:#C6D2EA}
+
+/* ---------- toast + particles ---------- */
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:950;background:var(--card-2);
+  border:1px solid var(--line-strong);border-radius:99px;padding:9px 18px;font-size:.8rem;font-weight:700;
+  opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:0 12px 40px -8px rgba(0,0,0,.6)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.pcl{position:fixed;z-index:940;pointer-events:none;font-size:20px;will-change:transform,opacity}
+@media (prefers-reduced-motion: reduce){.cta::after,.cta.pulse{animation:none}}
+</style>
+</head>
+<body>
+<div class="preview-tag">PREVIEW · NO CHARGES</div>
+
+<header class="seq-head">
+  <div class="seq-row"><span class="seq-title">🚀 LAUNCH SEQUENCE</span><span class="seq-pct" id="pct">8%</span></div>
+  <div class="seq-bar"><div class="seq-fill" id="fill"></div></div>
+  <div class="seq-steps" id="stepLbls">
+    <span class="on">CHECK</span><span>SEARCH</span><span>ADS</span><span>EXTRAS</span><span>GO&nbsp;LIVE</span>
+  </div>
+</header>
+
+<!-- ============ S1 · SYSTEMS CHECK / DON'T LEAVE ============ -->
+<section class="screen active" id="p1">
+  <div style="height:14px"></div>
+  <div class="paychip">✓ PAYMENT CONFIRMED — $20.00</div>
+  <h1><span class="grad-text" id="storeName1">FLOTZ</span> is built.<br>It is <span class="gold-text">not live yet.</span></h1>
+  <p class="sub">Your store is sitting on the launch pad — paid for, packed with your product, supplier connected. But until you finish the launch sequence, it <b>can't take a single order.</b></p>
+  <div class="card">
+    <div class="sysrow">🏪 Store built <span class="ok">✓ DONE</span></div>
+    <div class="sysrow">📦 Supplier connected <span class="ok">✓ DONE</span></div>
+    <div class="sysrow">💳 Store unlocked <span class="ok">✓ PAID</span></div>
+    <div class="sysrow">🚀 Launch status <span class="warn">⚠ PENDING</span></div>
+  </div>
+  <div class="alertbox">⏱️ <b>Takes about 5 minutes.</b> Finish it now while your build is hot — leave and your store stays dark.</div>
+  <button class="cta gold pulse" onclick="go(2)">Begin Launch Sequence 🚀</button>
+</section>
+
+<!-- ============ S2 · SEO (customization-framed) ============ -->
+<section class="screen" id="p2">
+  <p class="sub" style="margin-top:0;font-size:.68rem;letter-spacing:.12em;font-weight:800;color:var(--gold)">LAUNCH STEP 1 · SEARCH VISIBILITY</p>
+  <h1 style="margin-top:8px">How should shoppers <span class="grad-text">find your store</span> on Google?</h1>
+  <div class="card scan" id="scan">
+    <div>🔍 Scanning Google for “<b id="prodName2">floating golf game</b>”…</div>
+    <div><span class="hit">✓ 12,400</span> searches for this product every month</div>
+    <div><span class="hit">✓ 37</span> competing stores already ranking</div>
+    <div><span class="miss">✗ Your store</span> — currently invisible to all of them</div>
+  </div>
+  <div class="reco">
+    <span class="flag">RECOMMENDED SETTING</span>
+    <h3>🔎 SEO Boost — get found on Google</h3>
+    <p>The AI hand-optimizes your store the way agencies charge $500+ for:</p>
+    <ul>
+      <li>Every product title &amp; description rewritten for search</li>
+      <li>Image tags + meta tags on every page</li>
+      <li>Store submitted directly to Google's index</li>
+    </ul>
+    <p style="margin-top:10px"><b style="color:var(--gold)">One-time $29</b> · applied to your store automatically · added to your order in one click</p>
+  </div>
+  <button class="cta gold pulse" onclick="buy('SEO Boost',29,3)">Make My Store Findable — $29 🔎</button>
+  <button class="decline" onclick="skip(3)">Skip — launch invisible to Google shoppers</button>
+</section>
+
+<!-- ============ S3 · IMAGE ADS ============ -->
+<section class="screen" id="p3">
+  <p class="sub" style="margin-top:0;font-size:.68rem;letter-spacing:.12em;font-weight:800;color:var(--gold)">LAUNCH STEP 2 · AD CREATIVE</p>
+  <h1 style="margin-top:8px">Your first ads are <span class="grad-text">already designed.</span></h1>
+  <p class="sub">A store with no ads is a billboard in the desert. The AI made <b>10 scroll-stopping ads for your exact product</b> — feed + story formats, ready to run the minute you're live.</p>
+  <div class="adrow">
+    <div class="ad"><div class="bg">🏌️</div><div class="shade"></div><div class="cx"><div class="k">TODAY ONLY</div><div class="h" style="color:var(--gold)">44% OFF</div><div class="p">Floating Golf Game</div><span class="shop">SHOP NOW</span></div></div>
+    <div class="ad"><div style="position:absolute;inset:0;background:#F7F5F0"></div><div class="bg" style="opacity:.85">🏌️</div><div class="cx" style="color:#141414"><div class="h" style="color:#141414">Meet Flotz.</div><div class="p" style="color:#5a5a5a">$40 · Free shipping</div><span class="shop" style="background:#141414;color:#fff">SHOP NOW</span></div></div>
+    <div class="ad"><div class="bg">🏌️</div><div class="shade"></div><div class="cx"><span style="display:inline-block;background:#EF4444;color:#fff;font-size:.52rem;font-weight:800;border-radius:99px;padding:3px 8px">🔔 BACK IN STOCK</span><div class="h" style="margin-top:5px">Going fast.</div></div></div>
+    <div class="ad"><div style="position:absolute;inset:0;background:linear-gradient(160deg,#1D4ED8,#0B1322)"></div><div class="cx" style="bottom:auto;top:50%;transform:translateY(-50%);text-align:center"><div class="h">✓ Free shipping<br>✓ 30-day returns<br>✓ 44% off today</div><span class="shop" style="margin-top:8px">GET YOURS</span></div></div>
+    <div class="ad more">+6 more</div>
+  </div>
+  <div class="card" style="padding:13px 15px;font-size:.78rem;color:var(--muted);line-height:1.6">💡 <b>Why this matters:</b> the #1 reason new stores never make a sale isn't the product — it's having nothing good to advertise with. This deletes that problem for <b style="color:var(--gold)">$49, one click.</b></div>
+  <button class="cta gold pulse" onclick="buy('10 Image Ads',49,4)">Send Me All 10 Ads — $49 🎯</button>
+  <button class="decline" onclick="skip(4)">No thanks — I'll design my own ads from scratch</button>
+</section>
+
+<!-- ============ S4 · FINAL ADD-ONS ============ -->
+<section class="screen" id="p4">
+  <p class="sub" style="margin-top:0;font-size:.68rem;letter-spacing:.12em;font-weight:800;color:var(--gold)">LAUNCH STEP 3 · FINAL TOUCHES</p>
+  <h1 style="margin-top:8px">Last chance to <span class="grad-text">stack the deck.</span></h1>
+  <p class="sub">Three things successful launches add. Tick what you want — one payment, then we go live.</p>
+
+  <label class="addon" id="ad1"><span class="top"><input type="checkbox" onchange="tick(this,'Unlimited Stores',39)"><span class="name">♾️ Unlimited AI Stores</span><span class="price">$39</span></span>
+    <span class="why">Never bet everything on one product. Come back <b>anytime, forever</b> — the AI builds &amp; unlocks another store free. As many as you want.</span></label>
+
+  <label class="addon" id="ad2"><span class="top"><input type="checkbox" onchange="tick(this,'10 Profit Emails',29)"><span class="name">✉️ 10 Profit Emails</span><span class="price">$29</span></span>
+    <span class="why">Abandoned cart, welcome, win-back — <b>written for your product</b>, paste-ready. Recovers the ~70% of shoppers who almost buy. Pure-profit sales on autopilot.</span></label>
+
+  <label class="addon" id="ad3"><span class="top"><input type="checkbox" onchange="tick(this,'Custom Video Ad',39)"><span class="name">🎬 Custom Video Ad</span><span class="price">$39</span></span>
+    <span class="why">One scroll-stopping video ad of <b>your product</b> — the format TikTok &amp; Reels reward most. Delivered to your email.</span></label>
+
+  <button class="cta gold pulse" id="p4btn" onclick="addonsGo()">Continue to Go-Live →</button>
+</section>
+
+<!-- ============ S5 · SHOPIFY PREFRAME ============ -->
+<section class="screen" id="p5">
+  <p class="sub" style="margin-top:0;font-size:.68rem;letter-spacing:.12em;font-weight:800;color:var(--gold)">LAUNCH STEP 4 · YOUR STORE'S HOME</p>
+  <h1 style="margin-top:8px">Every store needs an <span class="grad-text">address on the internet.</span></h1>
+  <p class="sub">Yours is <b>Shopify</b> — the checkout, hosting and order system that 4,000,000+ stores run on. It's where your store physically lives and takes payments.</p>
+  <div class="then">
+    <h4>WHAT OPENING A STORE USED TO COST</h4>
+    <div class="row"><span>Storefront lease (1 yr)</span><s>$180,000</s></div>
+    <div class="row"><span>Staff</span><s>$96,000</s></div>
+    <div class="row"><span>Inventory up front</span><s>$40,000</s></div>
+    <div class="row"><span>Payment systems</span><s>$12,000</s></div>
+    <div class="row total"><span>To open the doors</span><span style="color:#F87171">$328,000</span></div>
+  </div>
+  <div class="crush">
+    <div class="big gold-text" id="crushNum">$328,000</div>
+    <div class="lbl" id="crushLbl">what it used to take…</div>
+  </div>
+  <div class="card" style="padding:13px 15px;font-size:.8rem;color:#C6D2EA;line-height:1.7;text-align:center">
+    <b style="color:var(--gold)">$1/month</b> for your first 3 months, then $39/mo.<br>
+    <span style="color:var(--muted);font-size:.74rem">Cancel anytime · no contracts · billed by Shopify, not us</span>
+  </div>
+  <button class="cta pulse" onclick="go(6)">Set Up My Store's Home →</button>
+</section>
+
+<!-- ============ S6 · SHOPIFY ACTIVATE ============ -->
+<section class="screen" id="p6">
+  <p class="sub" style="margin-top:0;font-size:.68rem;letter-spacing:.12em;font-weight:800;color:#7CF0A9">FINAL STEP · GO LIVE</p>
+  <h1 style="margin-top:8px">60 seconds from now,<br><span class="grad-text" id="storeName6">FLOTZ</span> is <span class="gold-text">live.</span></h1>
+  <div class="steps3 card">
+    <div class="step3"><span class="n">1</span><span><span class="t">Tap the gold button</span><br><span class="d">It opens your $1/month Shopify deal — the special partner link.</span></span></div>
+    <div class="step3"><span class="n">2</span><span><span class="t">Create your account (60 sec)</span><br><span class="d">Email + password. That's the whole thing.</span></span></div>
+    <div class="step3"><span class="n">3</span><span><span class="t">Your store moves in automatically</span><br><span class="d">Product, design, supplier — everything you paid for goes live.</span></span></div>
+  </div>
+  <div class="hold-chip">⏳ Your build is reserved for <b id="hold">23:59:44</b></div>
+  <a class="cta gold pulse" href="#" onclick="return activate(event)">Activate My Store — $1/month 🚀</a>
+  <div class="trust"><span>🔒 No contracts</span><span>❌ Cancel anytime</span><span>🛍️ 4M+ stores run on Shopify</span></div>
+  <p class="sub" style="font-size:.72rem;margin-top:14px">This is the only other cost of going live — and it's a dollar.</p>
+</section>
+
+<div class="order" id="order">
+  <div class="r"><span>Store unlock</span><span>$20</span></div>
+  <div class="r total"><span>Order total</span><span id="orderTotal">$20</span></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   PREVIEW BUILD — every "charge" here is simulated (toast + ticker).
+   In the live wiring each buy() maps to the one-click rails we already
+   run in production (/api/upsell49-style PI on the saved card).
+------------------------------------------------------------------- */
+let total = 20, cur = 1;
+const PCT = {1:'8%',2:'26%',3:'47%',4:'68%',5:'84%',6:'100%'};
+const STEPIDX = {1:0,2:1,3:2,4:3,5:4,6:4};
+
+function go(n){
+  document.getElementById('p'+cur).classList.remove('active');
+  cur = n;
+  const el = document.getElementById('p'+n);
+  el.classList.add('active');
+  window.scrollTo({top:0});
+  document.getElementById('fill').style.width = PCT[n];
+  document.getElementById('pct').textContent = PCT[n];
+  const lbls = document.querySelectorAll('#stepLbls span');
+  lbls.forEach((s,i)=>s.classList.toggle('on', i <= STEPIDX[n]));
+  if(navigator.vibrate) navigator.vibrate(12);
+  if(n===2) runScan();
+  if(n===5) runCrush();
+  if(n===6) burst(56, ['🎉','✨','💚','🛍️']);
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* coin / confetti burst */
+function burst(n, set){
+  set = set || ['🪙','💰','✨','⭐'];
+  for(let i=0;i<n;i++){
+    const p = document.createElement('div');
+    p.className = 'pcl'; p.textContent = set[i % set.length];
+    const x = innerWidth/2, y = innerHeight*0.45;
+    p.style.left = x+'px'; p.style.top = y+'px';
+    document.body.appendChild(p);
+    const a = Math.random()*Math.PI*2, v = 120+Math.random()*260;
+    const dx = Math.cos(a)*v, dy = Math.sin(a)*v - 160;
+    p.animate([
+      {transform:'translate(0,0) rotate(0deg)', opacity:1},
+      {transform:'translate('+dx+'px,'+(dy+340)+'px) rotate('+(Math.random()*540-270)+'deg)', opacity:0}
+    ], {duration:900+Math.random()*700, easing:'cubic-bezier(.17,.67,.35,1)'}).onfinish = ()=>p.remove();
+  }
+  if(navigator.vibrate) navigator.vibrate([18,50,18]);
+}
+
+function addRow(name, amt){
+  total += amt;
+  const r = document.createElement('div');
+  r.className = 'r'; r.innerHTML = '<span>'+name+'</span><span>$'+amt+'</span>';
+  const order = document.getElementById('order');
+  order.insertBefore(r, order.querySelector('.total'));
+  document.getElementById('orderTotal').textContent = '$'+total;
+}
+
+function buy(name, amt, next){
+  burst(34);
+  toast('🎉 '+name+' added to your order!');
+  addRow(name, amt);
+  setTimeout(()=>go(next), 900);
+}
+function skip(next){ go(next); }
+
+/* S2 scan reveal */
+function runScan(){
+  document.querySelectorAll('#scan div').forEach((d,i)=>setTimeout(()=>d.classList.add('show'), 300+i*650));
+}
+
+/* S4 add-ons */
+const picked = [];
+function tick(cb, name, amt){
+  const card = cb.closest('.addon');
+  card.classList.toggle('on', cb.checked);
+  if(cb.checked){ picked.push({name,amt}); burst(10,['✨']); }
+  else{ const i = picked.findIndex(p=>p.name===name); if(i>-1) picked.splice(i,1); }
+  const sum = picked.reduce((s,p)=>s+p.amt,0);
+  document.getElementById('p4btn').textContent = sum
+    ? 'Add These to My Launch — $'+sum+' ⚡' : 'Continue to Go-Live →';
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+function addonsGo(){
+  if(picked.length){
+    burst(40);
+    toast('🎉 '+picked.length+' add-on'+(picked.length>1?'s':'')+' added!');
+    picked.forEach(p=>addRow(p.name,p.amt));
+    picked.length = 0;
+    setTimeout(()=>go(5), 900);
+  }else go(5);
+}
+
+/* S5 crush counter: $328,000 → $1 */
+function runCrush(){
+  const el = document.getElementById('crushNum'), lbl = document.getElementById('crushLbl');
+  let v = 328000; const t0 = performance.now(), DUR = 2200;
+  function f(t){
+    const k = Math.min(1,(t-t0)/DUR), e = 1-Math.pow(1-k,3);
+    v = Math.max(1, Math.round(328000*(1-e)));
+    el.textContent = '$'+v.toLocaleString();
+    if(k<1) requestAnimationFrame(f);
+    else{ el.textContent='$1'; lbl.textContent='what it takes today. Per month.'; burst(30,['💸','✨']); }
+  }
+  setTimeout(()=>requestAnimationFrame(f), 700);
+}
+
+/* S6 hold countdown + activate */
+let holdS = 24*3600 - 16;
+setInterval(()=>{
+  holdS--; const h=String(Math.floor(holdS/3600)).padStart(2,'0'),
+  m=String(Math.floor(holdS%3600/60)).padStart(2,'0'), s=String(holdS%60).padStart(2,'0');
+  const el=document.getElementById('hold'); if(el) el.textContent=h+':'+m+':'+s;
+},1000);
+function activate(e){
+  e.preventDefault();
+  burst(70, ['🎉','🚀','✨','💚']);
+  toast('PREVIEW — live version opens your Shopify $1 deal link');
+  return false;
+}
+</script>
+</body>
+</html>
