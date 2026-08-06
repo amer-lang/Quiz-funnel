@@ -107,13 +107,21 @@ async function defaultPm(customer){
    BASE session id so the funnel can unlock further stores against it. */
 async function findUnlimited(email){
   if(!email) return '';
-  try{
-    const em = String(email).trim().toLowerCase().replace(/'/g, '');
-    const r = await stripe('payment_intents/search?limit=1&query=' + encodeURIComponent(
-      "status:'succeeded' AND metadata['type']:'" + BUMP_TYPE + "' AND metadata['email']:'" + em + "'"));
-    const hit = ((r && r.data) || [])[0];
-    return hit ? String((hit.metadata && hit.metadata.base_cs) || '') : '';
-  }catch(e){ return ''; }
+  const em = String(email).trim().toLowerCase().replace(/'/g, '');
+  // Two shapes own Unlimited: the legacy checkout bump (type marker) and the
+  // launch-sequence add-on charge (unlimited='1' flag from /api/addons).
+  const queries = [
+    "status:'succeeded' AND metadata['type']:'" + BUMP_TYPE + "' AND metadata['email']:'" + em + "'",
+    "status:'succeeded' AND metadata['unlimited']:'1' AND metadata['email']:'" + em + "'"
+  ];
+  for(const q of queries){
+    try{
+      const r = await stripe('payment_intents/search?limit=1&query=' + encodeURIComponent(q));
+      const hit = ((r && r.data) || [])[0];
+      if(hit) return String((hit.metadata && hit.metadata.base_cs) || '');
+    }catch(e){}
+  }
+  return '';
 }
 
 function readBody(req){

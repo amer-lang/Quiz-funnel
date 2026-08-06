@@ -1174,6 +1174,67 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
    FX LAYERS
    ============================================================ */
 #fx{position:fixed;inset:0;z-index:80;pointer-events:none}
+/* ============================================================
+   LAUNCH SEQUENCE (post-purchase)
+   ============================================================ */
+.ls-check{width:70px;height:70px;border-radius:50%;margin:2px auto 14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.9rem;font-weight:800;color:#04140A;background:var(--grad-brand);
+  box-shadow:0 0 0 10px rgba(34,197,94,.12),0 18px 50px -12px rgba(34,197,94,.55);animation:lsPop .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes lsPop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.syscard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:2px 18px;margin:2px 0 12px}
+.sysrow{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);font-size:.88rem;font-weight:700;
+  opacity:0;transform:translateX(-14px);transition:all .45s cubic-bezier(.22,1,.36,1)}
+.sysrow.show{opacity:1;transform:none}
+.sysrow:last-child{border-bottom:none}
+.sysrow .st{margin-left:auto;font-weight:800;font-size:.74rem;letter-spacing:.04em;color:#7CF0A9}
+.sysrow.pend .st{color:var(--gold);animation:lsBlink 1.1s ease infinite}
+@keyframes lsBlink{50%{opacity:.35}}
+.scanline{display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--muted);padding:6px 0;font-weight:600;
+  opacity:0;transform:translateY(8px);transition:all .4s}
+.scanline.show{opacity:1;transform:none}
+.scanline b.g{color:#7CF0A9}
+.scanline b.r{color:#FCA5A5}
+.serp{background:#fff;border-radius:16px;padding:13px 15px;margin:2px 0 0;color:#1f1f1f;
+  box-shadow:0 20px 60px -18px rgba(0,0,0,.65);font-family:arial,sans-serif;text-align:left}
+.serp .sbar{display:flex;align-items:center;gap:8px;background:#f1f3f4;border-radius:99px;padding:7px 14px;font-size:.76rem;color:#5f6368;margin-bottom:11px}
+.serp .r{padding:8px 2px;border-bottom:1px solid #eee}
+.serp .u{font-size:.6rem;color:#0a7d32}
+.serp .t{font-size:.84rem;color:#1a0dab;font-weight:500}
+.serp .d{font-size:.66rem;color:#545454}
+.serp .r.ghost .t,.serp .r.ghost .u,.serp .r.ghost .d{opacity:.45}
+.serp .r.you{background:linear-gradient(90deg,rgba(255,201,60,.22),transparent);border-radius:10px;margin:2px -6px;padding:8px 8px;
+  border:1.5px solid var(--gold);opacity:0;transform:translateY(10px);transition:all .6s cubic-bezier(.22,1,.36,1)}
+.serp .r.you.show{opacity:1;transform:none}
+.serp .r.you .t{font-weight:700}
+.serp .pill1{display:inline-block;background:var(--gold);color:#241500;font-size:.54rem;font-weight:800;border-radius:99px;padding:2px 8px;margin-right:6px;vertical-align:1px}
+.serp-note{font-size:.56rem;color:#9aa3b2;text-align:center;padding-top:7px}
+.addon{display:block;background:var(--card);border:2px solid var(--line);border-radius:var(--radius);
+  padding:14px 15px;margin-top:11px;cursor:pointer;transition:border-color .25s,transform .15s,box-shadow .25s;user-select:none;text-align:left}
+.addon:active{transform:scale(.985)}
+.addon.on{border-color:var(--gold);background:linear-gradient(160deg,rgba(255,201,60,.1),var(--card));box-shadow:0 0 26px -6px rgba(255,201,60,.45)}
+.addon .top{display:flex;align-items:center;gap:11px}
+.addon input{width:21px;height:21px;accent-color:var(--gold);flex:none}
+.addon .name{font-weight:800;font-size:.93rem}
+.addon .price{margin-left:auto;font-weight:800;color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+.addon .why{display:block;font-size:.76rem;color:var(--muted);margin:7px 0 0 32px;line-height:1.55}
+.addon .why b{color:#EADFC3}
+/* CTA dock: on mobile the take-the-upsell button is ALWAYS in view — content
+   scrolls, the dock stays pinned to the viewport bottom. */
+.cta-dock{position:sticky;bottom:0;z-index:6;margin-top:auto;padding:12px 0 10px;
+  background:linear-gradient(180deg,transparent,var(--bg) 32%)}
+.cta-dock .cta{margin-top:0}
+.cta-dock .cta-note{margin-top:9px}
+.cta-dock .oto-decline{margin-top:10px}
+#s-launch1 .cta-dock{margin-top:8px}
+@media (max-height:760px){
+  #s-seo h2{font-size:1.2rem;margin-bottom:8px}
+  #s-seo .scanline{padding:4px 0;font-size:.78rem}
+  #s-seo .serp .r.ghost:last-of-type{display:none}
+  #s-seo .sub{display:none}
+  #s-addons .addon .why{font-size:.7rem}
+  #s-addons h2{margin-bottom:8px}
+}
+
 .flash{
   position:fixed;inset:0;z-index:70;pointer-events:none;opacity:0;
   background:radial-gradient(circle at 50% 60%,rgba(255,201,60,.28),transparent 60%);
@@ -1715,6 +1776,51 @@ window.dsFire('PageView');
 
     <!-- ================ 13b · VIDEO ADS UPSELL (post-purchase) ================
          Shown after the $1 charge clears, before hand-off to the store setup. -->
+    <!-- ============ 13b · LAUNCH SEQUENCE (post-$20 purchase) ============
+         s-launch1 → s-seo ($29) → s-upsell-ads ($49) → s-addons (combo) → done.
+         Shopify preframe/activation screens intentionally NOT here yet — the
+         hand-off still runs through dsFinalize/resume_url until the dev wires
+         the $1 Shopify flow. -->
+    <section class="screen" id="s-launch1" style="justify-content:flex-start">
+      <div class="ls-check">✓</div>
+      <div class="kicker green" style="align-self:center"><span class="dot"></span> PAYMENT CONFIRMED · $20.00</div>
+      <h2><span class="grad-text lsBrand">Your store</span> is yours.<br>But it's <span class="gold-text">not live yet.</span></h2>
+      <p class="sub">It's packed, paid for and sitting on the launch pad. Until you finish the <strong>launch sequence</strong>, it can't take a single order.</p>
+      <div class="syscard">
+        <div class="sysrow">🏪 Store built &amp; designed <span class="st">✓ DONE</span></div>
+        <div class="sysrow">📦 Supplier connected <span class="st">✓ DONE</span></div>
+        <div class="sysrow">💳 Store unlocked <span class="st">✓ PAID</span></div>
+        <div class="sysrow pend">🚀 Launch status <span class="st">⚠ PENDING</span></div>
+      </div>
+      <div class="ads-hello">⏱️ <span><b>Takes about 5 minutes.</b> Do it now while your build is hot — leave and <b class="lsBrand">your store</b> stays dark, selling nothing.</span></div>
+      <div class="cta-dock"><button class="cta gold pulse" onclick="go('s-seo')">Begin Launch Sequence 🚀</button></div>
+    </section>
+
+    <section class="screen" id="s-seo" style="justify-content:flex-start">
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> LAUNCH STEP 1 · SEARCH VISIBILITY</div>
+      <h2>Shoppers are googling <span class="grad-text lsName">your product</span> right now.</h2>
+      <div style="margin:2px 0 10px">
+        <div class="scanline">🔍 Scanning Google for “<span class="lsNameLower">your product</span>”…</div>
+        <div class="scanline">📈 <b class="g">Live demand</b>&nbsp;· buyers are searching for it every day</div>
+        <div class="scanline">🏪 <b class="g">Competing stores</b>&nbsp;already rank — and take those sales</div>
+        <div class="scanline">👻 <b class="r"><span class="lsBrand">Your store</span>: invisible</b>&nbsp;— zero pages indexed</div>
+      </div>
+      <div class="serp">
+        <div class="sbar">🔍 <span class="lsNameLower">your product</span></div>
+        <div class="r ghost"><div class="u">competitor-store.com</div><div class="t">Top Rated — Shop Online</div><div class="d">Fast shipping · thousands sold… ★★★★☆</div></div>
+        <div class="r you" id="serpYou"><div class="u"><span class="lsSlug">yourstore</span>.myshopify.com</div><div class="t"><span class="pill1">#1</span><span class="lsBrandUp">YOUR STORE</span> — <span class="lsName">your product</span></div><div class="d">Free shipping · launch-week deal · 30-day returns</div></div>
+        <div class="r ghost"><div class="u">megadeals-outlet.com</div><div class="t">Discount Listings — Compare Prices</div><div class="d">Hundreds of sellers, slow shipping…</div></div>
+        <div class="serp-note">Illustration of an optimized listing — rankings are never guaranteed</div>
+      </div>
+      <p class="sub" style="margin:12px auto 4px;font-size:.86rem">The AI can hand-optimize every title, description and image tag on <b class="lsBrand">your store</b> and <strong>submit it straight to Google's index</strong> — the work agencies bill $500+ for.</p>
+      <div class="ads-value" style="margin:6px 0 0"><span>🔎 Every page optimized</span><span>🏷️ Meta + image tags</span><span>📬 Submitted to Google</span></div>
+      <div class="cta-dock">
+        <button class="cta gold pulse" id="seoBtn" onclick="lsSeoBuy(this)">Make My Store Findable — $29 🔎</button>
+        <p class="cta-note">One click charges a one-time <b>$29</b> to your card on file · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+        <a href="#" class="oto-decline" onclick="return lsSeoSkip(event)">Skip — launch invisible while competitors stay on page 1</a>
+      </div>
+    </section>
+
     <section class="screen" id="s-upsell" style="justify-content:flex-start">
       <div class="oto-alert">
         <span class="oto-alert__dot">!</span>
@@ -1757,10 +1863,32 @@ window.dsFire('PageView');
         <span>📩 Delivered to your inbox</span>
       </div>
 
-      <button type="button" class="cta gold pulse" onclick="upsellYes()">Yes! Send Me All 10 Ads — $49</button>
-      <p class="cta-note">One click charges a one-time <b>$49</b> to your card on file · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+      <div class="cta-dock">
+        <button type="button" class="cta gold pulse" onclick="upsellYes()">Yes! Send Me All 10 Ads — $49</button>
+        <p class="cta-note">One click charges a one-time <b>$49</b> to your card on file · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+        <a href="#" class="oto-decline" onclick="upsellNo(event)">No thanks — I'll create my own ads</a>
+      </div>
+    </section>
 
-      <a href="#" class="oto-decline" onclick="upsellNo(event)">No thanks — I'll create my own ads</a>
+    <!-- ============ 13d · LAUNCH SEQUENCE FINALE — combined add-ons ============ -->
+    <section class="screen" id="s-addons" style="justify-content:flex-start">
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> FINAL STEP · LAST TOUCHES</div>
+      <h2>Stack the deck <span class="grad-text">before liftoff.</span></h2>
+      <p class="sub" style="margin-bottom:8px">Three things winning launches add. Tick what you want — <strong>one payment</strong>, then your store goes live.</p>
+
+      <label class="addon"><span class="top"><input type="checkbox" onchange="lsTick(this,'unlimited_stores',39)"><span class="name">♾️ Unlimited AI Stores</span><span class="price">$39</span></span>
+        <span class="why">Never bet it all on one product. Come back <b>anytime, forever</b> — the AI builds &amp; unlocks another store free. As many as you want.</span></label>
+
+      <label class="addon"><span class="top"><input type="checkbox" onchange="lsTick(this,'profit_emails',29)"><span class="name">✉️ 10 Profit Emails</span><span class="price">$29</span></span>
+        <span class="why">Abandoned-cart, welcome &amp; win-back emails <b>written for <span class="lsName">your product</span></b>, paste-ready for Shopify. Recovers the shoppers who almost buy.</span></label>
+
+      <label class="addon"><span class="top"><input type="checkbox" onchange="lsTick(this,'video_ad_1',39)"><span class="name">🎬 Custom Video Ad</span><span class="price">$39</span></span>
+        <span class="why">One scroll-stopping video ad of <b>your product</b> — the format TikTok &amp; Reels reward most right now. Delivered to your inbox.</span></label>
+
+      <div class="cta-dock">
+        <button class="cta gold pulse" id="addonsBtn" onclick="lsAddonsGo()">Continue →</button>
+        <p class="cta-note" id="addonsNote">Nothing selected — no extra charge</p>
+      </div>
     </section>
 
     <!-- Interstitial for returns from Stripe: shown synchronously at boot so
@@ -1840,12 +1968,12 @@ const DS_API  = 'https://chat.dropstart.app/api/express';
 const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
 // The VSL shown on the video-ads upsell screen (same one DropStart uses).
 const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: '6a4d92062406c7e3ffb37813' };
-/* Upsell selector. true → $49 image-ads pack (s-upsell-ads, /api/upsell49,
-   auto-fulfilled by /api/adsorder + /ads). false → $299 video-ads VSL page
-   (s-upsell, /api/upsell299 — one-click on the card saved by the $20 unlock,
-   embedded-checkout fallback, charged on OUR Stripe). Preview either screen
-   without checkout anytime with ?upsellpreview=1. */
-const UPSELL_ADS = false;
+/* Upsell selector. true → the LAUNCH SEQUENCE flow: s-launch1 → s-seo ($29)
+   → s-upsell-ads ($49, /api/upsell49 + adsorder fulfillment) → s-addons
+   (combined charge via /api/addons) → done. false → the legacy $299 VSL
+   (s-upsell, /api/upsell299). Preview screens without checkout anytime with
+   ?upsellpreview=1. */
+const UPSELL_ADS = true;
 const UPSELL_ADS_PRICE = 49;
 /* $20 ONE-TIME unlock (replaces the $1 trial + $49/mo sub). LIVE.
    The charge runs on OUR Stripe via /api/unlock20; verified same-account
@@ -1979,7 +2107,8 @@ let streakCount = 0;
 const PROGRESS = {
   's-landing':4,'s-intro':10,'s-q1':20,'s-q2':29,'s-q3':38,'s-q4':46,
   's-dropship':51,'s-q5':56,'s-reality':64,'s-blueprint':72,'s-scan':80,
-  's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-upsell':99,'s-upsell-ads':99,'s-done':100
+  's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-upsell':99,'s-upsell-ads':99,
+  's-launch1':99,'s-seo':99,'s-addons':99,'s-done':100
 };
 
 function setBar(id){
@@ -2017,7 +2146,7 @@ function goBack(){
 }
 
 function updateBack(){
-  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-upsell','s-upsell-ads','s-done'];
+  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-upsell','s-upsell-ads','s-launch1','s-seo','s-addons','s-done'];
   document.getElementById('backBtn').style.display =
     (noBack.includes(current) || !history.length) ? 'none' : 'flex';
 }
@@ -2032,6 +2161,8 @@ function onEnter(id){
   if(id==='s-preview') runPreview();
   if(id==='s-upsell') runUpsell();
   if(id==='s-upsell-ads') runUpsellAds();
+  if(id==='s-launch1') lsEnterLaunch();
+  if(id==='s-seo') lsSeoScan();
   if(id==='s-done') runDone();
   document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
   dsTrack(id);
@@ -3336,7 +3467,8 @@ function upsellYes(){
         spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
         try{ localStorage.setItem('spai_ads_cs', j.pi); }catch(e){}
         fetch('/api/adsorder?cs=' + encodeURIComponent(j.pi) + '&make=1').catch(()=>{}); // warm ad #1
-        dsFinalize({});
+        upsellBusy = false;
+        go('s-addons'); // launch sequence continues — finalize happens at the end
         return;
       }
       if(j && j.ok && j.client_secret){
@@ -3347,7 +3479,7 @@ function upsellYes(){
       }
       throw new Error(j && j.status || 'upsell49');
     })
-    .catch(()=>{ upsellBusy = false; dsFinalize({ upsell: 0 }); }); // never trap them — settle & continue
+    .catch(()=>{ upsellBusy = false; go('s-addons'); }); // never trap them — sequence continues
     return;
   }
   // $299 video-ads pack: same proven rail as the $49 — /api/upsell299 charges
@@ -3392,9 +3524,9 @@ function upsellNo(e){
   if(e) e.preventDefault();
   if(upsellPreviewMode){ showToast('👀','Preview mode — nothing happens'); return; }
   spLog('upsell_decline');
-  // Decline: settle the sale on our side (unlock the store) and land on THIS
-  // funnel's final page with the "set up on Shopify" link — no cross-domain
-  // redirect. dsFinalize handles the rest.
+  if(UPSELL_ADS){ go('s-addons'); return; } // launch sequence: extras next, settle at the end
+  // Legacy VSL decline: settle the sale (unlock the store) and land on the
+  // final page with the "set up on Shopify" link. dsFinalize handles it.
   dsFinalize({ upsell: 0 });
 }
 
@@ -3432,6 +3564,146 @@ function dsFinalize(extra){
     if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
     go('s-done');
   });
+}
+
+/* ============================================================
+   LAUNCH SEQUENCE — post-purchase flow logic
+   ============================================================ */
+function lsApplyNames(){
+  const prod = (chosen && chosen.name) || 'your product';
+  const brand = (dsBuild && dsBuild.store_name) || prod.split(' ')[0] || 'Your store';
+  document.querySelectorAll('.lsBrand').forEach(e=>e.textContent = brand);
+  document.querySelectorAll('.lsBrandUp').forEach(e=>e.textContent = String(brand).toUpperCase());
+  document.querySelectorAll('.lsName').forEach(e=>e.textContent = prod);
+  document.querySelectorAll('.lsNameLower').forEach(e=>e.textContent = prod.toLowerCase());
+  document.querySelectorAll('.lsSlug').forEach(e=>e.textContent = slugOf(brand) || 'yourstore');
+}
+
+function lsEnterLaunch(){
+  lsApplyNames();
+  document.querySelectorAll('#s-launch1 .sysrow').forEach((r,i)=>
+    setTimeout(()=>{ r.classList.add('show'); if(i===3){ playPop(1.2); vibrate(12); } }, 320 + i*430));
+  initAudio(); playTada();
+  confettiBurst(window.innerWidth/2, 140, 90);
+  spLog('screen', 's-launch1');
+}
+
+let lsScanRan = false;
+function lsSeoScan(){
+  if(lsScanRan) return; lsScanRan = true;
+  lsApplyNames();
+  const lines = document.querySelectorAll('#s-seo .scanline');
+  lines.forEach((d,i)=>setTimeout(()=>{ d.classList.add('show'); playPop(1 + i*.15); }, 250 + i*600));
+  setTimeout(()=>{
+    const you = document.getElementById('serpYou');
+    you.classList.add('show');
+    playDing(); vibrate([15,40,15]);
+    const r = you.getBoundingClientRect();
+    sparkBurst(r.left + r.width/2, r.top + r.height/2, '#FFC93C');
+  }, 250 + 4*600 + 450);
+}
+
+let lsSeoBusy = false;
+function lsSeoBuy(btn){
+  if(upsellPreviewMode){ showToast('👀','Preview mode — checkout is off'); return; }
+  if(lsSeoBusy) return; lsSeoBusy = true;
+  spLog('seo_click');
+  initAudio(); playCoin(); vibrate([15,50,15]);
+  btn.textContent = 'Processing… ⏳';
+  fetch('/api/addons', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ cs: dsPaidCs || '', items: ['seo_boost'] })
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    lsSeoBusy = false;
+    if(j && j.ok && (j.charged || j.already)){
+      playTada(); flashPulse();
+      const r = btn.getBoundingClientRect();
+      coinCannon(r.left + r.width/2, r.top);
+      confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 90);
+      showToast('🔎','SEO Boost added to your store!');
+      if(j.charged){
+        window.dsFire && window.dsFire('Purchase', { value: 29, currency: 'USD' }, 'seo_' + (dsPaidCs || ''));
+        spLog('paid_seo', (dsBuild && dsBuild.project_id) || '');
+      }
+      setTimeout(()=>go('s-upsell-ads'), 900);
+      return;
+    }
+    // declined / error — never trap them, keep the sequence moving
+    spLog('seo_fail', (j && j.status) || '');
+    showToast('⚠️','Couldn’t add SEO Boost — continuing');
+    setTimeout(()=>go('s-upsell-ads'), 700);
+  })
+  .catch(()=>{ lsSeoBusy = false; spLog('seo_fail','network'); go('s-upsell-ads'); });
+}
+function lsSeoSkip(e){
+  if(e) e.preventDefault();
+  spLog('seo_skip');
+  go('s-upsell-ads');
+  return false;
+}
+
+const lsPicked = [];
+function lsTick(cb, item, amt){
+  const card = cb.closest('.addon');
+  card.classList.toggle('on', cb.checked);
+  initAudio();
+  if(cb.checked){
+    lsPicked.push({ item, amt });
+    const r = card.getBoundingClientRect();
+    sparkBurst(r.left + r.width/2, r.top + r.height/2, '#FFC93C');
+    playCoin();
+  }else{
+    const i = lsPicked.findIndex(p=>p.item===item); if(i>-1) lsPicked.splice(i,1);
+    playPop(.7);
+  }
+  const sum = lsPicked.reduce((s,p)=>s+p.amt,0);
+  document.getElementById('addonsBtn').textContent = sum ? ('Add These to My Launch — $' + sum + ' ⚡') : 'Continue →';
+  document.getElementById('addonsNote').textContent = sum
+    ? ('One click charges a one-time $' + sum + ' to your card on file · 30-day money-back guarantee')
+    : 'Nothing selected — no extra charge';
+  vibrate(10);
+}
+
+let lsAddonsBusy = false;
+function lsAddonsGo(){
+  if(upsellPreviewMode){ showToast('👀','Preview mode — checkout is off'); return; }
+  if(lsAddonsBusy) return;
+  if(!lsPicked.length){ spLog('addons_skip'); dsFinalize({}); return; }
+  lsAddonsBusy = true;
+  const btn = document.getElementById('addonsBtn');
+  btn.textContent = 'Processing… ⏳';
+  const items = lsPicked.map(p=>p.item);
+  const sum = lsPicked.reduce((s,p)=>s+p.amt,0);
+  initAudio(); playCoin();
+  fetch('/api/addons', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ cs: dsPaidCs || '', items })
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    lsAddonsBusy = false;
+    if(j && j.ok && (j.charged || j.already)){
+      playTada(); flashPulse(); coinRain(1400);
+      confettiBurst(window.innerWidth/2, window.innerHeight*0.35, 110);
+      showToast('🎉', items.length + ' add-on' + (items.length>1?'s':'') + ' added!');
+      if(j.charged){
+        window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount/100 : sum), currency: 'USD' }, 'addons_' + (dsPaidCs || ''));
+        spLog('paid_addons', items.join(','));
+      }
+      if(items.includes('unlimited_stores')){
+        try{ localStorage.setItem('spai_unlimited', '1'); }catch(e){}
+        showToast('♾️','Unlimited stores unlocked — come back anytime!');
+      }
+      setTimeout(()=>dsFinalize({}), 1100);
+      return;
+    }
+    spLog('addons_fail', (j && j.status) || '');
+    showToast('⚠️','Couldn’t add those — continuing to go-live');
+    setTimeout(()=>dsFinalize({}), 700);
+  })
+  .catch(()=>{ lsAddonsBusy = false; spLog('addons_fail','network'); dsFinalize({}); });
 }
 
 /* Send the buyer to finish on the sell domain (Shopify go-live). */
@@ -3493,7 +3765,8 @@ function dsResumeAfterPayment20(){
       try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
       if(!dsBuild && j.project_id) dsBuild = { ok:true, project_id: Number(j.project_id) };
       if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
-      const upScreen = UPSELL_ADS ? 's-upsell-ads' : 's-upsell';
+      // Launch sequence entry: "you're not done yet" screen first.
+      const upScreen = UPSELL_ADS ? 's-launch1' : 's-upsell';
       document.getElementById('s-paywait').classList.remove('active');
       document.getElementById('s-landing').classList.remove('active');
       document.getElementById(upScreen).classList.add('active');
@@ -3597,6 +3870,15 @@ function dsResumeAfterUpsell49(){
         fetch('/api/adsorder?cs=' + encodeURIComponent(ucs) + '&make=1').catch(()=>{});
       })
       .catch(()=>{});
+  }
+  if(UPSELL_ADS){
+    // Launch sequence: the embedded-fallback $49 return re-enters at the
+    // extras step; finalize happens when the sequence completes.
+    document.getElementById('s-paywait').classList.remove('active');
+    document.getElementById('s-landing').classList.remove('active');
+    document.getElementById('s-addons').classList.add('active');
+    current = 's-addons'; setBar('s-addons'); updateBack(); onEnter('s-addons');
+    return true;
   }
   dsFinalize({}); // unlock + land on s-done (the $49 is recorded on our side)
   return true;
@@ -3836,7 +4118,9 @@ if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20
   if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
   setTimeout(()=>{
     if(!chosen) chosen = PRODUCTS[0] || FALLBACK_PRODUCTS[0];
-    go('s-upsell-ads');
+    // Preview the full launch sequence (charges disabled) — or just the ads
+    // screen on the legacy path.
+    go(UPSELL_ADS ? 's-launch1' : 's-upsell-ads');
   }, 900); // give the live catalogue a beat to load so real photos show
 })();
 </script>
