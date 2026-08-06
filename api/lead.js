@@ -43,7 +43,7 @@ async function spaiList(){
   try{
     const r = await ac('/api/3/lists?limit=100');
     const l = ((r.j && r.j.lists) || []).find(x =>
-      String(x.name || '').trim().toLowerCase() === 'spai subscribers');
+      /^spai subscribers?$/.test(String(x.name || '').trim().toLowerCase()));
     if(l) spaiListId = Number(l.id);
   }catch(e){}
   return spaiListId;
@@ -113,7 +113,7 @@ module.exports = async (req, res) => {
         out[stage] = { listId: id, name: r.ok && r.j.list ? r.j.list.name : ('ERROR ' + r.status) };
       }
       const sid = await spaiList();
-      out.spai_subscribers = sid ? { listId: sid, name: 'SPAI Subscribers' } : 'NOT FOUND — check the list name in AC';
+      out.spai_subscribers = sid ? { listId: sid, note: sid === STAGE_LIST.unlocked ? 'same list the unlocked stage already subscribes — no double-add' : 'separate list, added on unlock' } : 'NOT FOUND — check the list name in AC';
       if((req.query || {}).backfill === TEST_KEY){
         const q2 = req.query;
         const dry = q2.dry !== '0';
