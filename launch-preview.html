@@ -1366,21 +1366,26 @@ body{overflow-y:auto!important;min-height:100vh}
   <a href="#" class="oto-decline" onclick="return skip(event,3)">Skip — launch invisible while 37 competitors stay on page 1</a>
 </section>
 
-<!-- ============ S3 · AD CREATIVE ($49, real renderer) ============ -->
-<section class="screen" id="p3">
-  <div class="kicker gold" style="align-self:center"><span class="dot"></span> LAUNCH STEP 2 · AD CREATIVE</div>
-  <div class="ads-hello">👋 <span><b>While your store was building,</b> our AI also designed your first ad campaign. These are yours to run the minute you go live.</span></div>
-  <h2 style="margin-top:14px">We already designed <span class="grad-text">10 ready-to-run ads</span> for <span class="gold-text">Flotz</span></h2>
-  <p class="sub" style="margin-bottom:10px">A store only makes sales when people see it. These are sized for Facebook &amp; Instagram — swipe through yours 👇</p>
+<!-- ============ S3 · AD CREATIVE — EXACT s-upsell-ads port ============ -->
+<section class="screen" id="p3" style="justify-content:flex-start">
+  <div class="ads-hello"><span>⚠️</span><span><b>Wait! Your order is not complete yet…</b> one last step before we hand you the keys:</span></div>
+
+  <h2 style="margin-top:14px;text-align:center">We already designed <span class="grad-text">10 ready-to-run ads</span> for <span class="gold-text" id="adsProdName">your product</span></h2>
+  <p class="sub" style="margin-bottom:10px" id="adsSub">A store only makes sales when people see it. These are sized for Facebook &amp; Instagram — post them the minute you go live. Swipe through yours 👇</p>
+
+  <div class="ads-pack" id="adsPack" style="display:none"></div>
   <div class="ads-strip" id="adsStrip"></div>
   <div class="ads-dots" id="adsDots"></div>
+
   <div class="ads-value">
-    <span>🎨 Made for <b>your product</b></span>
+    <span>🎨 Made for <b id="adsProdName2">your product</b></span>
     <span>📐 Feed + story formats</span>
     <span>📩 Delivered to your inbox</span>
   </div>
-  <button class="cta gold pulse" onclick="buy(this,'10 Image Ads',49,4)">Yes! Send Me All 10 Ads — $49</button>
-  <p class="cta-note">One click adds a one-time <b>$49</b> to your order · not a subscription · 30-day money-back guarantee</p>
+
+  <button type="button" class="cta gold pulse" onclick="buy(this,'10 Image Ads',49,4)">Yes! Send Me All 10 Ads — $49</button>
+  <p class="cta-note">One click charges a one-time <b>$49</b> to your card on file · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+
   <a href="#" class="oto-decline" onclick="return skip(event,4)">No thanks — I'll create my own ads</a>
 </section>
 
@@ -1704,20 +1709,56 @@ function runScan(){
   }, 200 + 4*620 + 500);
 }
 
-/* S3: REAL ad renderer — same templates the funnel ships to buyers */
-let adsRendered = false;
+/* S3: EXACT port of the funnel's runUpsellAds() — AI pack shot preferred
+   (/api/adpack, cached server-side), mockup strip fallback, AD n/10 badges,
+   dot sync, gentle auto-tour until first touch. */
+let upsellAdsRan = false;
 function renderAds(){
-  if(adsRendered) return; adsRendered = true;
-  const t = adTemplates(PROD);
+  if(upsellAdsRan) return; upsellAdsRan = true;
+  const p = PROD;
+  document.getElementById('adsProdName').textContent = p.name;
+  document.getElementById('adsProdName2').textContent = p.name;
+
+  // Preferred visual: the AI-generated pack shot for THIS product (cached
+  // server-side, one generation per product ever). Falls back silently to
+  // the built-in mockup strip if it isn't ready or the key isn't set.
+  fetch('/api/adpack?fast=1&product=' + encodeURIComponent(p.name))
+    .then(r => r.json())
+    .then(j => {
+      if(!(j && j.ready && j.src)) return;
+      const pack = document.getElementById('adsPack');
+      pack.innerHTML = '<img src="' + j.src + '" alt="Preview of your 10-ad pack">';
+      pack.style.display = 'block';
+      document.getElementById('adsStrip').style.display = 'none';
+      document.getElementById('adsDots').style.display = 'none';
+      document.getElementById('adsSub').innerHTML = 'A store only makes sales when people see it. Ten scroll-stopping ads, made for your product, sized for Facebook &amp; Instagram — here\'s a peek at the pack 👇';
+    })
+    .catch(() => {});
+
+  const T = adTemplates(p);
   const strip = document.getElementById('adsStrip');
-  strip.innerHTML = t.map(a=>'<div class="ad '+(a.cls||'')+'">'+a.html+'</div>').join('');
+  strip.innerHTML = T.map((t, i) => '<div class="ad ' + t.cls + '">' + t.html + '<span class="num">AD ' + (i + 1) + '/10</span></div>').join('');
   const dots = document.getElementById('adsDots');
-  dots.innerHTML = t.map((_,i)=>'<i'+(i===0?' class="on"':'')+'></i>').join('');
-  const ds = dots.querySelectorAll('i');
-  strip.addEventListener('scroll', ()=>{
-    const i = Math.round(strip.scrollLeft / (strip.scrollWidth - strip.clientWidth) * (t.length-1)) || 0;
-    ds.forEach((d,k)=>d.classList.toggle('on', k===Math.min(i, t.length-1)));
+  dots.innerHTML = T.map((_, i) => '<i' + (i === 0 ? ' class="on"' : '') + '></i>').join('');
+  const dEls = [...dots.children];
+  strip.addEventListener('scroll', () => {
+    const max = strip.scrollWidth - strip.clientWidth;
+    const i = max > 0 ? Math.round(strip.scrollLeft / max * (T.length - 1)) : 0;
+    dEls.forEach((d, k) => d.classList.toggle('on', k === i));
   }, {passive:true});
+
+  // gentle auto-tour through the ads until they take over
+  let touched = false;
+  strip.addEventListener('pointerdown', () => { touched = true; }, {once:true});
+  let ai = 0;
+  const tour = setInterval(() => {
+    if(touched || cur !== 3){ clearInterval(tour); return; }
+    ai = (ai + 1) % T.length;
+    strip.scrollTo({ left: ai * 202, behavior: 'smooth' });
+  }, 2300);
+
+  playTada();
+  confettiBurst(innerWidth/2, 130, 90);
 }
 
 /* S4: add-on picks */
