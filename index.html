@@ -2569,6 +2569,14 @@ function pickChoose(e){
   document.getElementById('cName').textContent = chosen.name;
   document.getElementById('cProfit').textContent = '💰 $'+(chosen.price-chosen.cost).toFixed(2)+' profit per sale';
   showToast('🔒','Product reserved!');
+  // Returning leads (?pick=1 email link) already gave us their email —
+  // no email screen, straight into the build.
+  if(pickLinkMode && userEmail){
+    spLead('optin', userEmail); // refresh their AC contact/product fields
+    startRealBuild();
+    setTimeout(()=>{ go('s-build'); }, 650);
+    return;
+  }
   setTimeout(()=>{ go('s-email'); }, 650);
 }
 
@@ -2712,37 +2720,42 @@ function startBuild(e){
 
   // Start the REAL build now, so it runs while the build animation plays.
   // runBuild() waits on this before opening the preview.
-  if(DS_LIVE){
-    dsBuild = null; dsStatus = null; dsBuildError = null;
-    fetch(DS_API + '/build', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
-      body: JSON.stringify({
-        email:        userEmail,
-        what_to_sell: chosen ? chosen.name : '',
-        trending_id:  (chosen && chosen.dsId) || undefined,
-        audience:     answers.goal || undefined,
-        store_style:  'modern',
-        cid:          dsCid(),
-        source_url:   location.href,
-        fbp:          dsCookie('_fbp'),
-        fbc:          dsCookie('_fbc')
-      })
-    })
-    .then(r=>r.json())
-    .then(j=>{
-      if(j && j.ok){
-        dsBuild = j;
-        // Survive the round trip through checkout — the page reloads when they
-        // come back from Stripe, so the upsell screen needs this.
-        try{ localStorage.setItem('ds_build', JSON.stringify(j)); }catch(err){}
-      }
-      else dsBuildError = (j && j.error) || 'We could not start your build.';
-    })
-    .catch(()=>{ dsBuildError = 'We could not reach the store builder.'; });
-  }
+  startRealBuild();
 
   go('s-build');
+}
+
+/* Kick the DropStart build for the chosen product. Shared by the normal
+   email screen and the ?pick=1 returning-lead deep link. */
+function startRealBuild(){
+  if(!DS_LIVE) return;
+  dsBuild = null; dsStatus = null; dsBuildError = null;
+  fetch(DS_API + '/build', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    body: JSON.stringify({
+      email:        userEmail,
+      what_to_sell: chosen ? chosen.name : '',
+      trending_id:  (chosen && chosen.dsId) || undefined,
+      audience:     answers.goal || undefined,
+      store_style:  'modern',
+      cid:          dsCid(),
+      source_url:   location.href,
+      fbp:          dsCookie('_fbp'),
+      fbc:          dsCookie('_fbc')
+    })
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    if(j && j.ok){
+      dsBuild = j;
+      // Survive the round trip through checkout — the page reloads when they
+      // come back from Stripe, so the upsell screen needs this.
+      try{ localStorage.setItem('ds_build', JSON.stringify(j)); }catch(err){}
+    }
+    else dsBuildError = (j && j.error) || 'We could not start your build.';
+  })
+  .catch(()=>{ dsBuildError = 'We could not reach the store builder.'; });
 }
 
 /* ============================================================
@@ -3859,6 +3872,34 @@ function dsResumeAfterUpsell49(){
    Pull the built store back from DropStart and drop them on its preview with
    the $1 button — no need to re-take the quiz. If they already paid, send them
    straight to their store. */
+/* Returning lead from a reminder email: …/?pick=1&email=<their email>.
+   They opted in but never bought — skip the quiz entirely and drop them
+   straight on the product selector. With the email on the link they also
+   skip the email screen after choosing (pickChoose handles that). */
+let pickLinkMode = false;
+function dsPickFromEmail(){
+  const q = new URLSearchParams(location.search);
+  if(q.get('pick') !== '1') return false;
+  pickLinkMode = true;
+  const em = String(q.get('email') || '').trim().toLowerCase();
+  if(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){
+    userEmail = em;
+    try{
+      const lead = JSON.parse(localStorage.getItem('spai_lead') || '{}');
+      lead.email = em;
+      localStorage.setItem('spai_lead', JSON.stringify(lead));
+    }catch(e){}
+  }
+  spLog('pick_link', em ? 'with_email' : 'bare');
+  // give the live catalogue a beat to load so real product photos show
+  setTimeout(()=>{
+    document.getElementById('s-landing').classList.remove('active');
+    document.getElementById('s-pick').classList.add('active');
+    current = 's-pick'; setBar('s-pick'); updateBack(); onEnter('s-pick');
+  }, 1000);
+  return true;
+}
+
 function dsResumeFromEmail(){
   const q = new URLSearchParams(location.search);
   const pid = q.get('resume');
@@ -4095,7 +4136,7 @@ updateBack();
 if(!/paid=1|upsold=1|resume=/.test(location.search)) spLog('screen', 's-landing');
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
-if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment()) dsResumeFromEmail();
+if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsPickFromEmail()) dsResumeFromEmail();
 
 /* Safe visual preview of the image-ads upsell (?upsellpreview=1): renders the
    screen with checkout disabled so it can be reviewed on production without
