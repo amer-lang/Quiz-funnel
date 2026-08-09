@@ -151,6 +151,14 @@ module.exports = async (req, res) => {
       }
       const sid = await spaiList();
       out.spai_subscribers = sid ? { listId: sid, note: sid === STAGE_LIST.unlocked ? 'same list the unlocked stage already subscribes — no double-add' : 'separate list, added on unlock' } : 'NOT FOUND — check the list name in AC';
+      // provision the email-pack delivery plumbing on demand (idempotent):
+      // creates the %EMAILS_LINK% field and the SPAI Email Pack list if missing
+      const efid = await emailsField();
+      const elid = await emailsList();
+      out.email_pack = {
+        emailsFieldId: efid || 'CREATE FAILED',
+        list: elid ? { listId: elid, name: 'SPAI Email Pack' } : 'CREATE FAILED — make it manually in AC with this exact name'
+      };
       if((req.query || {}).backfill === TEST_KEY){
         const q2 = req.query;
         const dry = q2.dry !== '0';
