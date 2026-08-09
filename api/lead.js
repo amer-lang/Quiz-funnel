@@ -251,6 +251,49 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok:true, found: buyers.length, processed: done });
       }
 
+      if((req.query || {}).adsweep){
+        // key-gated safety net: scan Stripe for $49 image-ads purchases —
+        // BOTH shapes: one-click PaymentIntents (metadata on the PI) and
+        // embedded-fallback Checkout Sessions (metadata on the session) —
+        // and (re)stamp %ADS_LINK% + list 7 for each. Idempotent; contacts
+        // already on the list are not re-triggered.
+        if(req.query.adsweep !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+        const sk = process.env.STRIPE_SECRET_KEY || '';
+        if(!sk) return res.status(200).json({ ok:false, status:'no_stripe_key' });
+        const sget = p => fetch('https://api.stripe.com/v1/' + p, { headers: { Authorization: 'Bearer ' + sk } })
+          .then(r => r.json()).catch(() => ({}));
+        const [pis, sessions] = await Promise.all([
+          sget('payment_intents?limit=100'), sget('checkout/sessions?limit=100')
+        ]);
+        const orders = [];
+        for(const p of ((pis && pis.data) || [])){
+          if(p.status !== 'succeeded' || !p.metadata || p.metadata.type !== 'image_ads_10') continue;
+          let em = '';
+          if(typeof p.customer === 'string'){
+            const c = await sget('customers/' + p.customer);
+            em = String((c && c.email) || '').toLowerCase();
+          }
+          orders.push({ id: p.id, email: em });
+        }
+        for(const s of ((sessions && sessions.data) || [])){
+          if(s.payment_status !== 'paid' || !s.metadata || s.metadata.type !== 'image_ads_10') continue;
+          orders.push({ id: s.id, email: String((s.customer_details && s.customer_details.email) || '').toLowerCase() });
+        }
+        const fid2 = await adsField();
+        const done = [];
+        for(const o of orders){
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(o.email)){ done.push({ order: o.id, status: 'no_email' }); continue; }
+          const contact = { email: o.email };
+          if(fid2) contact.fieldValues = [{ field: fid2,
+            value: 'https://sellproducts.ai/ads?cs=' + encodeURIComponent(o.id) }];
+          const sync = await ac('/api/3/contact/sync', 'POST', { contact });
+          const cid = sync.ok && sync.j.contact ? sync.j.contact.id : null;
+          if(cid) await ac('/api/3/contactLists', 'POST', { contactList: { list: STAGE_LIST.videoads, contact: cid, status: 1 } });
+          done.push({ order: o.id, email: o.email.replace(/^(..).*(@.*)$/, '$1***$2'), stamped: !!(cid && fid2), listed: !!cid });
+        }
+        return res.status(200).json({ ok:true, found: orders.length, processed: done });
+      }
+
       if((req.query || {}).dsraw){
         // key-gated: hit DropStart /verify-checkout DIRECTLY and return its raw
         // verdict — tells us whether DS verifies sessions it didn't create.
