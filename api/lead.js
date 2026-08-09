@@ -34,6 +34,41 @@ async function adsField(){
   }catch(e){}
   return adsFieldId;
 }
+/* AC custom field %EMAILS_LINK% — the email-pack buyer's durable
+   /emails?cs=<order> delivery page. Auto-created on first use by perstag. */
+let emailsFieldId = null;
+async function emailsField(){
+  if(emailsFieldId) return emailsFieldId;
+  try{
+    const r = await ac('/api/3/fields?limit=100');
+    const f = ((r.j && r.j.fields) || []).find(x => x.perstag === 'EMAILS_LINK');
+    if(f){ emailsFieldId = Number(f.id); return emailsFieldId; }
+    const c = await ac('/api/3/fields', 'POST', { field: { type: 'text', title: 'Emails link', perstag: 'EMAILS_LINK', visible: 1 } });
+    if(c.ok && c.j.field) emailsFieldId = Number(c.j.field.id);
+  }catch(e){}
+  return emailsFieldId;
+}
+
+/* "SPAI Email Pack" list — email-pack buyers land here so an automation can
+   send them their delivery link. Resolved by name; auto-created if missing. */
+let emailsListId = null;
+async function emailsList(){
+  if(emailsListId) return emailsListId;
+  try{
+    const r = await ac('/api/3/lists?limit=100');
+    const l = ((r.j && r.j.lists) || []).find(x =>
+      String(x.name || '').trim().toLowerCase() === 'spai email pack');
+    if(l){ emailsListId = Number(l.id); return emailsListId; }
+    const c = await ac('/api/3/lists', 'POST', { list: {
+      name: 'SPAI Email Pack', stringid: 'spai-email-pack',
+      sender_url: 'https://sellproducts.ai',
+      sender_reminder: 'You purchased the 10 Profit Emails pack on sellproducts.ai.'
+    } });
+    if(c.ok && c.j.list) emailsListId = Number(c.j.list.id);
+  }catch(e){}
+  return emailsListId;
+}
+
 /* "SPAI Subscribers" — the master buyers list. Resolved by NAME once per
    lambda (case-insensitive) so the mapping can't drift if list ids change.
    Every verified $20 unlock is subscribed here in addition to list 6. */
@@ -82,9 +117,11 @@ async function verifyPaid(cs){
     const s = await r2.json().catch(() => ({}));
     const paidOk = isPi ? s.status === 'succeeded' : s.payment_status === 'paid';
     const ty = (s.metadata && s.metadata.type) || '';
-    const paid = r2.ok && paidOk && (ty === 'image_ads_10' || ty === 'store_unlock20' || ty === 'video_ads_5');
-    return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null, type: paid ? ty : '' };
-  }catch(err){ return { paid: false, projectId: null, type: '' }; }
+    const paid = r2.ok && paidOk &&
+      (ty === 'image_ads_10' || ty === 'store_unlock20' || ty === 'video_ads_5' || ty === 'store_addons');
+    return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null,
+      type: paid ? ty : '', items: (paid && s.metadata && s.metadata.items) || '' };
+  }catch(err){ return { paid: false, projectId: null, type: '', items: '' }; }
 }
 
 async function ac(path, method, body){
@@ -218,8 +255,30 @@ module.exports = async (req, res) => {
       if(typeof body === 'string'){ try{ body = JSON.parse(body); }catch(e){ body = null; } }
       const email = body && String(body.email || '').trim().toLowerCase().slice(0, 120);
       const stage = body && String(body.stage || '');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(204).end();
+
+      /* Email-pack fulfillment: verified profit_emails buyers get their
+         durable /emails delivery link stamped into %EMAILS_LINK% and land on
+         the "SPAI Email Pack" list, whose automation emails them the link. */
+      if(stage === 'emails'){
+        const v = await verifyPaid(body.cs);
+        if(!v.paid || v.type !== 'store_addons' ||
+           !String(v.items).split(',').map(s2 => s2.trim()).includes('profit_emails'))
+          return res.status(204).end();
+        const fid = await emailsField();
+        const contact2 = { email };
+        if(fid) contact2.fieldValues = [{ field: fid,
+          value: 'https://sellproducts.ai/emails?cs=' + encodeURIComponent(String(body.cs)) }];
+        const sync2 = await ac('/api/3/contact/sync', 'POST', { contact: contact2 });
+        const cid2 = sync2.ok && sync2.j.contact ? sync2.j.contact.id : null;
+        if(!cid2) return res.status(502).json({ error: 'ac sync failed' });
+        const lid = await emailsList();
+        if(lid) await ac('/api/3/contactLists', 'POST', { contactList: { list: lid, contact: cid2, status: 1 } });
+        return res.status(204).end();
+      }
+
       const listId = STAGE_LIST[stage];
-      if(!listId || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(204).end();
+      if(!listId) return res.status(204).end();
 
       // Money lists demand a server-verified PAID Stripe session — no cs or a
       // failed/unverifiable charge means no list add, full stop. The verified

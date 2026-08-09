@@ -19,6 +19,7 @@ const EV_OK = new Set(['screen','answer','product_view','product_choose',
 const MAX_BATCH = 200, MAX_DAY_EVENTS = 60000, MAX_DAYS_READ = 60;
 
 let idxCache = null, idxCacheAt = 0; // per-instance, 60s TTL
+let liveCache = null, liveCacheAt = 0; // public live counters, 2-min TTL
 
 async function jbGet(id){
   const r = await fetch(JB + '/' + id, { headers: { Accept: 'application/json' } });
@@ -119,6 +120,20 @@ module.exports = async (req, res) => {
         if(q.selftest !== READ_KEY) return res.status(403).json({ error: 'bad key' });
         await appendEvents([{ t: Date.now(), sid: 'selftest', e: 'screen', v: 's-landing' }]);
         return res.status(200).json({ ok: true, wrote: 1 });
+      }
+
+      /* public, PII-free live counters for on-page social proof — REAL
+         numbers only (unique visitors per event, today). Cached 2 min. */
+      if(q.live === '1'){
+        if(liveCache && Date.now() - liveCacheAt < 120000) return res.status(200).json(liveCache);
+        const idx = await loadIndex();
+        const today = dayKey(Date.now());
+        const evs = idx.days[today] ? await jbGet(idx.days[today]).catch(() => []) : [];
+        const uniq = n => new Set(evs.filter(e => e && e.e === n && e.sid !== 'selftest').map(e => e.sid)).size;
+        liveCache = { ok: true, reserved_today: uniq('product_choose'), optins_today: uniq('email_submitted') };
+        liveCacheAt = Date.now();
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        return res.status(200).json(liveCache);
       }
 
       if(q.stats === READ_KEY){

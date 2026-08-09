@@ -118,7 +118,7 @@ h1{font-size:clamp(1.5rem,6.4vw,1.95rem);font-weight:800;text-align:center;line-
       <div class="step"><span class="n">2</span><span><span class="t">Create your account — 60 seconds</span><br><span class="d">Email + password. That's the whole job.</span></span></div>
       <div class="step"><span class="n">3</span><span><span class="t">Your store moves in automatically</span><br><span class="d">Product, design, supplier — everything you paid for goes live.</span></span></div>
     </div>
-    <div class="hold">⏳ Your build is reserved for <b id="holdT">23:59:44</b></div>
+    <div class="hold" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.4);color:#7CF0A9">⚡ Your store is built and waiting — it goes live the moment you finish this step</div>
     <a class="cta gold pulse" id="goBtn" href="#">Activate My Store on Shopify — $1/mo 🚀</a>
     <div class="trust"><span>🔒 No contracts</span><span>❌ Cancel anytime</span><span>🛍️ 4M+ stores run on Shopify</span></div>
     <p class="sub" style="font-size:.74rem;margin-top:14px">This is the only other cost of going live — and it's a dollar.</p>
@@ -161,15 +161,6 @@ function show(id){
   setTimeout(function(){ requestAnimationFrame(frame); }, 800);
 })();
 
-/* 24h reservation countdown */
-var holdS = 24 * 3600 - 16;
-setInterval(function(){
-  holdS = Math.max(0, holdS - 1);
-  var h = String(Math.floor(holdS / 3600)).padStart(2, '0'),
-      m = String(Math.floor(holdS % 3600 / 60)).padStart(2, '0'),
-      s = String(holdS % 60).padStart(2, '0');
-  document.getElementById('holdT').textContent = h + ':' + m + ':' + s;
-}, 1000);
 </script>
 </body>
 </html>

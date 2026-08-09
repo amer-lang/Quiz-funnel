@@ -1645,7 +1645,7 @@ window.dsFire('PageView');
           <div class="pick-body">
             <div class="pick-top">
               <div class="pick-name" id="pName">Aurora Sunset Lamp</div>
-              <div class="sold-tick" id="soldTick">🔥 <b id="pSold">214</b> sold today</div>
+              <div class="sold-tick" id="soldTick" style="visibility:hidden">🔥 <b id="pSold">0</b> stores reserved today</div>
             </div>
             <div class="pick-cat" id="pCat"><span class="stars">★★★★★</span> · Home &amp; Vibes</div>
             <div class="pick-rows">
@@ -2495,7 +2495,6 @@ function fillPick(p, i){
   document.getElementById('pCat').innerHTML = '<span class="stars">'+stars(p.rating)+'</span> · '+(p.category||'Winning product');
   document.getElementById('pCost').textContent = '$'+Number(p.cost).toFixed(2);
   document.getElementById('pPrice').textContent = '$'+Number(p.price).toFixed(2);
-  document.getElementById('pSold').textContent = p.sold || (150 + (i*53)%120);
   const profit = p.price - p.cost;
   countUp(document.getElementById('pProfit'), 0, profit, 700, v=>'$'+v.toFixed(2));
   document.getElementById('pMargin').textContent = Math.round(profit/p.price*100)+'% margin';
@@ -2519,15 +2518,31 @@ function enterPick(){
   fillPick(PRODUCTS[0], 0);
   playTada();
   confettiBurst(window.innerWidth/2, 120, 70);
-  // live "sold today" ticker — little dopamine drips
-  soldTimer = setInterval(()=>{
-    if(current!=='s-pick') return;
-    const el = document.getElementById('pSold');
-    el.textContent = Number(el.textContent)+1;
-    const tick = document.getElementById('soldTick');
-    tick.classList.remove('tickup'); void tick.offsetWidth; tick.classList.add('tickup');
-    playPop(1.6);
-  }, 6500);
+  // "reserved today" ticker — REAL funnel data (unique visitors who reserved
+  // a product today, from /api/collect). Shown only once it's a real number;
+  // animates only when the real count actually increases.
+  refreshResvCount();
+  soldTimer = setInterval(()=>{ if(current==='s-pick') refreshResvCount(); }, 45000);
+}
+
+function refreshResvCount(){
+  fetch('/api/collect?live=1')
+    .then(r=>r.json())
+    .then(j=>{
+      if(!(j && j.ok)) return;
+      const n = Number(j.reserved_today || 0);
+      if(n < 3) return; // too quiet to be proof — leave it hidden, never fake it
+      const el = document.getElementById('pSold');
+      const prev = Number(el.textContent) || 0;
+      el.textContent = n;
+      document.getElementById('soldTick').style.visibility = 'visible';
+      if(prev && n > prev){
+        const tick = document.getElementById('soldTick');
+        tick.classList.remove('tickup'); void tick.offsetWidth; tick.classList.add('tickup');
+        playPop(1.6);
+      }
+    })
+    .catch(()=>{});
 }
 
 function pickSkip(){
@@ -2943,21 +2958,9 @@ function runGlam(p){
   document.getElementById('engineNote').textContent =
     'Example only — if you averaged ' + sales + ' sales/day at this margin. Not a prediction or guarantee.';
 
-  // reservation hold — 15 minutes, survives refresh
-  let end = 0;
-  try{ end = +localStorage.getItem('spai_resv_end') || 0; }catch(e){}
-  if(!end || end < Date.now()){
-    end = Date.now() + 15*60*1000;
-    try{ localStorage.setItem('spai_resv_end', end); }catch(e){}
-  }
-  const tEl = document.getElementById('resvTimer');
-  clearInterval(resvTick);
-  resvTick = setInterval(()=>{
-    const left = end - Date.now();
-    if(left <= 0){ tEl.textContent = '0:00'; clearInterval(resvTick); return; }
-    const m = Math.floor(left/60000), sec = Math.floor(left%60000/1000);
-    tEl.textContent = m + ':' + String(sec).padStart(2,'0');
-  }, 250);
+  // reservation hold — 15 minutes, survives refresh, and REALLY expires:
+  // at 0:00 the claim is disabled until they restore it (one extra tap).
+  dsStartResv(false);
 
   // ambient gold dust + coins dripping out of the phone
   let drips = 0;
@@ -3223,8 +3226,47 @@ function dsClosePay(){
   if(b) b.textContent = 'Claim My Store — $20 🔓';
 }
 
+/* 15-minute reservation with a REAL expiry. reset=true restarts the window. */
+let resvExpired = false;
+function dsStartResv(reset){
+  let end = 0;
+  try{ end = +localStorage.getItem('spai_resv_end') || 0; }catch(e){}
+  if(reset || !end || end < Date.now()){
+    end = Date.now() + 15*60*1000;
+    try{ localStorage.setItem('spai_resv_end', end); }catch(e){}
+  }
+  resvExpired = false;
+  const tEl = document.getElementById('resvTimer');
+  clearInterval(resvTick);
+  resvTick = setInterval(()=>{
+    const left = end - Date.now();
+    if(left <= 0){
+      clearInterval(resvTick);
+      resvExpired = true;
+      tEl.textContent = 'EXPIRED';
+      const b = document.querySelector('#claimBar .cta');
+      if(b) b.textContent = 'Restore My Reservation 🔓';
+      spLog('resv_expired');
+      return;
+    }
+    const m = Math.floor(left/60000), sec = Math.floor(left%60000/1000);
+    tEl.textContent = m + ':' + String(sec).padStart(2,'0');
+  }, 250);
+}
+
 function claimStore(e){
-  if(claimed) return; claimed = true;
+  if(claimed) return;
+  // Expired hold: first tap restores the reservation (real consequence,
+  // recoverable) — checkout opens on the next, informed tap.
+  if(resvExpired){
+    dsStartResv(true);
+    const b = document.querySelector('#claimBar .cta');
+    if(b) b.textContent = 'Claim My Store — $20 🔓';
+    showToast('✅','Reservation restored — 15:00 on the clock');
+    spLog('resv_restored');
+    return;
+  }
+  claimed = true;
   spLog('claim_click');
   initAudio(); playCoin(); playTada();
   const btn = e.target;
@@ -3702,6 +3744,7 @@ function lsAddonsGo(){
         // by the time they open their delivery page from s-done
         try{ localStorage.setItem('spai_emails_cs', j.pi); }catch(e){}
         fetch('/api/emailpack?cs=' + encodeURIComponent(j.pi)).catch(()=>{});
+        spLead('emails', userEmail || null, j.pi); // → %EMAILS_LINK% + SPAI Email Pack list (delivery email)
       }
       setTimeout(()=>dsFinalize({}), 1100);
       return;
