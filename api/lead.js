@@ -221,6 +221,36 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, dry, mode: 'auto', paid1, paid299, found, results });
       }
 
+      if((req.query || {}).emailsweep){
+        // key-gated safety net: scan recent Stripe charges for profit_emails
+        // purchases and (re)stamp %EMAILS_LINK% + SPAI Email Pack for each —
+        // catches pre-feature buyers and any browser-side misses. Idempotent.
+        if(req.query.emailsweep !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+        const sk = process.env.STRIPE_SECRET_KEY || '';
+        if(!sk) return res.status(200).json({ ok:false, status:'no_stripe_key' });
+        const r = await fetch('https://api.stripe.com/v1/payment_intents?limit=100', {
+          headers: { Authorization: 'Bearer ' + sk } });
+        const j = await r.json().catch(() => ({}));
+        const buyers = ((j && j.data) || []).filter(p => p.status === 'succeeded' &&
+          p.metadata && p.metadata.type === 'store_addons' &&
+          String(p.metadata.items || '').split(',').map(s => s.trim()).includes('profit_emails'));
+        const fid = await emailsField();
+        const lid = await emailsList();
+        const done = [];
+        for(const p of buyers){
+          const em = String(p.metadata.email || '').toLowerCase();
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ done.push({ pi: p.id, status: 'no_email' }); continue; }
+          const contact = { email: em };
+          if(fid) contact.fieldValues = [{ field: fid,
+            value: 'https://sellproducts.ai/emails?cs=' + encodeURIComponent(p.id) }];
+          const sync = await ac('/api/3/contact/sync', 'POST', { contact });
+          const cid = sync.ok && sync.j.contact ? sync.j.contact.id : null;
+          if(cid && lid) await ac('/api/3/contactLists', 'POST', { contactList: { list: lid, contact: cid, status: 1 } });
+          done.push({ pi: p.id, email: em.replace(/^(..).*(@.*)$/, '$1***$2'), stamped: !!(cid && fid), listed: !!(cid && lid) });
+        }
+        return res.status(200).json({ ok:true, found: buyers.length, processed: done });
+      }
+
       if((req.query || {}).dsraw){
         // key-gated: hit DropStart /verify-checkout DIRECTLY and return its raw
         // verdict — tells us whether DS verifies sessions it didn't create.
