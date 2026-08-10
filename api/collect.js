@@ -151,7 +151,7 @@ module.exports = async (req, res) => {
         const E = n => uniq(e => e.e === n);
         const steps = {};
         ['s-landing','s-intro','s-q1','s-q2','s-q3','s-q4','s-q5','s-reality','s-blueprint',
-         's-scan','s-pick','s-email','s-build','s-preview','s-upsell'].forEach(id => steps[id] = S(id));
+         's-cost','s-scan','s-pick','s-email','s-build','s-preview','s-upsell'].forEach(id => steps[id] = S(id));
         return res.status(200).json({
           ok: true, days, totalEvents: evs.length,
           visitors: new Set(evs.map(e => e.sid)).size,

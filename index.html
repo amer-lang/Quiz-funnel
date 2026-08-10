@@ -1645,7 +1645,7 @@ window.dsFire('PageView');
       <div class="cost-card" id="cc2">
         <div class="cost-top"><span class="cost-ico">🌐</span><b>Shopify — hosts your store, runs checkout, processes every order</b></div>
         <div class="cost-price"><span class="grad-text">$1<span class="cost-per" style="font-size:1rem">/mo</span></span><span class="cost-per">your first 3 months</span></div>
-        <p class="cost-sub">Then $39/mo · <b>cancel anytime</b>, no contract · paid to Shopify, not us. That's the entire internet-side of your business.</p>
+        <p class="cost-sub"><b>Cancel anytime</b>, no contract · paid to Shopify, not us. That's the entire internet-side of your business.</p>
       </div>
 
       <div class="cost-total" id="ccTotal">
@@ -1656,7 +1656,7 @@ window.dsFire('PageView');
 
       <button class="cta gold pulse" onclick="startScan(event)">$21? Let's find my product 🔍</button>
       <p class="cta-note">The AI will match products to <b>your 5 answers</b></p>
-      <p class="disclaim" style="margin-top:8px">Your only other costs are ones you choose later (like any advertising you decide to run). Supplier products are paid per-order, only after a customer pays you first.</p>
+      <p class="disclaim" style="margin-top:8px">After your first 3 months, Shopify's standard hosting is $39/mo — cancel anytime. Your only other costs are ones you choose later (like any advertising you decide to run). Supplier products are paid per-order, only after a customer pays you first.</p>
     </section>
 
     <!-- ======================= 9 · AI SCAN ======================= -->
@@ -2126,6 +2126,15 @@ const DS_LIVE = true;
 // (checkout + upsell + go-live) runs on Stripe TEST keys — 4242 4242 4242 4242
 // works, nothing real is charged. Leave the URL param off for live payments.
 const DS_TEST = (new URLSearchParams(location.search).get('test')) || '';
+// Unlimited-stores link: ?unlimited=<signed token> marks this session as an
+// unlimited buyer → the store unlocks free (client billed $2.50), verified by our
+// backend at claim. Persisted so it survives the build round-trip. TG12106.
+let dsUnlimited = '';
+try{
+  const _u = new URLSearchParams(location.search).get('unlimited');
+  if(_u){ dsUnlimited = _u; localStorage.setItem('spai_unlimited', _u); }
+  else{ dsUnlimited = localStorage.getItem('spai_unlimited') || ''; }
+}catch(e){}
 
 // Products are loaded from products.json (manage them in admin.html).
 // If the fetch fails (e.g. previewing the file directly), these defaults show.
@@ -2989,6 +2998,27 @@ function runPreview(){
   vibrate([16,60,16]);
 
   runGlam(p);
+  dsApplyUnlimitedUi();
+}
+
+/* If the buyer owns Unlimited, reflect FREE on the claim bar before they click —
+   a silent entitlement check; on any non-entitled result or error it leaves the
+   normal $20 UI untouched. The actual free unlock still happens in claimStore. TG12114. */
+function dsApplyUnlimitedUi(){
+  if(!DS_LIVE || !dsBuild || !dsBuild.project_id) return;
+  const body = { project_id: dsBuild.project_id, email: userEmail || '', unlimited_token: dsUnlimited || '', check: 1 };
+  if(DS_TEST) body.test = DS_TEST;
+  fetch(DS_API + '/unlimited-claim', {
+    method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    body: JSON.stringify(body)
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    if(!(j && j.ok && j.unlimited)) return; // not entitled → keep the normal $20 UI
+    document.querySelectorAll('[onclick*="claimStore"]').forEach(function(b){ b.textContent = 'Claim Your Store — FREE 🔓'; });
+    const ps = document.querySelector('#claimBar .price-slash'); if(ps) ps.style.display = 'none';
+  })
+  .catch(function(){});
 }
 
 /* ---- the FOMO layer: personalized dream math, reservation timer,
@@ -3336,6 +3366,40 @@ function claimStore(e){
   window.dsFire && window.dsFire('InitiateCheckout', { value: 20, currency: 'USD' },
     'ic_' + ((dsBuild && dsBuild.project_id) || dsCid()));
 
+  // UNLIMITED buyers unlock this store FREE — checked with OUR backend BEFORE any
+  // $20 checkout. Signed link token = primary (survives a mistyped/different email),
+  // submitted email = fallback. Entitled → unlock the store they just built + bill
+  // the client $2.50, skip checkout, go to go-live. Not entitled / any error →
+  // normal $20 flow (dsPaidClaim). TG12106.
+  if(DS_LIVE && dsBuild && dsBuild.project_id){
+    const ub = { project_id: dsBuild.project_id, email: userEmail || '', unlimited_token: dsUnlimited || '' };
+    if(DS_TEST) ub.test = DS_TEST;
+    fetch(DS_API + '/unlimited-claim', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      body: JSON.stringify(ub)
+    })
+    .then(r=>r.json())
+    .then(j=>{
+      if(j && j.ok && j.unlimited){
+        spLog('claim_unlimited', dsBuild.project_id);
+        playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.5, 120);
+        showToast('♾️','Unlimited plan — this store is included!');
+        if(j.resume_url) dsResumeUrl = j.resume_url;
+        spLead('unlimited', userEmail, ''); // ActiveCampaign: unlimited stage
+        go('s-done');
+        return;
+      }
+      dsPaidClaim(btn); // not entitled → normal $20 checkout
+    })
+    .catch(()=>{ dsPaidClaim(btn); });
+    return;
+  }
+  dsPaidClaim(btn);
+}
+
+/* The paid ($20) claim — extracted so the unlimited pre-check above can fall
+   through to it. Body is the prior claimStore checkout logic, unchanged. */
+function dsPaidClaim(btn){
   // $20 one-time unlock: charge on OUR Stripe (no DropStart checkout).
   if(PRICE20 && DS_LIVE && dsBuild && dsBuild.project_id){
     fetch('/api/unlock20', {
@@ -3674,18 +3738,18 @@ let costRan = false;
 function runCost(){
   if(costRan) return; costRan = true;
   initAudio();
-  setTimeout(()=>{ document.getElementById('cc1').classList.add('show'); playPop(1.0); vibrate(10); }, 350);
-  setTimeout(()=>{ document.getElementById('cc2').classList.add('show'); playPop(1.2); vibrate(10); }, 1050);
+  setTimeout(()=>{ document.getElementById('cc1').classList.add('show'); playPop(1.0); vibrate(10); }, 250);
+  setTimeout(()=>{ document.getElementById('cc2').classList.add('show'); playPop(1.2); vibrate(10); }, 700);
   setTimeout(()=>{
     document.getElementById('ccTotal').classList.add('show');
     const el = document.getElementById('ctNum');
-    countUp(el, 0, 21, 900, v=>'$'+Math.round(v));
+    countUp(el, 0, 21, 700, v=>'$'+Math.round(v));
     setTimeout(()=>{
       const r = el.getBoundingClientRect();
       coinCannon(r.left + r.width/2, r.top);
       playCoin(); playDing(); vibrate([15,50,15]);
-    }, 900);
-  }, 1900);
+    }, 700);
+  }, 1250);
 }
 
 function lsApplyNames(){
