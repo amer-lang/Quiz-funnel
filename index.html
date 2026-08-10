@@ -1174,6 +1174,32 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
    FX LAYERS
    ============================================================ */
 #fx{position:fixed;inset:0;z-index:80;pointer-events:none}
+/* ==========================================================
+   COST REVEAL (s-cost)
+   ========================================================== */
+.cost-card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 17px;margin-bottom:12px;text-align:left;
+  opacity:0;transform:translateY(18px) scale(.98);transition:all .5s cubic-bezier(.22,1,.36,1);
+}
+.cost-card.show{opacity:1;transform:none}
+.cost-top{display:flex;gap:10px;align-items:flex-start;font-size:.9rem;line-height:1.45}
+.cost-ico{font-size:1.3rem;flex:none}
+.cost-price{display:flex;align-items:baseline;gap:9px;margin:9px 0 4px 0;font-size:2rem;font-weight:800;letter-spacing:-.02em}
+.cost-per{font-size:.72rem;color:var(--muted);font-weight:700}
+.cost-sub{font-size:.78rem;color:var(--muted);line-height:1.55}
+.cost-sub b{color:#EADFC3}
+.cost-total{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  border:2px dashed rgba(255,201,60,.5);border-radius:var(--radius);
+  background:rgba(255,201,60,.06);padding:14px 16px;margin:4px 0 6px;
+  opacity:0;transform:scale(.94);transition:all .5s cubic-bezier(.34,1.56,.64,1);
+}
+.cost-total.show{opacity:1;transform:none}
+.ct-label{font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ct-num{font-size:2.7rem;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.ct-note{font-size:.72rem;color:var(--muted);font-weight:600}
+
 /* ============================================================
    LAUNCH SEQUENCE (post-purchase)
    ============================================================ */
@@ -1590,7 +1616,7 @@ window.dsFire('PageView');
           <div class="bp-rail"><div class="bp-dot">🚀</div></div>
           <div class="bp-card">
             <b>3 · Love it? Claim it &amp; go live</b>
-            <p>Claim it for a <strong>one-time $20</strong> — no subscription — and it's live on Shopify, taking orders.</p>
+            <p>Claim it for a <strong>one-time $20</strong> — no subscription to us — and it's live on Shopify ($1/mo hosting), taking orders.</p>
             <span class="tag gold">You're officially in business</span>
           </div>
         </div>
@@ -1601,8 +1627,36 @@ window.dsFire('PageView');
         <p><b>You see your finished store BEFORE you pay.</b> Don't love it? You walk — no charge.</p>
       </div>
 
-      <button class="cta gold pulse" onclick="startScan(event)">Fire Up The AI 🤖</button>
+      <button class="cta gold pulse" onclick="go('s-cost')">Okay — what's this gonna cost me? 💰</button>
+      <p class="cta-note">Fair question. Full breakdown, nothing hidden 👇</p>
+    </section>
+
+    <!-- ======================= 9b · THE FULL COST (asked-for reveal) ======================= -->
+    <section class="screen" id="s-cost">
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> THE FULL COST · NO SURPRISES</div>
+      <h2>Everything it takes to<br><span class="grad-text">open your store:</span></h2>
+
+      <div class="cost-card" id="cc1">
+        <div class="cost-top"><span class="cost-ico">🤖</span><b>Us — find your winning product + build your entire store</b></div>
+        <div class="cost-price"><span class="gold-text">$20</span><span class="cost-per">one-time</span></div>
+        <p class="cost-sub">And you see your store <b>fully built before you pay</b>. Don't love it? You never pay a cent.</p>
+      </div>
+
+      <div class="cost-card" id="cc2">
+        <div class="cost-top"><span class="cost-ico">🌐</span><b>Shopify — hosts your store, runs checkout, processes every order</b></div>
+        <div class="cost-price"><span class="grad-text">$1<span class="cost-per" style="font-size:1rem">/mo</span></span><span class="cost-per">your first 3 months</span></div>
+        <p class="cost-sub">Then $39/mo · <b>cancel anytime</b>, no contract · paid to Shopify, not us. That's the entire internet-side of your business.</p>
+      </div>
+
+      <div class="cost-total" id="ccTotal">
+        <span class="ct-label">Total to get started today</span>
+        <span class="ct-num gold-text" id="ctNum">$0</span>
+        <span class="ct-note">That's the whole thing. No other fees from us — ever.</span>
+      </div>
+
+      <button class="cta gold pulse" onclick="startScan(event)">$21? Let's find my product 🔍</button>
       <p class="cta-note">The AI will match products to <b>your 5 answers</b></p>
+      <p class="disclaim" style="margin-top:8px">Your only other costs are ones you choose later (like any advertising you decide to run). Supplier products are paid per-order, only after a customer pays you first.</p>
     </section>
 
     <!-- ======================= 9 · AI SCAN ======================= -->
@@ -1913,7 +1967,7 @@ window.dsFire('PageView');
         </div>
         <div class="done-step" id="dn2">
           <span class="n">2</span>
-          <p><b>Complete the <span class="gold-b">$20 unlock</span></b> — one-time payment, no subscription. The store is yours.</p>
+          <p><b>Complete the <span class="gold-b">$20 unlock</span></b> — one-time payment, no subscription to us. The store is yours.</p>
         </div>
         <div class="done-step" id="dn3">
           <span class="n">3</span>
@@ -2098,6 +2152,7 @@ const PROGRESS = {
   's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-upsell':99,'s-upsell-ads':99,
   's-launch1':99,'s-seo':99,'s-addons':99,'s-done':100
 };
+PROGRESS['s-cost'] = 76;
 
 function setBar(id){
   document.getElementById('bar').style.width = (PROGRESS[id]||4)+'%';
@@ -2144,6 +2199,7 @@ function onEnter(id){
   if(id==='s-dropship') runDropship();
   if(id==='s-reality') runReality();
   if(id==='s-blueprint') runBlueprint();
+  if(id==='s-cost') runCost();
   if(id==='s-pick') enterPick();
   if(id==='s-build') runBuild();
   if(id==='s-preview') runPreview();
@@ -3612,6 +3668,26 @@ function dsFinalize(extra){
 /* ============================================================
    LAUNCH SEQUENCE — post-purchase flow logic
    ============================================================ */
+/* Cost reveal: they ASKED what it costs — answer like a payoff. Cards stagger
+   in, then the total counts up to $21 with a coin pop. */
+let costRan = false;
+function runCost(){
+  if(costRan) return; costRan = true;
+  initAudio();
+  setTimeout(()=>{ document.getElementById('cc1').classList.add('show'); playPop(1.0); vibrate(10); }, 350);
+  setTimeout(()=>{ document.getElementById('cc2').classList.add('show'); playPop(1.2); vibrate(10); }, 1050);
+  setTimeout(()=>{
+    document.getElementById('ccTotal').classList.add('show');
+    const el = document.getElementById('ctNum');
+    countUp(el, 0, 21, 900, v=>'$'+Math.round(v));
+    setTimeout(()=>{
+      const r = el.getBoundingClientRect();
+      coinCannon(r.left + r.width/2, r.top);
+      playCoin(); playDing(); vibrate([15,50,15]);
+    }, 900);
+  }, 1900);
+}
+
 function lsApplyNames(){
   const prod = (chosen && chosen.name) || 'your product';
   const brand = (dsBuild && dsBuild.store_name) || prod.split(' ')[0] || 'Your store';
@@ -4214,7 +4290,7 @@ if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20
         <b style="font-size:.95rem;color:#0d0e12;">AI Store Unlock</b>
         <span style="font-weight:800;color:#0d0e12;">$20.00</span>
       </div>
-      <p style="font-size:.74rem;color:#6b7280;margin:4px 0 14px;">One-time — no subscription, nothing renews.</p>
+      <p style="font-size:.74rem;color:#6b7280;margin:4px 0 14px;">One-time — no subscription to us, nothing renews. Goes live on Shopify hosting: $1/mo for your first 3 months, then $39/mo — paid to Shopify, cancel anytime.</p>
       <div id="dsPay20Element" style="min-height:120px;margin-bottom:14px;"></div>
       <button id="dsPay20Btn" onclick="dsPay20Go()" style="width:100%;border:none;border-radius:9px;background:#0d0e12;color:#fff;font-weight:800;font-size:.95rem;padding:13px;cursor:pointer;">Pay $20.00 🔓</button>
       <div id="dsPay20Err" style="display:none;color:#b91c1c;font-size:.78rem;font-weight:600;text-align:center;margin-top:8px;"></div>
