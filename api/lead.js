@@ -90,7 +90,32 @@ const OK_ORIGINS = /^https:\/\/(www\.)?sellproducts\.ai$/;
    confirms as PAID. Presence of return-URL params is NOT proof of payment —
    failed charges can bounce back through the same URLs. */
 async function verifyPaid(cs){
-  if(!cs || typeof cs !== 'string' || cs.length > 300) return { paid: false, projectId: null };
+  if(!cs || typeof cs !== 'string' || cs.length > 300) return { paid: false, projectId: null, type: '', items: '' };
+  // STRIPE FIRST. All current charges live on our account and carry
+  // metadata.type — and type-gated logic (ADS_LINK, EMAILS_LINK) depends on
+  // it. The old DS-first order caused a silent regression: DS answers "paid"
+  // for our ids too (shared Stripe account) but returns NO type, so the
+  // ads-link write was skipped while the list subscribe went through —
+  // delivery emails with an empty %ADS_LINK%. TG12147.
+  try{
+    const sk = process.env.STRIPE_SECRET_KEY || '';
+    if(sk){
+      const isPi = /^pi_/.test(cs);
+      const r2 = await fetch('https://api.stripe.com/v1/' + (isPi ? 'payment_intents/' : 'checkout/sessions/') + encodeURIComponent(cs), {
+        headers: { Authorization: 'Bearer ' + sk }
+      });
+      const s = await r2.json().catch(() => ({}));
+      const paidOk = isPi ? s.status === 'succeeded' : s.payment_status === 'paid';
+      const ty = (s.metadata && s.metadata.type) || '';
+      if(r2.ok && paidOk &&
+         (ty === 'image_ads_10' || ty === 'store_unlock20' || ty === 'video_ads_5' || ty === 'store_addons')){
+        return { paid: true, projectId: (s.metadata && s.metadata.project_id) || null,
+          type: ty, items: (s.metadata && s.metadata.items) || '' };
+      }
+    }
+  }catch(err){ /* fall through to the DS check */ }
+  // Fallback: DropStart-created sessions (legacy $1/$299 flows) — DS knows
+  // their paid state but not our SKU types, so type stays empty here.
   try{
     const r = await fetch(DS_API + '/verify-checkout', {
       method: 'POST',
@@ -98,30 +123,9 @@ async function verifyPaid(cs){
       body: JSON.stringify({ cs })
     });
     const j = await r.json().catch(() => ({}));
-    // Also return the verified store id so callers can build the buyer's durable
-    // activation link (…/?resume=<id>) straight from the paid session.
-    if(j && j.ok && j.paid) return { paid: true, projectId: (j && j.project_id) || null };
-  }catch(err){ /* fall through to the Stripe check */ }
-  // Our own Stripe charges (not the payment backend above) — a Checkout
-  // Session (cs_…) from a fallback popup or a PaymentIntent (pi_…) from a
-  // one-click charge: the $20 unlock, the $49 image pack, or the $299 video
-  // pack. Verify directly with Stripe; only PAID + our metadata counts.
-  // Fail CLOSED. The type is returned so callers can branch on the SKU.
-  try{
-    const sk = process.env.STRIPE_SECRET_KEY || '';
-    if(!sk) return { paid: false, projectId: null, type: '' };
-    const isPi = /^pi_/.test(cs);
-    const r2 = await fetch('https://api.stripe.com/v1/' + (isPi ? 'payment_intents/' : 'checkout/sessions/') + encodeURIComponent(cs), {
-      headers: { Authorization: 'Bearer ' + sk }
-    });
-    const s = await r2.json().catch(() => ({}));
-    const paidOk = isPi ? s.status === 'succeeded' : s.payment_status === 'paid';
-    const ty = (s.metadata && s.metadata.type) || '';
-    const paid = r2.ok && paidOk &&
-      (ty === 'image_ads_10' || ty === 'store_unlock20' || ty === 'video_ads_5' || ty === 'store_addons');
-    return { paid, projectId: (paid && s.metadata && s.metadata.project_id) || null,
-      type: paid ? ty : '', items: (paid && s.metadata && s.metadata.items) || '' };
-  }catch(err){ return { paid: false, projectId: null, type: '', items: '' }; }
+    if(j && j.ok && j.paid) return { paid: true, projectId: (j && j.project_id) || null, type: '', items: '' };
+  }catch(err){}
+  return { paid: false, projectId: null, type: '', items: '' };
 }
 
 async function ac(path, method, body){
