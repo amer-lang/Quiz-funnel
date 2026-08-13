@@ -41,33 +41,32 @@ function blobOpts(extra){
    buyer's product photo is passed as the reference image for all of them. */
 const ADS = [
   { size: '1024x1024', label: 'Clean Studio', style:
-    'Minimal bright studio ad: the product hero-lit on a clean white-to-light-gray backdrop with a soft realistic shadow, generous negative space, a bold modern sans-serif headline "50% OFF" and a small black pill button reading "SHOP NOW".' },
+    'Premium white-studio hero shot. Background: seamless white sweeping to very light gray #F3F4F6. The product is the star at about 60% of frame height, positioned right-of-center on the rule of thirds, lit by a large soft key light with a crisp natural contact shadow and a faint floor reflection. In the upper-left negative space, the headline "50% OFF" in a very bold modern geometric sans-serif, near-black #111111, on two stacked lines. Below the headline, a solid black rounded pill button with white text "SHOP NOW". Balanced, expensive, Apple-ad-level restraint.' },
   { size: '1024x1024', label: 'Black & Gold', style:
-    'Luxury ad: the product on a deep matte-black backdrop with elegant gold rim lighting, thin gold frame lines in the corners, refined serif text "LIMITED EDITION" at the top and a small gold-outlined button reading "SHOP NOW".' },
+    'Luxury editorial ad. Background: deep matte black #0A0A0A with a subtle radial vignette. The product centered, sculpted by warm golden rim light along both edges, standing on a glossy black surface with a soft gold-tinted reflection. A thin elegant gold hairline rectangle frames the composition, inset well inside the canvas so it is fully visible. Top-center inside the frame: "LIMITED EDITION" in refined letterspaced gold serif capitals. Bottom-center: a slim gold-outlined pill button "SHOP NOW". Faint golden dust particles in the dark background. Quiet, expensive, dramatic.' },
   { size: '1024x1024', label: 'Flash Sale', style:
-    'High-energy sale ad: the product popping off a vivid red-to-orange diagonal gradient, dynamic angled white banner shouting "FLASH SALE", a smaller badge reading "TODAY ONLY", bold drop shadows, energetic retail style.' },
+    'High-energy retail sale ad. Background: vivid red #E11D48 to orange #F97316 diagonal gradient with subtle radial burst rays. The product pops forward sticker-style with a clean bold white outline and a hard offset drop shadow, tilted 5 degrees for energy. Across the upper third, a slightly angled solid-white banner with huge red block letters "FLASH SALE". Near it a small yellow starburst badge with black text "TODAY ONLY". A few tiny confetti flecks. Loud, urgent, but professionally art-directed — zero clutter.' },
   { size: '1024x1024', label: 'Brand Gradient', style:
-    'Modern e-commerce ad: the product floating with a soft levitation shadow over a smooth electric-blue #3B82F6 to emerald-green #22C55E gradient, subtle glow behind the product, a clean white badge reading "FREE SHIPPING".' },
+    'Modern DTC brand ad. Background: smooth 135-degree gradient from electric blue #3B82F6 to emerald green #22C55E. The product floats weightlessly at center with a soft glowing halo behind it and a gentle levitation shadow far below. Bottom-center: a clean white rounded badge with dark text "FREE SHIPPING". Minimal, glossy, futuristic e-commerce aesthetic with generous breathing room around the product.' },
   { size: '1024x1024', label: 'Customer Favorite', style:
-    'Social-proof ad: the product on a warm cream card-style background, a row of five gold stars above it, understated text "CUSTOMER FAVORITE" in tasteful small caps, soft shadows, trustworthy premium feel.' },
+    'Warm social-proof ad. Background: soft cream #F7F3EC with a subtle large rounded-card feel. Centered composition: a neat horizontal row of five glossy gold five-pointed stars above the product, and beneath the product the words "CUSTOMER FAVORITE" in tasteful small-caps charcoal lettering with wide letterspacing. Soft warm daylight, gentle realistic shadow. Calm, trustworthy, premium boutique feel.' },
   { size: '1024x1024', label: 'Lifestyle', style:
-    'Cozy lifestyle ad: the product staged naturally in a beautiful warmly-lit modern home interior scene (shelf, table or countertop that suits the product), golden-hour window light, a small white corner tag reading "NEW".' },
+    'Editorial lifestyle photograph. The product staged naturally in a beautiful bright modern home setting that genuinely suits it (kitchen counter, desk, shelf or nightstand), styled with two or three tasteful real props, golden-hour sunlight streaming from a window with soft shadows, shallow depth of field with a creamy background blur. In one upper corner, a small clean white rectangular tag with black text "NEW". Looks shot for a premium interiors magazine.' },
   { size: '1024x1536', label: 'Tonight Only', style:
-    'Urgent story ad: the product spotlighted on deep dark navy with electric neon-blue glow accents, bold glowing headline "SALE ENDS TONIGHT" and a bright pill button reading "SHOP NOW" near the bottom, dramatic nighttime energy.' },
+    'Urgent nighttime story ad. Background: deep dark navy #0B1120. A theatrical spotlight cone shines down on the product at center, with an electric neon-blue glow ring on the floor beneath it and soft blue ambient haze. In the upper third: the glowing headline "SALE ENDS TONIGHT" in bold condensed uppercase with a neon-blue outer glow, split across two lines. In the lower area: a bright solid blue pill button with white text "SHOP NOW". Cinematic, dramatic, midnight-drop energy.' },
   { size: '1024x1536', label: 'Just Dropped', style:
-    'Minimal pastel story ad: the product centered on a soft pastel backdrop with one simple geometric arch shape behind it, airy negative space, small refined text "JUST DROPPED" at the top, gentle studio shadow.' },
+    'Minimal pastel story ad. Background: soft sage or blush pastel with ONE simple tall geometric arch shape in a slightly deeper tone directly behind the product. The product rests on a low matte pedestal at center with a soft studio shadow. Top-center: "JUST DROPPED" in refined dark small-caps with wide letterspacing. Enormous airy negative space, gallery-like calm, high-end minimalist design.' },
   { size: '1024x1536', label: 'Big Type', style:
-    'Bold typographic story ad: oversized cropped "-50%" typography layered BEHIND the product in a high-contrast duotone palette, the product overlapping the letters, strong modern editorial design, small "SHOP NOW" button at the bottom.' },
+    'Bold editorial typography story ad in a striking two-color duotone. The oversized text "-50%" is set in ultra-heavy type filling the middle of the composition, with the ENTIRE text fully visible — every character complete with clear space around it, nothing running past any edge. The product stands in front, overlapping the lower half of the letters, creating crisp depth. High-contrast palette (for example off-white background, ink-black type). At the bottom-center: a small solid chip button "SHOP NOW". Fashion-magazine layout discipline.' },
   { size: '1024x1536', label: 'Perfect Gift', style:
-    'Gift-theme story ad: the product presented like a premium gift with a subtle ribbon element and soft golden bokeh lights in the background, headline "THE PERFECT GIFT" in elegant type, warm celebratory mood, small "SHOP NOW" pill.' }
+    'Premium gift story ad. The product presented on a soft elevated surface beside an elegant curl of satin ribbon (next to the product, never covering it), against a warm dark background filled with soft golden bokeh lights. Top area: "THE PERFECT GIFT" in elegant cream serif capitals on two lines. Bottom: a small warm-gold pill button "SHOP NOW". Rich, celebratory, holiday-luxury mood.' }
 ];
 
 const PROMPT = (name, style) => (
-  'A professional social-media image advertisement featuring the exact product from the reference image (' + name + '). ' +
-  style + ' ' +
-  'Photorealistic product rendering true to the reference, polished commercial retouching, crisp lighting, ' +
-  'zero clutter, agency-quality composition. The ONLY text in the image is the short phrases specified above — ' +
-  'no other words, no watermarks, no logos, no browser UI, no people.'
+  'Design a premium social-media advertisement image. ' +
+  'THE PRODUCT — reproduce the product from the attached reference photo with EXACT fidelity: identical shape, proportions, colors, materials, buttons, ports, labels and any screens or control panels. Never redraw, restyle or decorate the product. Never add icons, symbols, graphics or text onto the product or its display — if the product has a screen or panel, it must look exactly as it does in the reference. The result must read as the same physical item professionally re-photographed for an ad. Product: ' + name + '. ' +
+  'THE AD — ' + style + ' ' +
+  'HARD RULES — (1) SAFE MARGINS: every text element, badge, button, frame and the product itself must sit fully inside the canvas with at least 10% padding from every edge; nothing may touch, bleed past, or be cut off by any edge of the image. (2) TEXT: render ONLY the short phrases quoted above, spelled EXACTLY as written, in genuinely professional typography — no other words anywhere. (3) QUALITY: photorealistic commercial product photography with flawless retouching, controlled lighting and agency-grade composition. (4) NEVER include watermarks, third-party logos, browser or app UI, people, or clutter.'
 );
 
 let catCache = null, catAt = 0;
@@ -129,7 +128,7 @@ async function generate(name, spec, imgUrl){
     fd.append('image', new Blob([buf], { type: ct }), 'product.' + (ct.includes('webp') ? 'webp' : ct.includes('jpeg') ? 'jpg' : 'png'));
     fd.append('prompt', PROMPT(name, spec.style));
     fd.append('size', spec.size);
-    fd.append('quality', 'medium');
+    fd.append('quality', 'high');
     fd.append('output_format', 'webp');
     fd.append('output_compression', '85');
     const r = await fetch('https://api.openai.com/v1/images/edits', {
@@ -143,7 +142,7 @@ async function generate(name, spec, imgUrl){
       method: 'POST',
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'gpt-image-1', prompt: PROMPT(name, spec.style), size: spec.size,
-        quality: 'medium', output_format: 'webp', output_compression: 85 })
+        quality: 'high', output_format: 'webp', output_compression: 85 })
     });
     out = await r.json();
     if(!r.ok || !out.data || !out.data[0] || !out.data[0].b64_json){
@@ -228,6 +227,19 @@ module.exports = async (req, res) => {
     }
 
     const st = await orderState(key);
+
+    /* ---- key-gated: wipe an order's cached ads so they regenerate under
+       the current (upgraded) prompts on the buyer's next /ads visit ---- */
+    if(q.redo){
+      if(q.redo !== READ_KEY) return res.status(403).json({ ok:false });
+      const { del } = await import('@vercel/blob');
+      const base = 'adsorder/' + key + '/';
+      const targets = Object.keys(st.ads).map(i => base + 'ad-' + i + '.webp')
+        .concat(Object.keys(st.pending).map(i => base + '.pending-' + i));
+      for(const t of targets) await del(t, blobOpts()).catch(() => {});
+      return res.status(200).json({ ok:true, cleared: targets.length,
+        note: 'open /ads?cs=<order> (or hit &make=1 repeatedly) to regenerate with the new prompts' });
+    }
 
     /* ---- status ---- */
     if(q.status === '1'){
