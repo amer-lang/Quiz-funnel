@@ -217,7 +217,7 @@ canvas{width:100%;display:block}
    To change the password: open the browser console on this page and run
      sha256('your-new-password').then(console.log)
    then replace PW_HASH below with the printed value. */
-const PW_HASH = '8927f78d8e1888c18bc3d447f27a84196a621c6a5fe59a9993815669a601f63e';
+const PW_HASH = '0fc8dcbe03a846e1e2df4835edf18b5b485074a68bcbbb5481a3bbc5347938f4';
 async function sha256(s){
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('');
