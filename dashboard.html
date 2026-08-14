@@ -401,9 +401,16 @@ async function loadStripeMetrics(){
     const rkey = (()=>{ try{ return sessionStorage.getItem('spdash_rkey') || ''; }catch(e){ return ''; } })();
     if(!rkey){ box.innerHTML = '<div class="note">Re-enter the password to load Stripe data.</div>'; stripeBusy=false; return; }
     const days = RANGE_DAYS > 0 ? RANGE_DAYS : 90;
-    const r = await fetch('/api/metrics?key=' + rkey + '&days=' + days, { cache:'no-store' });
-    const j = await r.json();
-    if(!(j && j.ok)){ box.innerHTML = '<div class="note">Stripe metrics error: ' + ((j && j.error) || r.status) + '</div>'; stripeBusy=false; return; }
+    box.innerHTML = '<div class="note">Counting every sale in Stripe — first load takes ~20 seconds…</div>';
+    let r = null, j = null;
+    for(let attempt = 0; attempt < 2 && !(j && j.ok); attempt++){
+      if(attempt) box.innerHTML = '<div class="note">Stripe took long — retrying (the second pass is instant)…</div>';
+      try{
+        r = await fetch('/api/metrics?key=' + rkey + '&days=' + days, { cache:'no-store' });
+        j = await r.json();
+      }catch(e){ j = null; }
+    }
+    if(!(j && j.ok)){ box.innerHTML = '<div class="note">Stripe metrics error: ' + ((j && j.error) || (r && r.status) || 'network') + ' — switch ranges or refresh to retry.</div>'; stripeBusy=false; return; }
     const M = j.money;
     const $ = n => '$' + Number(n).toLocaleString(undefined, {maximumFractionDigits:2});
     const t = [
@@ -421,7 +428,9 @@ async function loadStripeMetrics(){
     ];
     box.innerHTML = t.map(x =>
       '<div class="tile ' + x[3] + '"><div class="k">' + x[0] + '</div><div class="v">' + (x[1] === '' ? x[2] : x[1]) + '</div><div class="s">' + (x[1] === '' ? (RANGE_DAYS ? 'last ' + days + ' days' : 'last 90 days') : x[2]) + '</div></div>').join('');
-    note.textContent = 'Source: Stripe · every paid session and one-click charge in the range, deduped · refunds are account-wide for the range · updated ' + new Date(j.generated_at).toLocaleTimeString();
+    note.textContent = 'Source: Stripe · every paid session and one-click charge in the range, deduped · refunds matched to this funnel’s sales'
+      + (M.refunds_account ? ' (account-wide incl. legacy/DropStart: ' + M.refunds_account.count + ' for ' + $(M.refunds_account.amount) + ')' : '')
+      + ' · updated ' + new Date(j.generated_at).toLocaleTimeString();
   }catch(e){
     box.innerHTML = '<div class="note">Could not reach /api/metrics.</div>';
   }

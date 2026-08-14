@@ -68,10 +68,13 @@ module.exports = async (req, res) => {
     const m = { unlock20: zero(), ads49: zero(), video299: zero(),
       seo29: zero(), emails29: zero(), video1_39: zero(), unlimited39: zero() };
     const add = (b, cents) => { b.count++; b.gross += cents; };
+    const ourPis = new Set(); // every PaymentIntent that belongs to THIS funnel's sales
 
     for(const s of sessions){
       if(s.payment_status !== 'paid' || !s.metadata) continue;
       const ty = s.metadata.type;
+      if((ty === 'store_unlock20' || ty === 'image_ads_10' || ty === 'video_ads_5') && s.payment_intent)
+        ourPis.add(s.payment_intent);
       if(ty === 'store_unlock20'){
         add(m.unlock20, 2000);
         // legacy in-checkout bump rode the same session as a 2nd line item
@@ -85,6 +88,8 @@ module.exports = async (req, res) => {
     for(const p of pis){
       if(p.status !== 'succeeded' || !p.metadata) continue;
       const ty = p.metadata.type;
+      if(ty === 'image_ads_10' || ty === 'video_ads_5' || ty === 'store_bump_unlimited' || ty === 'store_addons')
+        ourPis.add(p.id);
       if(ty === 'image_ads_10') add(m.ads49, p.amount || 4900);
       else if(ty === 'video_ads_5') add(m.video299, p.amount || 29900);
       else if(ty === 'store_bump_unlimited') add(m.unlimited39, p.amount || 3900);
@@ -101,7 +106,12 @@ module.exports = async (req, res) => {
     }
 
     const gross = Object.values(m).reduce((s, b) => s + b.gross, 0);
-    const refunded = refunds.reduce((s, r) => s + (r.amount || 0), 0);
+    /* This Stripe account also carries non-funnel activity (legacy SKUs,
+       DropStart's own charges), so refunds are split: "ours" are refunds whose
+       payment_intent matches one of this funnel's sales in the range. */
+    const ourRefunds = refunds.filter(r => r.payment_intent && ourPis.has(r.payment_intent));
+    const refunded = ourRefunds.reduce((s, r) => s + (r.amount || 0), 0);
+    const refundedAll = refunds.reduce((s, r) => s + (r.amount || 0), 0);
 
     const out = {
       ok: true, days, source: 'stripe', generated_at: new Date().toISOString(),
@@ -114,11 +124,12 @@ module.exports = async (req, res) => {
         unlimited39:{ count: m.unlimited39.count,gross: m.unlimited39.gross / 100 },
         video299:   { count: m.video299.count,   gross: m.video299.gross / 100 },
         gross: gross / 100,
-        refunds: { count: refunds.length, amount: refunded / 100 },
+        refunds: { count: ourRefunds.length, amount: refunded / 100 },
+        refunds_account: { count: refunds.length, amount: refundedAll / 100 },
         net: (gross - refunded) / 100,
         aov: m.unlock20.count ? Math.round((gross / 100) / m.unlock20.count * 100) / 100 : 0
       },
-      note: 'Counts and revenue read directly from Stripe (sessions + one-click charges, deduped by metadata shape). Refunds are account-wide for the range, not per-SKU.'
+      note: 'Counts and revenue read directly from Stripe (sessions + one-click charges, deduped by metadata shape). Refunds shown are matched to this funnel\'s own sales; the account total (incl. legacy/DropStart activity) is refunds_account.'
     };
     cache = out; cacheKey = ck; cacheAt = Date.now();
     return res.status(200).json(out);
