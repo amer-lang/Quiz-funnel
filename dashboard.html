@@ -421,6 +421,7 @@ async function loadStripeMetrics(){
       ['Video ad $39', M.video1_39.count, $(M.video1_39.gross), 'gold'],
       ['Unlimited $39', M.unlimited39.count, $(M.unlimited39.gross), 'gold'],
       ['Video pack $299', M.video299.count, $(M.video299.gross), 'gold'],
+      ...(M.legacy1 && M.legacy1.count ? [['Legacy $1 era', M.legacy1.count, $(M.legacy1.gross), '']] : []),
       ['Gross', '', $(M.gross), 'green'],
       ['Refunds', M.refunds.count, '-' + $(M.refunds.amount), ''],
       ['NET REVENUE', '', $(M.net), 'green'],
@@ -430,6 +431,7 @@ async function loadStripeMetrics(){
       '<div class="tile ' + x[3] + '"><div class="k">' + x[0] + '</div><div class="v">' + (x[1] === '' ? x[2] : x[1]) + '</div><div class="s">' + (x[1] === '' ? (RANGE_DAYS ? 'last ' + days + ' days' : 'last 90 days') : x[2]) + '</div></div>').join('');
     note.textContent = 'Source: Stripe · every paid session and one-click charge in the range, deduped · refunds matched to this funnel’s sales'
       + (M.refunds_account ? ' (account-wide incl. legacy/DropStart: ' + M.refunds_account.count + ' for ' + $(M.refunds_account.amount) + ')' : '')
+      + (j.days_missing ? ' · ⚠ ' + j.days_missing + ' day(s) failed to load — refresh to retry' : '')
       + ' · updated ' + new Date(j.generated_at).toLocaleTimeString();
   }catch(e){
     box.innerHTML = '<div class="note">Could not reach /api/metrics.</div>';
