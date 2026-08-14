@@ -51,6 +51,11 @@ function blobOpts(extra){
 
 const dayKey = t => new Date(t).toISOString().slice(0, 10);
 
+/* private store: blob content fetches must carry the RW token */
+function bfetch(url){
+  return fetch(url, { headers: { Authorization: 'Bearer ' + blobToken() } });
+}
+
 async function listDay(day){
   const { list } = await import('@vercel/blob');
   const blobs = [];
@@ -70,8 +75,8 @@ async function readDay(day, compactPast){
   const fileB = blobs.find(b => b.pathname === 'ev/' + day + '.json');
   const chunkBs = blobs.filter(b => b.pathname.startsWith('ev/' + day + '/')).slice(0, MAX_CHUNK_FETCH);
   const [base, parts] = await Promise.all([
-    fileB ? fetch(fileB.url).then(r => r.json()).catch(() => []) : [],
-    Promise.all(chunkBs.map(b => fetch(b.url).then(r => r.json()).catch(() => [])))
+    fileB ? bfetch(fileB.url).then(r => r.json()).catch(() => []) : [],
+    Promise.all(chunkBs.map(b => bfetch(b.url).then(r => r.json()).catch(() => [])))
   ]);
   let all = (Array.isArray(base) ? base : []).concat(parts.flat().filter(Boolean));
   if(all.length > MAX_DAY_EVENTS) all = all.slice(all.length - MAX_DAY_EVENTS);
@@ -79,7 +84,7 @@ async function readDay(day, compactPast){
     try{
       const { put, del } = await import('@vercel/blob');
       await put('ev/' + day + '.json', JSON.stringify(all), blobOpts({
-        access: 'public', addRandomSuffix: false, contentType: 'application/json' }));
+        access: 'private', addRandomSuffix: false, contentType: 'application/json' }));
       await del(chunkBs.map(b => b.url), blobOpts());
     }catch(e){} // compaction is an optimization — never let it break a read
   }
@@ -114,7 +119,7 @@ async function appendEvents(events){
   for(const day of Object.keys(byDay)){
     const name = 'ev/' + day + '/c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.json';
     await put(name, JSON.stringify(byDay[day]), blobOpts({
-      access: 'public', addRandomSuffix: false, contentType: 'application/json' }));
+      access: 'private', addRandomSuffix: false, contentType: 'application/json' }));
   }
 }
 
@@ -132,8 +137,24 @@ module.exports = async (req, res) => {
 
       if(q.selftest){
         if(q.selftest !== READ_KEY) return res.status(403).json({ error: 'bad key' });
-        await appendEvents([{ t: Date.now(), sid: 'selftest', e: 'screen', v: 's-landing' }]);
-        return res.status(200).json({ ok: true, wrote: 1, store: 'vercel-blob' });
+        try{
+          await appendEvents([{ t: Date.now(), sid: 'selftest', e: 'screen', v: 's-landing' }]);
+        }catch(e){
+          return res.status(200).json({ ok: false, stage: 'write', error: String(e && e.message || e).slice(0, 300) });
+        }
+        // full roundtrip: list the day, fetch the newest chunk back
+        const day = dayKey(Date.now());
+        const blobs = await listDay(day).catch(() => []);
+        const chunks = blobs.filter(b => b.pathname.startsWith('ev/' + day + '/'));
+        const last = chunks[chunks.length - 1];
+        let readBack = null;
+        if(last){
+          const r = await bfetch(last.url).catch(() => null);
+          readBack = { status: r ? r.status : 'fetch_failed' };
+          if(r && r.ok){ try{ readBack.events = (await r.json()).length; }catch(e){ readBack.parse = 'failed'; } }
+        }
+        return res.status(200).json({ ok: true, wrote: 1, store: 'vercel-blob',
+          dayBlobs: blobs.length, chunks: chunks.length, readBack });
       }
 
       /* one-time: pull whatever survives of the legacy jsonblob days into Blob */
@@ -150,7 +171,7 @@ module.exports = async (req, res) => {
             .then(r => r.ok ? r.json() : []).catch(() => []);
           if(!Array.isArray(arr) || !arr.length) continue;
           await put('ev/' + day + '/c-rescue.json', JSON.stringify(arr), blobOpts({
-            access: 'public', addRandomSuffix: false, allowOverwrite: true,
+            access: 'private', addRandomSuffix: false, allowOverwrite: true,
             contentType: 'application/json' }));
           imported[day] = arr.length;
         }
@@ -204,12 +225,13 @@ module.exports = async (req, res) => {
       if(!events) return res.status(204).end(); // silently drop junk
       // A storage hiccup must NEVER 500 the page's event beacon —
       // drop the batch and move on. TG12120.
-      try{ await appendEvents(events); }catch(e){}
+      try{ await appendEvents(events); }catch(e){ console.error('collect append failed:', e && e.message); }
       return res.status(204).end();
     }
 
     return res.status(405).json({ error: 'method' });
   }catch(err){
+    console.error('collect error:', err && err.message);
     return res.status(500).json({ error: 'collector error' });
   }
 };
