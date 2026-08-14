@@ -28,7 +28,8 @@
 const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const ADDON_PRICES = { seo_boost: 2900, unlimited_stores: 3900, profit_emails: 2900, video_ad_1: 3900 };
 const MAX_PAGES = 40;   // per shape PER DAY — 4,000 objects/day headroom
-const SCHEMA = 3;       // bump to invalidate cached day records
+const SCHEMA = 4;       // bump to invalidate cached day records (v4 = Pacific days)
+const TZ = 'America/Los_Angeles'; // all day boundaries cut at Pacific midnight
 
 const BUCKETS = ['unlock20','ads49','seo29','emails29','video1_39','unlimited39','video299','legacy1'];
 
@@ -73,8 +74,23 @@ async function pageAll(base, gte, lt){
   return { items: out, truncated: true };
 }
 
-const dayStr = t => new Date(t).toISOString().slice(0, 10);
-const dayStartMs = d => Date.parse(d + 'T00:00:00Z');
+const dayStr = t => new Date(t).toLocaleDateString('en-CA', { timeZone: TZ }); // YYYY-MM-DD in Pacific
+function dayStartMs(d){
+  // Pacific midnight is UTC-7 (PDT) or UTC-8 (PST) — pick whichever offset
+  // actually lands on 00:00 of day d (DST-safe, no library needed)
+  for(const off of ['-07:00', '-08:00']){
+    const e = Date.parse(d + 'T00:00:00' + off);
+    if(dayStr(e) === d && dayStr(e - 1) !== d) return e;
+  }
+  return Date.parse(d + 'T00:00:00-08:00');
+}
+const prevDay = d => dayStr(dayStartMs(d) - 1);
+const nextDayStartMs = d => dayStartMs(dayStr(dayStartMs(d) + 30 * 3600 * 1000));
+function lastNDays(n){
+  const list = [dayStr(Date.now())];
+  for(let i = 1; i < n; i++) list.push(prevDay(list[i - 1]));
+  return list;
+}
 
 function classify(sessions, pis, refunds){
   const zero = () => ({ count: 0, gross: 0 });
@@ -127,7 +143,7 @@ function classify(sessions, pis, refunds){
 
 async function computeDay(day){
   const gte = Math.floor(dayStartMs(day) / 1000);
-  const lt = gte + 86400;
+  const lt = Math.floor(nextDayStartMs(day) / 1000); // DST days are 23/25h — never assume 86400
   const [sesR, piR, refR] = await Promise.all([
     pageAll('checkout/sessions?', gte, lt),
     pageAll('payment_intents?', gte, lt),
@@ -198,8 +214,7 @@ module.exports = async (req, res) => {
     /* ?daily=N — per-day breakdown straight from the day caches */
     if(q.daily){
       const n = Math.min(90, Math.max(1, parseInt(q.daily, 10) || 14));
-      const list = [dayStr(Date.now())];
-      for(let i = 1; i < n; i++) list.push(dayStr(Date.now() - i * 864e5));
+      const list = lastNDays(n);
       const recs = await Promise.all([liveToday()].concat(
         list.slice(1).map(d => cachedDay(d).catch(() => null))));
       const rows = recs.map((r, i) => {
@@ -208,7 +223,7 @@ module.exports = async (req, res) => {
         for(const b of BUCKETS) row[b] = { count: r.m[b].count, gross: r.m[b].gross / 100 };
         return row;
       });
-      return res.status(200).json({ ok: true, days: n, tz: 'UTC', rows });
+      return res.status(200).json({ ok: true, days: n, tz: TZ, rows });
     }
 
     if(q.audit){
@@ -220,8 +235,8 @@ module.exports = async (req, res) => {
         pageAll('payment_intents?', gte, lt),
         pageAll('refunds?', gte, lt)
       ]);
-      const day = t => new Date(t * 1000).toISOString().slice(0, 10);
-      const A = { ok: true, days,
+      const day = t => dayStr(t * 1000);
+      const A = { ok: true, days, tz: TZ,
         truncated: { sessions: sesR.truncated, payment_intents: piR.truncated, refunds: refR.truncated },
         fetched: { sessions: sesR.items.length, payment_intents: piR.items.length, refunds: refR.items.length },
         sessions_by_type: {}, unlock20_amounts: {}, unlock20_by_day: {}, pis_by_type: {}, addon_items: {} };
@@ -248,9 +263,7 @@ module.exports = async (req, res) => {
     }
 
     const days = Math.min(90, Math.max(1, parseInt(q.days, 10) || 30));
-    const today = dayStr(Date.now());
-    const pastDays = [];
-    for(let i = 1; i < days; i++) pastDays.push(dayStr(Date.now() - i * 864e5));
+    const pastDays = lastNDays(days).slice(1);
 
     const [todayRec, pastRecs] = await Promise.all([
       liveToday(),
@@ -292,7 +305,8 @@ module.exports = async (req, res) => {
         net: (gross - refunded) / 100,
         aov: m.unlock20.count ? Math.round((gross / 100) / m.unlock20.count * 100) / 100 : 0
       },
-      note: 'Read straight from Stripe, one UTC day at a time (immune to pagination caps). Finished days are cached; today is live. Refunds are matched to this funnel\'s own sales; refunds_account is the whole Stripe account incl. legacy/DropStart activity.'
+      tz: TZ,
+      note: 'Read straight from Stripe, one Pacific-time day at a time (immune to pagination caps). Finished days are cached; today is live. Refunds are matched to this funnel\'s own sales; refunds_account is the whole Stripe account incl. legacy/DropStart activity.'
     };
     return res.status(200).json(out);
   }catch(e){

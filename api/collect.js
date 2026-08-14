@@ -49,7 +49,21 @@ function blobOpts(extra){
   return t ? Object.assign({ token: t }, extra || {}) : (extra || {});
 }
 
-const dayKey = t => new Date(t).toISOString().slice(0, 10);
+const TZ = 'America/Los_Angeles'; // day shards cut at Pacific midnight (owner's clock)
+const dayKey = t => new Date(t).toLocaleDateString('en-CA', { timeZone: TZ });
+function prevDayKey(d){
+  // walk back one Pacific day, DST-safe: last ms of day d is 07:59/08:59 UTC
+  for(const off of ['-07:00', '-08:00']){
+    const e = Date.parse(d + 'T00:00:00' + off);
+    if(dayKey(e) === d && dayKey(e - 1) !== d) return dayKey(e - 1);
+  }
+  return dayKey(Date.parse(d + 'T00:00:00-08:00') - 1);
+}
+function lastNDayKeys(n){
+  const list = [dayKey(Date.now())];
+  for(let i = 1; i < n; i++) list.push(prevDayKey(list[i - 1]));
+  return list;
+}
 
 /* private store: blob content fetches must carry the RW token */
 function bfetch(url){
@@ -92,8 +106,7 @@ async function readDay(day, compactPast){
 }
 
 async function readRange(days, compactPast){
-  const wanted = [];
-  for(let i = 0; i < days; i++) wanted.push(dayKey(Date.now() - i * 864e5));
+  const wanted = lastNDayKeys(days);
   const parts = await Promise.all(wanted.map(d => readDay(d, compactPast).catch(() => [])));
   return parts.flat();
 }
@@ -193,6 +206,7 @@ module.exports = async (req, res) => {
       if(q.stats === READ_KEY){
         const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 1));
         const evs = (await readRange(days, true)).filter(e => e && e.t && e.e && e.sid !== 'selftest');
+        res.setHeader('X-Day-TZ', TZ);
         const uniq = pred => new Set(evs.filter(pred).map(e => e.sid)).size;
         const S = id => uniq(e => e.e === 'screen' && e.v === id);
         const E = n => uniq(e => e.e === n);

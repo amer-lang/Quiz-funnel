@@ -385,7 +385,16 @@ async function getEvents(){
   else if(SOURCE === 'endpoint') ev = await endpointEvents();
   else ev = deviceEvents();
   if(RANGE_DAYS > 0){
-    const cut = Date.now() - RANGE_DAYS * 864e5;
+    // ranges are Pacific calendar days: "Today" = since midnight PT, "7d" = the last 7 PT days
+    const paDay = t => new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const paStart = d => {
+      for(const off of ['-07:00','-08:00']){
+        const e = Date.parse(d + 'T00:00:00' + off);
+        if(paDay(e) === d && paDay(e - 1) !== d) return e;
+      }
+      return Date.parse(d + 'T00:00:00-08:00');
+    };
+    const cut = paStart(paDay(Date.now())) - (RANGE_DAYS - 1) * 864e5;
     ev = ev.filter(e => e.t >= cut);
   }
   return ev.slice().sort((a,b) => a.t - b.t);
@@ -429,7 +438,7 @@ async function loadStripeMetrics(){
     ];
     box.innerHTML = t.map(x =>
       '<div class="tile ' + x[3] + '"><div class="k">' + x[0] + '</div><div class="v">' + (x[1] === '' ? x[2] : x[1]) + '</div><div class="s">' + (x[1] === '' ? (RANGE_DAYS ? 'last ' + days + ' days' : 'last 90 days') : x[2]) + '</div></div>').join('');
-    note.textContent = 'Source: Stripe · every paid session and one-click charge in the range, deduped · refunds matched to this funnel’s sales'
+    note.textContent = 'Source: Stripe · days cut at midnight Pacific · every paid session and one-click charge in the range, deduped · refunds matched to this funnel’s sales'
       + (M.refunds_account ? ' (account-wide incl. legacy/DropStart: ' + M.refunds_account.count + ' for ' + $(M.refunds_account.amount) + ')' : '')
       + (j.days_missing ? ' · ⚠ ' + j.days_missing + ' day(s) failed to load — refresh to retry' : '')
       + ' · updated ' + new Date(j.generated_at).toLocaleTimeString();
