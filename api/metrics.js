@@ -16,7 +16,7 @@
    Session-backed PIs carry no metadata.type, so nothing double-counts.
    Refunds are totaled account-wide for the range (not per-SKU). */
 
-const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
+const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const ADDON_PRICES = { seo_boost: 2900, unlimited_stores: 3900, profit_emails: 2900, video_ad_1: 3900 };
 const MAX_PAGES = 8; // 8 x 100 objects per shape per range
 

@@ -15,7 +15,7 @@
    GET  ?ping=1       — env sanity.
    GET  ?probe=<KEY>  — key-gated: creates an unused test session to prove scopes. */
 
-const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
+const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const RETURN_URL = 'https://www.sellproducts.ai/?paid20=1&cs={CHECKOUT_SESSION_ID}';
 const SKU_NAME = 'AI Store Unlock';
 const SKU_DESC = 'One-time unlock of your AI-built dropshipping store. Full store access, supplier connected, ready to launch on Shopify. No subscription.';
@@ -210,10 +210,14 @@ module.exports = async (req, res) => {
     if(!projectId) return res.status(400).json({ ok:false, status:'no_project' });
     const email = String(body.email || '');
 
-    if(email && !body.embedded){
-      const owned = await findUnlimited(email);
-      if(owned) return res.status(200).json({ ok:true, unlimited:true, cs: owned });
-    }
+    // Unlimited detection moved to our backend (/api/express/unlimited-claim,
+    // called by claimStore BEFORE this endpoint). The old email-based Stripe search
+    // returned the buyer's OLD base_cs, so finalize re-unlocked the WRONG store.
+    // Disabled so the clean backend path is the ONLY unlimited route. TG12106.
+    // if(email && !body.embedded){
+    //   const owned = await findUnlimited(email);
+    //   if(owned) return res.status(200).json({ ok:true, unlimited:true, cs: owned });
+    // }
 
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded);
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,

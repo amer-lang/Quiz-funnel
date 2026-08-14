@@ -11,7 +11,7 @@
    from the password at unlock, so it never appears in public page source. */
 
 const JB = 'https://jsonblob.com/api/jsonBlob';
-const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
+const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const INDEX_ID = '019fec64-66e4-7f84-a403-a0ee20137ede'; // recreated 2026-08-10 — prior blob 404'd (jsonblob purge). TG12120
 
 const EV_OK = new Set([

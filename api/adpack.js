@@ -19,7 +19,7 @@
    Vercel Blob store; degrades to {ready:false} so the funnel's built-in
    fallback shows. */
 
-const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
+const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const DS_API = 'https://chat.dropstart.app/api/express';
 const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 const PENDING_TTL = 180000; // ms — ignore generating-markers older than this

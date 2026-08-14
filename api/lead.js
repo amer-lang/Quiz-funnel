@@ -11,7 +11,7 @@
 
 const AC_URL = 'https://sellproducts.api-us1.com';
 const AC_KEY = 'd84c8bf84307d5b159099552ae63a16a92af944cac522e0ff3ea8ece4bae99b7350dab92';
-const TEST_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
+const TEST_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 
 // Payment verification (same backend the funnel itself uses)
 const DS_API = 'https://chat.dropstart.app/api/express';

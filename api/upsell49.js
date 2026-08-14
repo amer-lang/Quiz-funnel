@@ -14,7 +14,7 @@
    Env: STRIPE_SECRET_KEY (restricted: Checkout Sessions RW, Customers R,
    PaymentIntents R), STRIPE_PUBLISHABLE_KEY. */
 
-const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
+const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const RETURN_URL = 'https://www.sellproducts.ai/?upsold49=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
 const SKU_NAME = '10 Custom Image Ads';
 const SKU_DESC = 'Ten ready-to-run image ads (feed + story formats) designed for your store’s product. Delivered digitally.';
