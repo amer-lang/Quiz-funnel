@@ -12,10 +12,18 @@
 
 const JB = 'https://jsonblob.com/api/jsonBlob';
 const READ_KEY = '6312341a658ce448a5799db99675154dc0f161dd042da6b3e1e2bff5532ff899';
-const INDEX_ID = '019fad32-d106-7cf6-adc7-8dbaf3821122';
+const INDEX_ID = '019fec64-66e4-7f84-a403-a0ee20137ede'; // recreated 2026-08-10 — prior blob 404'd (jsonblob purge). TG12120
 
-const EV_OK = new Set(['screen','answer','product_view','product_choose',
-  'email_submitted','claim_click','paid_1dollar','upsell_click','upsell_decline','paid_upsell']);
+const EV_OK = new Set([
+  // journey
+  'screen','answer','product_view','product_choose','email_submitted','pick_link',
+  // money moments (beacon-side; Stripe is the source of truth for revenue)
+  'claim_click','paid_1dollar','paid_20','upsell_click','upsell_decline','paid_upsell',
+  'seo_click','paid_seo','seo_skip','addons_skip','paid_addons','claim_unlimited',
+  // reservation + diagnostics
+  'resv_expired','resv_restored','checkout_mode','finalize_fail',
+  'seo_fail','addons_fail','custom_mode_err','custom_mount_err'
+]);
 const MAX_BATCH = 200, MAX_DAY_EVENTS = 60000, MAX_DAYS_READ = 60;
 
 let idxCache = null, idxCacheAt = 0; // per-instance, 60s TTL
@@ -183,7 +191,9 @@ module.exports = async (req, res) => {
       if(typeof body === 'string'){ try{ body = JSON.parse(body); }catch(e){ body = null; } }
       const events = body && cleanEvents(body);
       if(!events) return res.status(204).end(); // silently drop junk
-      await appendEvents(events);
+      // A storage hiccup (e.g. the jsonblob index expiring again) must NEVER 500
+      // the page's event beacon — drop the batch and move on. TG12120.
+      try{ await appendEvents(events); }catch(e){}
       return res.status(204).end();
     }
 

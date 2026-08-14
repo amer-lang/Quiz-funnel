@@ -168,6 +168,15 @@ canvas{width:100%;display:block}
     Tap <b>Demo data</b> to preview the dashboard with sample numbers.
   </div>
 
+  <div class="cards" style="margin-bottom:14px">
+    <div class="card full">
+      <h3><span class="dot"></span>Revenue — verified against Stripe (cannot miss a sale)</h3>
+      <div class="grid" id="stripeTiles"><div class="note">Loading Stripe data…</div></div>
+      <div class="note" id="stripeNote" style="text-align:left;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div class="note" style="text-align:left;margin:0 0 8px">Everything below is measured by the on-page beacon — great for the journey, but ad blockers can undercount it. Money above is the truth; beacon money tiles are for step-conversion context only.</div>
   <div class="grid" id="tiles"></div>
 
   <div class="cards">
@@ -263,11 +272,14 @@ async function liveEvents(){
 
 const STEPS = [
   ['s-landing','Landing'],['s-intro','Intro'],['s-q1','Question 1'],['s-q2','Question 2'],['s-q3','Question 3'],
-  ['s-q4','Question 4'],['s-q5','Question 5'],['s-reality','Reality check'],['s-blueprint','Blueprint'],
+  ['s-q4','Question 4'],['s-q5','Question 5'],['s-reality','Reality check'],['s-blueprint','Blueprint'],['s-cost','Cost reveal'],
   ['s-scan','AI scan'],['s-pick','Product pick'],['s-email','Email'],['s-build','Build'],['s-preview','Store preview']
 ];
 const MONEY_STEPS = [
-  ['claim_click','$1 claim clicked'],['paid_1dollar','Paid $1 ✓'],['s-upsell','Upsell seen'],['paid_upsell','Upsell $299 ✓']
+  ['claim_click','$20 claim clicked'],['paid_20','Paid $20 ✓ (beacon)'],
+  ['s-launch1','Launch sequence entered'],['s-seo','SEO offer seen'],['paid_seo','SEO $29 ✓ (beacon)'],
+  ['s-upsell-ads','Ad-pack offer seen'],['paid_upsell','Ad pack $49 ✓ (beacon)'],
+  ['s-addons','Extras screen seen'],['paid_addons','Extras ✓ (beacon)']
 ];
 const ANSWER_LABELS = { goal:'Main goal', exp:'Experience', time:'Time available', ds:'Knows dropshipping', rev:'Dream revenue' };
 
@@ -380,6 +392,42 @@ async function getEvents(){
 }
 const uniq = (ev, pred) => new Set(ev.filter(pred).map(e => e.sid)).size;
 
+let stripeBusy = false;
+async function loadStripeMetrics(){
+  if(stripeBusy) return; stripeBusy = true;
+  const box = document.getElementById('stripeTiles');
+  const note = document.getElementById('stripeNote');
+  try{
+    const rkey = (()=>{ try{ return sessionStorage.getItem('spdash_rkey') || ''; }catch(e){ return ''; } })();
+    if(!rkey){ box.innerHTML = '<div class="note">Re-enter the password to load Stripe data.</div>'; stripeBusy=false; return; }
+    const days = RANGE_DAYS > 0 ? RANGE_DAYS : 90;
+    const r = await fetch('/api/metrics?key=' + rkey + '&days=' + days, { cache:'no-store' });
+    const j = await r.json();
+    if(!(j && j.ok)){ box.innerHTML = '<div class="note">Stripe metrics error: ' + ((j && j.error) || r.status) + '</div>'; stripeBusy=false; return; }
+    const M = j.money;
+    const $ = n => '$' + Number(n).toLocaleString(undefined, {maximumFractionDigits:2});
+    const t = [
+      ['$20 stores', M.unlock20.count, $(M.unlock20.gross), 'gold'],
+      ['Ad packs $49', M.ads49.count, $(M.ads49.gross), 'gold'],
+      ['SEO $29', M.seo29.count, $(M.seo29.gross), 'gold'],
+      ['Emails $29', M.emails29.count, $(M.emails29.gross), 'gold'],
+      ['Video ad $39', M.video1_39.count, $(M.video1_39.gross), 'gold'],
+      ['Unlimited $39', M.unlimited39.count, $(M.unlimited39.gross), 'gold'],
+      ['Video pack $299', M.video299.count, $(M.video299.gross), 'gold'],
+      ['Gross', '', $(M.gross), 'green'],
+      ['Refunds', M.refunds.count, '-' + $(M.refunds.amount), ''],
+      ['NET REVENUE', '', $(M.net), 'green'],
+      ['$ per store buyer', '', $(M.aov), 'blue']
+    ];
+    box.innerHTML = t.map(x =>
+      '<div class="tile ' + x[3] + '"><div class="k">' + x[0] + '</div><div class="v">' + (x[1] === '' ? x[2] : x[1]) + '</div><div class="s">' + (x[1] === '' ? (RANGE_DAYS ? 'last ' + days + ' days' : 'last 90 days') : x[2]) + '</div></div>').join('');
+    note.textContent = 'Source: Stripe · every paid session and one-click charge in the range, deduped · refunds are account-wide for the range · updated ' + new Date(j.generated_at).toLocaleTimeString();
+  }catch(e){
+    box.innerHTML = '<div class="note">Could not reach /api/metrics.</div>';
+  }
+  stripeBusy = false;
+}
+
 async function render(){
   const ev = await getEvents();
   document.getElementById('demoBadge').classList.toggle('show', SOURCE === 'demo');
@@ -396,7 +444,7 @@ async function render(){
   const visitors = new Set(ev.map(e => e.sid)).size;
   const quizStart = S('s-q1'), quizDone = S('s-scan');
   const emails = E('email_submitted'), previews = S('s-preview');
-  const claims = E('claim_click'), paid1 = E('paid_1dollar'), paid299 = E('paid_upsell');
+  const claims = E('claim_click'), paid20 = E('paid_20') + E('paid_1dollar'), paidAds = E('paid_upsell');
   const pct = (a,b) => b ? Math.round(a / b * 100) + '%' : '—';
 
   const tiles = [
@@ -405,11 +453,9 @@ async function render(){
     ['Quiz completed', quizDone, pct(quizDone, quizStart) + ' of starts', 'blue'],
     ['Emails captured', emails, pct(emails, visitors) + ' of visitors', 'green'],
     ['Store previews', previews, pct(previews, emails) + ' of emails', 'blue'],
-    ['$1 claims clicked', claims, pct(claims, previews) + ' of previews', 'gold'],
-    ['Paid $1 ✓', paid1, pct(paid1, claims) + ' of claims', 'gold'],
-    ['Upsells $299 ✓', paid299, pct(paid299, paid1) + ' of buyers', 'gold'],
-    ['Revenue (verified)', '$' + (paid1 * 1 + paid299 * 299).toLocaleString(), paid1 + '×$1 + ' + paid299 + '×$299', 'gold'],
-    ['Trial MRR at stake', '$' + (paid1 * 49).toLocaleString(), paid1 + ' trials × $49/mo', 'green'],
+    ['$20 claims clicked', claims, pct(claims, previews) + ' of previews', 'gold'],
+    ['Stores bought ✓ (beacon)', paid20, pct(paid20, claims) + ' of claims — Stripe panel is the truth', 'gold'],
+    ['Ad packs ✓ (beacon)', paidAds, pct(paidAds, paid20) + ' of buyers', 'gold'],
   ];
   document.getElementById('tiles').innerHTML = tiles.map(t =>
     `<div class="tile ${t[3]}"><div class="k">${t[0]}</div><div class="v">${t[1]}</div><div class="s">${t[2]}</div></div>`).join('');
@@ -437,6 +483,7 @@ async function render(){
     </div>`;
   }).join('') + `<div class="note" style="text-align:left;margin-top:10px">% = conversion from the previous step · ▼ marks your biggest leak · gold bars are money steps</div>`;
 
+  loadStripeMetrics();
   drawTrend(ev);
   drawAnswers(ev);
   drawProducts(ev);
