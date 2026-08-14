@@ -1,18 +1,28 @@
 /* Sell Products AI — first-party funnel event collector.
    Runs as a Vercel serverless function at /api/collect on the funnel's own
-   origin. Storage: jsonblob.com day-sharded blobs behind one index blob.
+   origin. Storage: Vercel Blob (same store the ad packs and email packs
+   already live in) — replaced jsonblob.com after it purged our data twice.
 
-   POST  {sid, events:[{t,e,v}]}         — append a visitor's batched events
-   GET   ?key=<READ_KEY>&days=N          — return events for the last N days
-   GET   ?selftest=<READ_KEY>            — write one synthetic event end-to-end
-   GET   ?init=<READ_KEY>                — one-time: create the index blob
+   Layout (append-only, no shared index to lose):
+     ev/<YYYY-MM-DD>/c-<ts>-<rand>.json   one chunk per POST batch
+     ev/<YYYY-MM-DD>.json                 compacted file, written once when a
+                                          PAST day is first read; late chunks
+                                          (clock-skewed beacons) stay alongside
+                                          and are always merged in on read.
+
+   POST  {sid, events:[{t,e,v}]}          — append a visitor's batched events
+   GET   ?key=<READ_KEY>&days=N           — return events for the last N days
+   GET   ?stats=<READ_KEY>&days=N         — aggregate step/uniques summary
+   GET   ?live=1                          — public PII-free counters (today)
+   GET   ?selftest=<READ_KEY>             — write one synthetic event end-to-end
+   GET   ?jbrescue=<READ_KEY>             — one-time: import legacy jsonblob days
 
    READ_KEY is sha256('read:' + dashboard password) — the dashboard derives it
    from the password at unlock, so it never appears in public page source. */
 
-const JB = 'https://jsonblob.com/api/jsonBlob';
 const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
-const INDEX_ID = '019fec64-66e4-7f84-a403-a0ee20137ede'; // recreated 2026-08-10 — prior blob 404'd (jsonblob purge). TG12120
+const LEGACY_JB = 'https://jsonblob.com/api/jsonBlob';
+const LEGACY_INDEX = '019fec64-66e4-7f84-a403-a0ee20137ede';
 
 const EV_OK = new Set([
   // journey
@@ -24,56 +34,63 @@ const EV_OK = new Set([
   'resv_expired','resv_restored','checkout_mode','finalize_fail',
   'seo_fail','addons_fail','custom_mode_err','custom_mount_err'
 ]);
-const MAX_BATCH = 200, MAX_DAY_EVENTS = 60000, MAX_DAYS_READ = 60;
+const MAX_BATCH = 200, MAX_DAY_EVENTS = 60000, MAX_DAYS_READ = 60, MAX_CHUNK_FETCH = 1500;
 
-let idxCache = null, idxCacheAt = 0; // per-instance, 60s TTL
 let liveCache = null, liveCacheAt = 0; // public live counters, 2-min TTL
 
-async function jbGet(id){
-  const r = await fetch(JB + '/' + id, { headers: { Accept: 'application/json' } });
-  if(!r.ok) throw new Error('jb get ' + r.status);
-  return r.json();
+function blobToken(){
+  if(process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  const k = Object.keys(process.env).find(key =>
+    /READ_WRITE_TOKEN/i.test(key) && String(process.env[key]).startsWith('vercel_blob_rw'));
+  return k ? process.env[k] : '';
 }
-async function jbPut(id, data){
-  const r = await fetch(JB + '/' + id, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
-  });
-  if(!r.ok) throw new Error('jb put ' + r.status);
-}
-async function jbCreate(data){
-  const r = await fetch(JB, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if(!r.ok) throw new Error('jb create ' + r.status);
-  const loc = r.headers.get('location') || '';
-  const id = loc.split('/').pop();
-  if(!id) throw new Error('jb create: no id');
-  return id;
+function blobOpts(extra){
+  const t = blobToken();
+  return t ? Object.assign({ token: t }, extra || {}) : (extra || {});
 }
 
 const dayKey = t => new Date(t).toISOString().slice(0, 10);
 
-async function loadIndex(){
-  if(idxCache && Date.now() - idxCacheAt < 60000) return idxCache;
-  idxCache = await jbGet(INDEX_ID);
-  if(!idxCache.days) idxCache.days = {};
-  idxCacheAt = Date.now();
-  return idxCache;
+async function listDay(day){
+  const { list } = await import('@vercel/blob');
+  const blobs = [];
+  let cursor;
+  do{
+    const page = await list(blobOpts({ prefix: 'ev/' + day, limit: 1000, cursor }));
+    blobs.push(...(page.blobs || []));
+    cursor = page.cursor;
+  }while(cursor);
+  return blobs;
 }
 
-async function dayBlobId(day){
-  const idx = await loadIndex();
-  if(idx.days[day]) return idx.days[day];
-  const id = await jbCreate([]);
-  // re-read before writing so a concurrent creator doesn't get clobbered
-  const fresh = await jbGet(INDEX_ID);
-  if(!fresh.days) fresh.days = {};
-  if(fresh.days[day]){ idxCache = fresh; idxCacheAt = Date.now(); return fresh.days[day]; }
-  fresh.days[day] = id;
-  await jbPut(INDEX_ID, fresh);
-  idxCache = fresh; idxCacheAt = Date.now();
-  return id;
+/* Merge the day's compacted file (if any) with every outstanding chunk.
+   First read of a finished day compacts it down to one file. */
+async function readDay(day, compactPast){
+  const blobs = await listDay(day);
+  const fileB = blobs.find(b => b.pathname === 'ev/' + day + '.json');
+  const chunkBs = blobs.filter(b => b.pathname.startsWith('ev/' + day + '/')).slice(0, MAX_CHUNK_FETCH);
+  const [base, parts] = await Promise.all([
+    fileB ? fetch(fileB.url).then(r => r.json()).catch(() => []) : [],
+    Promise.all(chunkBs.map(b => fetch(b.url).then(r => r.json()).catch(() => [])))
+  ]);
+  let all = (Array.isArray(base) ? base : []).concat(parts.flat().filter(Boolean));
+  if(all.length > MAX_DAY_EVENTS) all = all.slice(all.length - MAX_DAY_EVENTS);
+  if(compactPast && !fileB && chunkBs.length && day !== dayKey(Date.now())){
+    try{
+      const { put, del } = await import('@vercel/blob');
+      await put('ev/' + day + '.json', JSON.stringify(all), blobOpts({
+        access: 'public', addRandomSuffix: false, contentType: 'application/json' }));
+      await del(chunkBs.map(b => b.url), blobOpts());
+    }catch(e){} // compaction is an optimization — never let it break a read
+  }
+  return all;
+}
+
+async function readRange(days, compactPast){
+  const wanted = [];
+  for(let i = 0; i < days; i++) wanted.push(dayKey(Date.now() - i * 864e5));
+  const parts = await Promise.all(wanted.map(d => readDay(d, compactPast).catch(() => [])));
+  return parts.flat();
 }
 
 function cleanEvents(body){
@@ -91,16 +108,13 @@ function cleanEvents(body){
 }
 
 async function appendEvents(events){
+  const { put } = await import('@vercel/blob');
   const byDay = {};
   for(const e of events) (byDay[dayKey(e.t)] = byDay[dayKey(e.t)] || []).push(e);
   for(const day of Object.keys(byDay)){
-    const id = await dayBlobId(day);
-    let arr;
-    try{ arr = await jbGet(id); }catch(err){ arr = []; }
-    if(!Array.isArray(arr)) arr = [];
-    arr.push(...byDay[day]);
-    if(arr.length > MAX_DAY_EVENTS) arr.splice(0, arr.length - MAX_DAY_EVENTS);
-    await jbPut(id, arr);
+    const name = 'ev/' + day + '/c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.json';
+    await put(name, JSON.stringify(byDay[day]), blobOpts({
+      access: 'public', addRandomSuffix: false, contentType: 'application/json' }));
   }
 }
 
@@ -114,29 +128,40 @@ module.exports = async (req, res) => {
   try{
     if(req.method === 'GET'){
       const q = req.query || {};
-
-      if(q.init){
-        if(q.init !== READ_KEY) return res.status(403).json({ error: 'bad key' });
-        if(INDEX_ID !== '__UNSET__') return res.status(200).json({ ok: true, indexId: INDEX_ID, note: 'already configured' });
-        const id = await jbCreate({ created: Date.now(), days: {} });
-        return res.status(200).json({ ok: true, indexId: id, note: 'bake this into INDEX_ID and redeploy' });
-      }
-
-      if(INDEX_ID === '__UNSET__') return res.status(503).json({ error: 'collector not initialized' });
+      if(!blobToken()) return res.status(503).json({ error: 'blob store not configured' });
 
       if(q.selftest){
         if(q.selftest !== READ_KEY) return res.status(403).json({ error: 'bad key' });
         await appendEvents([{ t: Date.now(), sid: 'selftest', e: 'screen', v: 's-landing' }]);
-        return res.status(200).json({ ok: true, wrote: 1 });
+        return res.status(200).json({ ok: true, wrote: 1, store: 'vercel-blob' });
+      }
+
+      /* one-time: pull whatever survives of the legacy jsonblob days into Blob */
+      if(q.jbrescue){
+        if(q.jbrescue !== READ_KEY) return res.status(403).json({ error: 'bad key' });
+        const idx = await fetch(LEGACY_JB + '/' + LEGACY_INDEX)
+          .then(r => r.ok ? r.json() : null).catch(() => null);
+        if(!idx || !idx.days || !Object.keys(idx.days).length)
+          return res.status(200).json({ ok: false, note: 'legacy index unreachable — those events are gone' });
+        const { put } = await import('@vercel/blob');
+        const imported = {};
+        for(const day of Object.keys(idx.days)){
+          const arr = await fetch(LEGACY_JB + '/' + idx.days[day])
+            .then(r => r.ok ? r.json() : []).catch(() => []);
+          if(!Array.isArray(arr) || !arr.length) continue;
+          await put('ev/' + day + '/c-rescue.json', JSON.stringify(arr), blobOpts({
+            access: 'public', addRandomSuffix: false, allowOverwrite: true,
+            contentType: 'application/json' }));
+          imported[day] = arr.length;
+        }
+        return res.status(200).json({ ok: true, imported });
       }
 
       /* public, PII-free live counters for on-page social proof — REAL
          numbers only (unique visitors per event, today). Cached 2 min. */
       if(q.live === '1'){
         if(liveCache && Date.now() - liveCacheAt < 120000) return res.status(200).json(liveCache);
-        const idx = await loadIndex();
-        const today = dayKey(Date.now());
-        const evs = idx.days[today] ? await jbGet(idx.days[today]).catch(() => []) : [];
+        const evs = await readDay(dayKey(Date.now()), false).catch(() => []);
         const uniq = n => new Set(evs.filter(e => e && e.e === n && e.sid !== 'selftest').map(e => e.sid)).size;
         liveCache = { ok: true, reserved_today: uniq('product_choose'), optins_today: uniq('email_submitted') };
         liveCacheAt = Date.now();
@@ -146,14 +171,7 @@ module.exports = async (req, res) => {
 
       if(q.stats === READ_KEY){
         const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 1));
-        const idx = await loadIndex();
-        const wanted = [];
-        for(let i = 0; i < days; i++){
-          const d = dayKey(Date.now() - i * 864e5);
-          if(idx.days[d]) wanted.push(idx.days[d]);
-        }
-        const parts = await Promise.all(wanted.map(id => jbGet(id).catch(() => [])));
-        const evs = parts.flat().filter(e => e && e.t && e.e && e.sid !== 'selftest');
+        const evs = (await readRange(days, true)).filter(e => e && e.t && e.e && e.sid !== 'selftest');
         const uniq = pred => new Set(evs.filter(pred).map(e => e.sid)).size;
         const S = id => uniq(e => e.e === 'screen' && e.v === id);
         const E = n => uniq(e => e.e === n);
@@ -174,25 +192,18 @@ module.exports = async (req, res) => {
 
       if(q.key !== READ_KEY) return res.status(403).json({ error: 'bad key' });
       const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 30));
-      const idx = await loadIndex();
-      const wanted = [];
-      for(let i = 0; i < days; i++){
-        const d = dayKey(Date.now() - i * 864e5);
-        if(idx.days[d]) wanted.push(idx.days[d]);
-      }
-      const parts = await Promise.all(wanted.map(id => jbGet(id).catch(() => [])));
-      const events = parts.flat().filter(e => e && e.t && e.e);
+      const events = (await readRange(days, true)).filter(e => e && e.t && e.e);
       return res.status(200).json(events);
     }
 
     if(req.method === 'POST'){
-      if(INDEX_ID === '__UNSET__') return res.status(503).json({ error: 'collector not initialized' });
+      if(!blobToken()) return res.status(204).end();
       let body = req.body;
       if(typeof body === 'string'){ try{ body = JSON.parse(body); }catch(e){ body = null; } }
       const events = body && cleanEvents(body);
       if(!events) return res.status(204).end(); // silently drop junk
-      // A storage hiccup (e.g. the jsonblob index expiring again) must NEVER 500
-      // the page's event beacon — drop the batch and move on. TG12120.
+      // A storage hiccup must NEVER 500 the page's event beacon —
+      // drop the batch and move on. TG12120.
       try{ await appendEvents(events); }catch(e){}
       return res.status(204).end();
     }
