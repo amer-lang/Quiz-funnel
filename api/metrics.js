@@ -195,6 +195,22 @@ module.exports = async (req, res) => {
         sessions: rec.sessions, pis: rec.pis, truncated: rec.truncated });
     }
 
+    /* ?daily=N — per-day breakdown straight from the day caches */
+    if(q.daily){
+      const n = Math.min(90, Math.max(1, parseInt(q.daily, 10) || 14));
+      const list = [dayStr(Date.now())];
+      for(let i = 1; i < n; i++) list.push(dayStr(Date.now() - i * 864e5));
+      const recs = await Promise.all([liveToday()].concat(
+        list.slice(1).map(d => cachedDay(d).catch(() => null))));
+      const rows = recs.map((r, i) => {
+        if(!r) return { day: list[i], error: 'load failed' };
+        const row = { day: list[i] };
+        for(const b of BUCKETS) row[b] = { count: r.m[b].count, gross: r.m[b].gross / 100 };
+        return row;
+      });
+      return res.status(200).json({ ok: true, days: n, tz: 'UTC', rows });
+    }
+
     if(q.audit){
       const days = Math.min(10, Math.max(1, parseInt(q.days, 10) || 3));
       const gte = Math.floor((Date.now() - days * 864e5) / 1000);
