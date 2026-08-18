@@ -4135,18 +4135,16 @@ function runDone(){
 
   // Purchased deliverables — durable access links right on the final screen,
   // so fulfillment never depends on the delivery email alone.
-  let adsCs = '', emCs = '', mbCs = dsPaidCs || '';
+  let adsCs = '', emCs = '';
   try{ adsCs = localStorage.getItem('spai_ads_cs') || ''; }catch(e){}
   try{ emCs = localStorage.getItem('spai_emails_cs') || ''; }catch(e){}
-  try{ mbCs = mbCs || localStorage.getItem('spai_cs20') || ''; }catch(e){}
-  if((adsCs || emCs || mbCs) && !document.getElementById('doneGoods')){
+  if((adsCs || emCs) && !document.getElementById('doneGoods')){
     const d = document.createElement('div');
     d.id = 'doneGoods';
     d.style.cssText = 'background:var(--card);border:1px solid rgba(255,201,60,.35);border-radius:16px;padding:4px 16px;margin:14px 0 4px;text-align:left';
     let rows = '';
-    if(mbCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700">🎮 First Sale Roadmap — rank up to your first sale<a href="/members?cs=' + encodeURIComponent(mbCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Start →</a></div>';
-    if(adsCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + (mbCs ? 'border-top:1px solid var(--line)' : '') + '">🎯 Your 10 image ads<a href="/ads?cs=' + encodeURIComponent(adsCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
-    if(emCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + ((adsCs || mbCs) ? 'border-top:1px solid var(--line)' : '') + '">✉️ Your 10 profit emails<a href="/emails?cs=' + encodeURIComponent(emCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
+    if(adsCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700">🎯 Your 10 image ads<a href="/ads?cs=' + encodeURIComponent(adsCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
+    if(emCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + (adsCs ? 'border-top:1px solid var(--line)' : '') + '">✉️ Your 10 profit emails<a href="/emails?cs=' + encodeURIComponent(emCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
     d.innerHTML = rows;
     const sub = document.querySelector('#s-done .sub');
     if(sub) sub.insertAdjacentElement('afterend', d);
