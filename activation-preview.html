@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Activation Flow Preview — Sell Products AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B15;--card:#0C1424;--card-2:#101B31;--line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.18);
+  --text:#F5F8FF;--muted:#93A0BC;--blue:#3B82F6;--green:#22C55E;--gold:#FFC93C;--gold-deep:#F59E0B;
+  --grad-brand:linear-gradient(135deg,var(--blue),var(--green));
+  --grad-money:linear-gradient(135deg,var(--gold),var(--gold-deep));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:radial-gradient(120% 70% at 50% -10%,#0E1830 0%,var(--bg) 55%);color:var(--text);min-height:100vh}
+.preview-banner{
+  position:sticky;top:0;z-index:100;background:rgba(255,201,60,.12);border-bottom:1px solid rgba(255,201,60,.45);
+  padding:8px 14px;text-align:center;font-size:.72rem;font-weight:800;color:var(--gold);backdrop-filter:blur(8px);
+}
+.wrap{max-width:520px;margin:0 auto;padding:14px 18px 120px}
+.screen{display:none}
+.screen.on{display:block;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---- NEW: progress rail ---- */
+.rail{display:flex;align-items:center;gap:4px;margin:10px 0 20px;position:relative}
+.rstep{flex:1;text-align:center;font-size:.56rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.rstep .dot{width:22px;height:22px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:11px;background:rgba(255,255,255,.06);border:2px solid var(--line-strong);transition:.3s}
+.rstep.done .dot{background:var(--grad-brand);border-color:transparent}
+.rstep.now .dot{border-color:var(--gold);box-shadow:0 0 12px rgba(255,201,60,.5)}
+.rstep.now{color:var(--text)}
+.rstep.launch .dot{border-color:rgba(255,201,60,.6);background:rgba(255,201,60,.08)}
+.rstep.launch{color:var(--gold)}
+.rbar{position:absolute;top:11px;left:8%;right:8%;height:2px;background:var(--line);z-index:-1}
+
+.new-tag{position:relative}
+.new-tag::after{
+  content:'NEW';position:absolute;top:-9px;right:-6px;background:var(--grad-money);color:#241500;
+  font-size:.55rem;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:99px;
+}
+.new-outline{outline:2px dashed rgba(255,201,60,.55);outline-offset:5px;border-radius:14px}
+
+h1{font-size:1.45rem;font-weight:800;line-height:1.25;text-align:center;margin-bottom:8px}
+.sub{text-align:center;color:var(--muted);font-size:.86rem;margin-bottom:18px}
+.gold-text{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.card{background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-bottom:14px}
+.card h3{font-size:.98rem;font-weight:800;margin-bottom:6px}
+.card p{font-size:.82rem;color:var(--muted);line-height:1.6}
+.price-line{display:flex;align-items:baseline;gap:8px;margin:10px 0 4px}
+.price-line .p{font-size:1.6rem;font-weight:800;color:var(--gold)}
+.price-line .s{font-size:.72rem;color:var(--muted)}
+.cta-dock{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent,rgba(7,11,21,.94) 32%)}
+.cta-dock .in{max-width:520px;margin:0 auto}
+.cta{width:100%;padding:16px;border:none;border-radius:14px;font:inherit;font-weight:800;font-size:1rem;cursor:pointer;background:var(--grad-money);color:#241500;box-shadow:0 8px 26px rgba(245,158,11,.4)}
+.cta.blue{background:var(--grad-brand);color:#fff;box-shadow:0 8px 26px rgba(59,130,246,.35)}
+.skip{display:block;width:100%;text-align:center;background:none;border:none;color:var(--muted);font:inherit;font-size:.8rem;font-weight:700;padding:12px;cursor:pointer;text-decoration:underline}
+
+/* preframe */
+.zbar-wrap{margin:14px 0 6px}
+.zbar-row{display:flex;justify-content:space-between;font-size:.68rem;font-weight:800;color:var(--muted);margin-bottom:5px}
+.zbar{height:13px;border-radius:99px;background:rgba(255,255,255,.06);border:1px solid var(--line);overflow:hidden}
+.zfill{height:100%;width:0%;border-radius:99px;background:var(--grad-money);transition:width 1.4s cubic-bezier(.22,1,.36,1);box-shadow:0 0 12px rgba(255,201,60,.5)}
+.steps3{margin:14px 0}
+.s3{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:.86rem;font-weight:700}
+.s3 .ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4)}
+.s3.pend .ic{background:rgba(255,201,60,.12);border-color:rgba(255,201,60,.5)}
+.s3.pend{color:var(--gold)}
+.possess{
+  text-align:center;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.35);border-radius:14px;
+  padding:13px;margin:12px 0;font-size:.9rem;font-weight:800;
+}
+.possess span{color:#8EC5FF}
+/* rehearsal mock */
+.rehearse{border:1px solid var(--line-strong);border-radius:14px;overflow:hidden;margin:14px 0;background:#0A0F1E}
+.rh-bar{display:flex;gap:5px;padding:8px 10px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--line)}
+.rh-bar i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15)}
+.rh-body{padding:16px 14px;min-height:150px}
+.rh-field{background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:9px;padding:9px 11px;font-size:.76rem;color:var(--muted);margin-bottom:9px;overflow:hidden;white-space:nowrap}
+.rh-field b{color:var(--text);font-weight:600}
+.rh-caption{font-size:.68rem;color:var(--muted);text-align:center;padding:0 12px 12px}
+.rh-import{height:9px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin:10px 0 4px}
+.rh-import i{display:block;height:100%;width:0%;background:var(--grad-brand);border-radius:99px}
+.rh-done{font-size:.72rem;font-weight:800;color:#7CF0A9;opacity:0;transition:.4s}
+/* countdown */
+.count-wrap{text-align:center;margin:10px 0 4px}
+.count-wrap .t{font-size:.74rem;font-weight:700;color:var(--muted)}
+.count-num{font-size:1.05rem;font-weight:800;color:var(--gold)}
+.cancel-auto{background:none;border:none;color:var(--muted);font:inherit;font-size:.7rem;font-weight:700;text-decoration:underline;cursor:pointer;margin-top:4px}
+/* faq */
+.faq{margin-top:14px;display:none}
+.faq.show{display:block;animation:in .4s ease}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px}
+.faq summary{font-size:.8rem;font-weight:800;cursor:pointer}
+.faq p{font-size:.76rem;color:var(--muted);margin-top:7px;line-height:1.6}
+/* controls */
+.pv-controls{position:fixed;top:44px;right:10px;z-index:90;display:flex;flex-direction:column;gap:6px}
+.pv-controls button{background:var(--card);border:1px solid var(--line-strong);color:var(--muted);font:inherit;font-size:.64rem;font-weight:800;padding:7px 10px;border-radius:9px;cursor:pointer}
+.pv-controls button.on{color:var(--gold);border-color:rgba(255,201,60,.5)}
+.legend{max-width:520px;margin:0 auto;padding:6px 18px 0;font-size:.68rem;color:var(--muted);line-height:1.6}
+.legend b{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="preview-banner">🔍 PREVIEW — nothing here is live, nothing charges. This simulates the post-purchase sequence WITH the new activation mechanics.</div>
+<div class="legend">Everything tagged <b>NEW</b> with a dashed outline is what would change. The upsell offers themselves are untouched — same screens, same order, same prices.</div>
+
+<div class="pv-controls">
+  <button onclick="goScreen(1)" id="pb1">1 · SEO</button>
+  <button onclick="goScreen(2)" id="pb2">2 · Ads</button>
+  <button onclick="goScreen(3)" id="pb3">3 · Extras</button>
+  <button onclick="goScreen(4)" id="pb4">4 · Launch</button>
+</div>
+
+<div class="wrap">
+
+  <!-- SCREEN 1: SEO upsell w/ rail -->
+  <div class="screen" id="sc1">
+    <div class="rail new-tag new-outline">
+      <div class="rbar"></div>
+      <div class="rstep done"><div class="dot">✓</div>Payment</div>
+      <div class="rstep now"><div class="dot">2</div>Customize</div>
+      <div class="rstep"><div class="dot">3</div>Ads</div>
+      <div class="rstep"><div class="dot">4</div>Extras</div>
+      <div class="rstep launch"><div class="dot">🚀</div>Launch</div>
+    </div>
+    <h1>Your store is <span class="gold-text">almost ready</span></h1>
+    <p class="sub">One optimization before launch prep continues.</p>
+    <div class="card">
+      <h3>🔍 SEO Boost — rank on Google</h3>
+      <p>Your store's pages rewritten to rank for your product's search terms. (Same offer as live today — unchanged in this preview.)</p>
+      <div class="price-line"><span class="p">$29</span><span class="s">one-time · 30-day guarantee</span></div>
+    </div>
+    <div class="cta-dock"><div class="in">
+      <button class="cta" onclick="goScreen(2)">Add SEO Boost — $29</button>
+      <button class="skip new-tag" onclick="goScreen(2)">Skip → continue to launch</button>
+    </div></div>
+  </div>
+
+  <!-- SCREEN 2: Ads upsell w/ rail -->
+  <div class="screen" id="sc2">
+    <div class="rail">
+      <div class="rbar"></div>
+      <div class="rstep done"><div class="dot">✓</div>Payment</div>
+      <div class="rstep done"><div class="dot">✓</div>Customize</div>
+      <div class="rstep now"><div class="dot">3</div>Ads</div>
+      <div class="rstep"><div class="dot">4</div>Extras</div>
+      <div class="rstep launch"><div class="dot">🚀</div>Launch</div>
+    </div>
+    <h1>10 ready-to-run <span class="gold-text">ad images</span></h1>
+    <p class="sub">Made for your exact product. (Same offer as live today.)</p>
+    <div class="card">
+      <h3>🎯 The Ad Pack</h3>
+      <p>Ten scroll-stopping ad creatives, generated for your product and delivered instantly.</p>
+      <div class="price-line"><span class="p">$49</span><span class="s">one-time · 30-day guarantee</span></div>
+    </div>
+    <div class="cta-dock"><div class="in">
+      <button class="cta" onclick="goScreen(3)">Get My 10 Ads — $49</button>
+      <button class="skip new-tag" onclick="goScreen(3)">Skip → continue to launch</button>
+    </div></div>
+  </div>
+
+  <!-- SCREEN 3: Extras w/ rail -->
+  <div class="screen" id="sc3">
+    <div class="rail">
+      <div class="rbar"></div>
+      <div class="rstep done"><div class="dot">✓</div>Payment</div>
+      <div class="rstep done"><div class="dot">✓</div>Customize</div>
+      <div class="rstep done"><div class="dot">✓</div>Ads</div>
+      <div class="rstep now"><div class="dot">4</div>Extras</div>
+      <div class="rstep launch"><div class="dot">🚀</div>Launch</div>
+    </div>
+    <h1>Last one — <span class="gold-text">launch extras</span></h1>
+    <p class="sub">Optional add-ons. Then your store goes live. (Same offer as live today.)</p>
+    <div class="card"><h3>♾️ Unlimited Stores · $39</h3><p>+ 📧 10 Profit Emails · $29 &nbsp;+ 🎬 Custom Video Ad · $39</p></div>
+    <div class="cta-dock"><div class="in">
+      <button class="cta" onclick="goScreen(4)">Add Selected</button>
+      <button class="skip new-tag" onclick="goScreen(4)">Skip → continue to launch</button>
+    </div></div>
+  </div>
+
+  <!-- SCREEN 4: The upgraded launch preframe -->
+  <div class="screen" id="sc4">
+    <div class="rail">
+      <div class="rbar"></div>
+      <div class="rstep done"><div class="dot">✓</div>Payment</div>
+      <div class="rstep done"><div class="dot">✓</div>Customize</div>
+      <div class="rstep done"><div class="dot">✓</div>Ads</div>
+      <div class="rstep done"><div class="dot">✓</div>Extras</div>
+      <div class="rstep now launch"><div class="dot">🚀</div>Launch</div>
+    </div>
+
+    <h1>Take <span class="gold-text">your store</span> live</h1>
+
+    <div class="possess new-tag new-outline">🏪 <span id="storeName">GlowNest Lighting</span> is built and ready to go live</div>
+
+    <div class="zbar-wrap new-tag new-outline" style="padding-top:6px">
+      <div class="zbar-row"><span>Store setup</span><span id="zpct">0%</span></div>
+      <div class="zbar"><div class="zfill" id="zfill"></div></div>
+      <div class="steps3">
+        <div class="s3"><span class="ic">✓</span> Store built &amp; tested</div>
+        <div class="s3"><span class="ic">✓</span> Payment received</div>
+        <div class="s3 pend"><span class="ic">3</span> Owner login on Shopify — about 1 minute</div>
+      </div>
+    </div>
+
+    <div class="rehearse new-tag new-outline">
+      <div class="rh-bar"><i></i><i></i><i></i></div>
+      <div class="rh-body">
+        <div class="rh-field" id="rf1">Email&nbsp; <b id="rt1"></b></div>
+        <div class="rh-field" id="rf2">Password&nbsp; <b id="rt2"></b></div>
+        <div class="rh-import"><i id="rimp"></i></div>
+        <div class="rh-done" id="rdone">✓ Store imported — GlowNest Lighting is LIVE</div>
+      </div>
+      <div class="rh-caption">This is the whole step — two fields, then your store installs itself. (In production this is a real 20-second screen recording.)</div>
+    </div>
+
+    <div class="card" style="margin-top:4px">
+      <p style="font-size:.78rem">You're creating your login on <b style="color:var(--text)">Shopify's official page</b> — your store imports into it automatically. $1/mo for your first 3 months, paid to Shopify, cancel anytime. We never charge your card again. We may earn a commission from Shopify — at no cost to you.</p>
+    </div>
+
+    <div class="faq" id="faq">
+      <details><summary>Why Shopify?</summary><p>It's the platform that keeps your store online and moves customer payments into your bank. The same system powering millions of stores.</p></details>
+      <details><summary>What does it cost?</summary><p>$1/month for your first 3 months, then Shopify's standard $39/month — cancel anytime, paid to Shopify, never to us.</p></details>
+      <details><summary>What if I cancel?</summary><p>Two clicks in Shopify settings, no contract. And your $20 with us stays covered by the 30-day money-back guarantee either way.</p></details>
+    </div>
+
+    <div class="cta-dock"><div class="in">
+      <div class="count-wrap new-tag" id="countWrap">
+        <span class="t">Taking you to launch in </span><span class="count-num" id="countN">5</span>
+        <button class="cancel-auto" onclick="stopAuto()">wait, not yet</button>
+      </div>
+      <button class="cta" onclick="finishDemo()">🚀 Go Live On Shopify</button>
+    </div></div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+let CUR = 1, autoTimer = null, faqTimer = null;
+
+function goScreen(n){
+  CUR = n;
+  document.querySelectorAll('.screen').forEach((s, i) => s.classList.toggle('on', i === n - 1));
+  document.querySelectorAll('.pv-controls button').forEach((b, i) => b.classList.toggle('on', i === n - 1));
+  window.scrollTo({ top: 0 });
+  clearInterval(autoTimer); clearTimeout(faqTimer);
+  if(n === 4) runPreframe();
+}
+
+function runPreframe(){
+  // Zeigarnik bar sweep to 90%
+  const z = document.getElementById('zfill'), zp = document.getElementById('zpct');
+  z.style.width = '0%'; zp.textContent = '0%';
+  setTimeout(() => { z.style.width = '90%'; animPct(zp, 90, 1400); }, 350);
+
+  // rehearsal mock: type fields, run import
+  const t1 = document.getElementById('rt1'), t2 = document.getElementById('rt2');
+  const imp = document.getElementById('rimp'), done = document.getElementById('rdone');
+  t1.textContent = ''; t2.textContent = ''; imp.style.width = '0%'; imp.style.transition = 'none'; done.style.opacity = 0;
+  typeIn(t1, 'you@email.com', 900, () => typeIn(t2, '••••••••', 2100, () => {
+    imp.style.transition = 'width 1.6s ease';
+    setTimeout(() => imp.style.width = '100%', 150);
+    setTimeout(() => done.style.opacity = 1, 1800);
+  }));
+
+  // auto-advance countdown (demo: loops back to a friendly stop)
+  const wrap = document.getElementById('countWrap'), num = document.getElementById('countN');
+  wrap.style.display = 'block'; let n = 5; num.textContent = n;
+  autoTimer = setInterval(() => {
+    n--; num.textContent = Math.max(n, 0);
+    if(n <= 0){ clearInterval(autoTimer); finishDemo(); }
+  }, 1000);
+
+  // idle FAQ reveal (8s in the demo; 60s in production)
+  document.getElementById('faq').classList.remove('show');
+  faqTimer = setTimeout(() => document.getElementById('faq').classList.add('show'), 8000);
+}
+function typeIn(el, text, delay, then){
+  setTimeout(() => {
+    let i = 0;
+    const iv = setInterval(() => {
+      el.textContent = text.slice(0, ++i);
+      if(i >= text.length){ clearInterval(iv); then && then(); }
+    }, 55);
+  }, delay);
+}
+function animPct(el, to, dur){
+  const t0 = performance.now();
+  (function f(t){
+    const k = Math.min((t - t0) / dur, 1);
+    el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + '%';
+    if(k < 1) requestAnimationFrame(f);
+  })(t0);
+}
+function stopAuto(){
+  clearInterval(autoTimer);
+  document.getElementById('countWrap').style.display = 'none';
+}
+function finishDemo(){
+  clearInterval(autoTimer);
+  alert('PREVIEW: in production this is where they land on the Shopify signup — with the ?store= parameter carrying their build, exactly like the live flow today.');
+}
+goScreen(1);
+</script>
+</body>
+</html>
