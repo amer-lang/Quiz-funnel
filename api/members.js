@@ -104,6 +104,21 @@ module.exports = async (req, res) => {
     if(!/^cs_[A-Za-z0-9_]+$/.test(cs)) return res.status(400).json({ ok:false, error:'bad_cs' });
     if(!process.env.STRIPE_SECRET_KEY) return res.status(200).json({ ok:false, error:'no_keys' });
 
+    /* owner test pass: full walkthrough on a sandbox record — no Stripe order,
+       progress saved under its own blob, $299 buy fails safely (no base session) */
+    if(cs === 'cs_test_roadmap'){
+      if(q.activation) return res.status(200).json({ ok:true, link:'https://sellproducts.ai/?resume=demo', email:'demo@sellproducts.ai' });
+      const rec = await readProgress(cs);
+      if(q.complete){
+        const n = parseInt(q.complete, 10);
+        if(n >= 1 && n <= 7 && !rec.done.includes(n)){
+          rec.done.push(n); rec.done.sort((a, b) => a - b); rec.updated = Date.now();
+          await writeProgress(cs, rec);
+        }
+      }
+      return res.status(200).json({ ok:true, email:'demo@sellproducts.ai', product:'Demo Product', done: rec.done });
+    }
+
     const s = await sget('checkout/sessions/' + encodeURIComponent(cs));
     const ty = (s.metadata && s.metadata.type) || '';
     if(s.payment_status !== 'paid' || !OK_TYPES.has(ty))
