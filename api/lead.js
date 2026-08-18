@@ -49,6 +49,21 @@ async function emailsField(){
   return emailsFieldId;
 }
 
+/* AC custom field %MEMBERS_LINK% — the buyer's personal First Sale Roadmap
+   (/members?cs=<order>). Auto-created on first use by perstag. */
+let membersFieldId = null;
+async function membersField(){
+  if(membersFieldId) return membersFieldId;
+  try{
+    const r = await ac('/api/3/fields?limit=100');
+    const f = ((r.j && r.j.fields) || []).find(x => x.perstag === 'MEMBERS_LINK');
+    if(f){ membersFieldId = Number(f.id); return membersFieldId; }
+    const c = await ac('/api/3/fields', 'POST', { field: { type: 'text', title: 'Members link', perstag: 'MEMBERS_LINK', visible: 1 } });
+    if(c.ok && c.j.field) membersFieldId = Number(c.j.field.id);
+  }catch(e){}
+  return membersFieldId;
+}
+
 /* "SPAI Email Pack" list — email-pack buyers land here so an automation can
    send them their delivery link. Resolved by name; auto-created if missing. */
 let emailsListId = null;
@@ -298,6 +313,54 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok:true, found: orders.length, processed: done });
       }
 
+      if((req.query || {}).memsweep){
+        // key-gated backfill: stamp %MEMBERS_LINK% (the buyer's First Sale
+        // Roadmap /members?cs=) onto every past $20 store buyer. Day-partitioned
+        // Stripe pulls (the pagination-cap lesson) with a 40s time budget;
+        // returns resume_from when a run can't finish — re-run with
+        // &before=<that day> until resume_from is null. &dry=1 = count only.
+        if(req.query.memsweep !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+        const sk = process.env.STRIPE_SECRET_KEY || '';
+        if(!sk) return res.status(200).json({ ok:false, status:'no_stripe_key' });
+        const dry = req.query.dry === '1';
+        const dayS = t => new Date(t).toISOString().slice(0, 10);
+        const startDay = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.before || '')) ? String(req.query.before) : dayS(Date.now());
+        const nDays = Math.min(30, Math.max(1, parseInt(req.query.days, 10) || 14));
+        const mfid = await membersField();
+        if(!mfid && !dry) return res.status(200).json({ ok:false, status:'members_field_create_failed' });
+        const sget = p => fetch('https://api.stripe.com/v1/' + p, { headers: { Authorization: 'Bearer ' + sk } })
+          .then(r => r.json()).catch(() => ({}));
+        const t0 = Date.now();
+        const perDay = {};
+        let resume = null, stamped = 0;
+        for(let i = 0; i < nDays; i++){
+          const day = dayS(Date.parse(startDay + 'T00:00:00Z') - i * 864e5);
+          if(Date.now() - t0 > 40000){ resume = day; break; }
+          const gte = Math.floor(Date.parse(day + 'T00:00:00Z') / 1000), lt = gte + 86400;
+          let after = '', buyers = [];
+          for(let p = 0; p < 6; p++){
+            const j = await sget('checkout/sessions?limit=100&created[gte]=' + gte + '&created[lt]=' + lt + (after ? '&starting_after=' + after : ''));
+            const data = (j && j.data) || [];
+            for(const s of data){
+              if(s.payment_status !== 'paid' || !s.metadata || s.metadata.type !== 'store_unlock20') continue;
+              const em = String((s.customer_details && s.customer_details.email) || '').toLowerCase();
+              if(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) buyers.push({ cs: s.id, email: em });
+            }
+            if(!j.has_more || !data.length) break;
+            after = data[data.length - 1].id;
+          }
+          if(!dry) for(const b of buyers){
+            await ac('/api/3/contact/sync', 'POST', { contact: { email: b.email,
+              fieldValues: [{ field: mfid, value: 'https://sellproducts.ai/members?cs=' + encodeURIComponent(b.cs) }] } });
+            stamped++;
+          }
+          perDay[day] = buyers.length;
+        }
+        return res.status(200).json({ ok: true, dry, field_id: mfid || null, per_day: perDay,
+          stamped, resume_from: resume,
+          note: resume ? 'Time budget hit — run again with &before=' + resume + ' to continue.' : 'All requested days covered.' });
+      }
+
       if((req.query || {}).dsraw){
         // key-gated: hit DropStart /verify-checkout DIRECTLY and return its raw
         // verdict — tells us whether DS verifies sessions it didn't create.
@@ -382,6 +445,15 @@ module.exports = async (req, res) => {
       // store they actually paid for.
       const contact = { email };
       if(activationLink) contact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: activationLink }];
+
+      // $20 store buyers: write their personal First Sale Roadmap into
+      // %MEMBERS_LINK% so emails can link the members area (email is the ONLY
+      // door to /members — nothing on the funnel's confirmation page).
+      if(stage === 'unlocked' && /^cs_/.test(String(body.cs || ''))){
+        const mfid = await membersField();
+        if(mfid) contact.fieldValues = (contact.fieldValues || [])
+          .concat([{ field: mfid, value: 'https://sellproducts.ai/members?cs=' + encodeURIComponent(String(body.cs)) }]);
+      }
 
       // $49 image-pack buyers ONLY: write their delivery page into %ADS_LINK%
       // so the list-7 purchase email can hand them the ads. $299 video buyers

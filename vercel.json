@@ -15,6 +15,12 @@
     },
     "api/collect.js": {
       "maxDuration": 30
+    },
+    "api/lead.js": {
+      "maxDuration": 60
+    },
+    "api/members.js": {
+      "maxDuration": 30
     }
   }
 }
