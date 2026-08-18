@@ -3415,6 +3415,7 @@ function dsPaidClaim(btn){
         playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.5, 120);
         showToast('♾️','Unlimited plan — this store is included!');
         dsPaidCs = j.cs;
+        try{ if(dsPaidCs) localStorage.setItem('spai_cs20', dsPaidCs); }catch(e){}
         dsFinalize({});
         return;
       }
@@ -3929,6 +3930,7 @@ function dsResumeAfterPayment20(){
       spLog('paid_20', j.project_id || '');
       spLead('unlocked', j.email || null, cs); // → AC list 6 + SPAI Subscribers (bridge verifies via Stripe)
       dsPaidCs = cs;
+      try{ localStorage.setItem('spai_cs20', cs); }catch(e){}
       try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
       if(!dsBuild && j.project_id) dsBuild = { ok:true, project_id: Number(j.project_id) };
       if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
@@ -4133,16 +4135,18 @@ function runDone(){
 
   // Purchased deliverables — durable access links right on the final screen,
   // so fulfillment never depends on the delivery email alone.
-  let adsCs = '', emCs = '';
+  let adsCs = '', emCs = '', mbCs = dsPaidCs || '';
   try{ adsCs = localStorage.getItem('spai_ads_cs') || ''; }catch(e){}
   try{ emCs = localStorage.getItem('spai_emails_cs') || ''; }catch(e){}
-  if((adsCs || emCs) && !document.getElementById('doneGoods')){
+  try{ mbCs = mbCs || localStorage.getItem('spai_cs20') || ''; }catch(e){}
+  if((adsCs || emCs || mbCs) && !document.getElementById('doneGoods')){
     const d = document.createElement('div');
     d.id = 'doneGoods';
     d.style.cssText = 'background:var(--card);border:1px solid rgba(255,201,60,.35);border-radius:16px;padding:4px 16px;margin:14px 0 4px;text-align:left';
     let rows = '';
-    if(adsCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700">🎯 Your 10 image ads<a href="/ads?cs=' + encodeURIComponent(adsCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
-    if(emCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + (adsCs ? 'border-top:1px solid var(--line)' : '') + '">✉️ Your 10 profit emails<a href="/emails?cs=' + encodeURIComponent(emCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
+    if(mbCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700">🎮 First Sale Roadmap — rank up to your first sale<a href="/members?cs=' + encodeURIComponent(mbCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Start →</a></div>';
+    if(adsCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + (mbCs ? 'border-top:1px solid var(--line)' : '') + '">🎯 Your 10 image ads<a href="/ads?cs=' + encodeURIComponent(adsCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
+    if(emCs) rows += '<div style="display:flex;align-items:center;gap:9px;padding:11px 0;font-size:.85rem;font-weight:700;' + ((adsCs || mbCs) ? 'border-top:1px solid var(--line)' : '') + '">✉️ Your 10 profit emails<a href="/emails?cs=' + encodeURIComponent(emCs) + '" target="_blank" style="margin-left:auto;color:var(--gold);font-size:.76rem;font-weight:800;text-decoration:none">Open →</a></div>';
     d.innerHTML = rows;
     const sub = document.querySelector('#s-done .sub');
     if(sub) sub.insertAdjacentElement('afterend', d);
