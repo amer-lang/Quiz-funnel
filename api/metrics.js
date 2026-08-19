@@ -211,6 +211,22 @@ module.exports = async (req, res) => {
         sessions: rec.sessions, pis: rec.pis, truncated: rec.truncated });
     }
 
+    /* ?window=1&from=<epoch-sec>&to=<epoch-sec> — raw $20-sale count in any
+       window, straight from Stripe. For same-time-of-day pace comparisons. */
+    if(q.window){
+      const from = parseInt(q.from, 10), to = parseInt(q.to, 10);
+      if(!from || !to || to <= from || to - from > 3 * 86400)
+        return res.status(400).json({ ok:false, error:'bad window (max 3 days)' });
+      const r = await pageAll('checkout/sessions?', from, to);
+      let n = 0, gross = 0;
+      for(const s of r.items){
+        if(s.payment_status === 'paid' && s.metadata && s.metadata.type === 'store_unlock20'){
+          n++; gross += s.amount_total || 0;
+        }
+      }
+      return res.status(200).json({ ok:true, from, to, unlock20: n, gross: gross / 100, truncated: r.truncated });
+    }
+
     /* ?daily=N — per-day breakdown straight from the day caches */
     if(q.daily){
       const n = Math.min(90, Math.max(1, parseInt(q.daily, 10) || 14));
