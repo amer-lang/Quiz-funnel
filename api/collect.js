@@ -203,6 +203,29 @@ module.exports = async (req, res) => {
         return res.status(200).json(liveCache);
       }
 
+      /* per-Pacific-day step funnel — for day-vs-day drop diagnosis */
+      if(q.funnel === READ_KEY){
+        const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 3));
+        const out = [];
+        for(const d of lastNDayKeys(days)){
+          const evs = (await readDay(d, true).catch(() => [])).filter(e => e && e.sid !== 'selftest');
+          const uniq = pred => new Set(evs.filter(pred).map(e => e.sid)).size;
+          const S = id => uniq(e => e.e === 'screen' && e.v === id);
+          const E = n => uniq(e => e.e === n);
+          out.push({ day: d, visitors: new Set(evs.map(e => e.sid)).size,
+            landing: S('s-landing'), intro: S('s-intro'), q1: S('s-q1'), q5: S('s-q5'),
+            reality: S('s-reality'), blueprint: S('s-blueprint'), cost: S('s-cost'),
+            scan: S('s-scan'), pick: S('s-pick'), emailScreen: S('s-email'),
+            emails: E('email_submitted'), build: S('s-build'), preview: S('s-preview'),
+            claims: E('claim_click'), paid: E('paid_20'),
+            launch1: S('s-launch1'), seo: S('s-seo'), adsUp: S('s-upsell-ads'), addons: S('s-addons'),
+            diag: { checkout_mode: E('checkout_mode'), mount_err: E('custom_mount_err'),
+              mode_err: E('custom_mode_err'), finalize_fail: E('finalize_fail'),
+              resv_expired: E('resv_expired'), resv_restored: E('resv_restored') } });
+        }
+        return res.status(200).json({ ok: true, tz: TZ, rows: out });
+      }
+
       if(q.stats === READ_KEY){
         const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 1));
         const evs = (await readRange(days, true)).filter(e => e && e.t && e.e && e.sid !== 'selftest');
