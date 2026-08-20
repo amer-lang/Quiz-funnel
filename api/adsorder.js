@@ -214,6 +214,9 @@ module.exports = async (req, res) => {
         if(missing.length) report.push({ order: id.slice(0, 14) + '…', missing: missing.length });
         for(const i of missing) tasks.push({ id, i });
       }
+      if(q.dry === '1') return res.status(200).json({ ok: true, dry: true, days,
+        orders_scanned: orders.length, incomplete_orders: report, images_missing: tasks.length });
+
       const batch = tasks.slice(0, 14); // parallel lambdas, one image each
       const results = await Promise.all(batch.map(t =>
         fetch('https://www.sellproducts.ai/api/adsorder?cs=' + encodeURIComponent(t.id) + '&make=1&i=' + t.i)
