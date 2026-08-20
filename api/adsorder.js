@@ -178,6 +178,67 @@ module.exports = async (req, res) => {
   try{
     if(!blobReady()) return res.status(200).json({ ok:false, status:'no_blob_store' });
 
+    /* ---- key-gated heal sweep: after an OpenAI outage, find every recent
+       ad-pack order with missing images and regenerate them server-side
+       (parallel self-calls, one image each). Re-run until healed:0. ---- */
+    if(q.heal){
+      if(q.heal !== READ_KEY) return res.status(403).json({ ok:false });
+      const sk = process.env.STRIPE_SECRET_KEY || '';
+      if(!sk || !process.env.OPENAI_API_KEY) return res.status(200).json({ ok:false, status:'no_keys' });
+      const days = Math.min(7, Math.max(1, parseInt(q.days, 10) || 3));
+      const gte = Math.floor(Date.now() / 1000) - days * 86400;
+      const sget = p => fetch('https://api.stripe.com/v1/' + p, { headers: { Authorization: 'Bearer ' + sk } })
+        .then(r => r.json()).catch(() => ({}));
+      const page2 = async base => {
+        const out = []; let after = '';
+        for(let p = 0; p < 6; p++){
+          const j = await sget(base + '&limit=100&created[gte]=' + gte + (after ? '&starting_after=' + after : ''));
+          const data = (j && j.data) || [];
+          out.push(...data);
+          if(!j.has_more || !data.length) break;
+          after = data[data.length - 1].id;
+        }
+        return out;
+      };
+      const [pis, sessions] = await Promise.all([page2('payment_intents?'), page2('checkout/sessions?')]);
+      const orders = [];
+      for(const p of pis) if(p.status === 'succeeded' && p.metadata && p.metadata.type === 'image_ads_10') orders.push(p.id);
+      for(const s of sessions) if(s.payment_status === 'paid' && s.metadata && s.metadata.type === 'image_ads_10') orders.push(s.id);
+
+      const report = [], tasks = [];
+      for(const id of orders){
+        const st2 = await orderState(keyOf(id));
+        const missing = [];
+        for(let i = 0; i < TOTAL; i++)
+          if(!st2.ads[i] && !(st2.pending[i] && Date.now() - st2.pending[i] < PENDING_TTL)) missing.push(i);
+        if(missing.length) report.push({ order: id.slice(0, 14) + '…', missing: missing.length });
+        for(const i of missing) tasks.push({ id, i });
+      }
+      const batch = tasks.slice(0, 14); // parallel lambdas, one image each
+      const results = await Promise.all(batch.map(t =>
+        fetch('https://www.sellproducts.ai/api/adsorder?cs=' + encodeURIComponent(t.id) + '&make=1&i=' + t.i)
+          .then(r => r.json()).catch(() => ({ ok: false }))));
+      const made = results.filter(r => r && r.ok).length;
+
+      /* email packs regenerate on page-load; warm the most recent ones too */
+      let emailsWarmed = 0;
+      if(q.emails !== '0'){
+        const epis = pis.filter(p => p.status === 'succeeded' && p.metadata &&
+          p.metadata.type === 'store_addons' && String(p.metadata.items || '').includes('profit_emails')).slice(0, 2);
+        for(const p of epis){
+          try{ const j = await fetch('https://www.sellproducts.ai/api/emailpack?cs=' + p.id).then(r => r.json());
+            if(j && j.ready) emailsWarmed++; }catch(e){}
+        }
+      }
+
+      return res.status(200).json({ ok: true, days, orders_scanned: orders.length,
+        incomplete_orders: report, images_missing: tasks.length,
+        kicked_this_run: batch.length, generated_ok: made, email_packs_warmed: emailsWarmed,
+        note: tasks.length > batch.length || made < batch.length
+          ? 'Not finished — run this same URL again until images_missing is 0.'
+          : 'All caught up.' });
+    }
+
     /* ---- resolve the order: demo lane (key-gated) or a paid $49 session ---- */
     let key, product = '', authQS;
     if(q.demo){
