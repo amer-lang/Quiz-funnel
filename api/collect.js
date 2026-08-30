@@ -34,7 +34,7 @@ const EV_OK = new Set([
   'resv_expired','resv_restored','checkout_mode','finalize_fail',
   'seo_fail','addons_fail','custom_mode_err','custom_mount_err'
 ]);
-const MAX_BATCH = 200, MAX_DAY_EVENTS = 60000, MAX_DAYS_READ = 60, MAX_CHUNK_FETCH = 1500;
+const MAX_BATCH = 200, MAX_DAY_EVENTS = 150000, MAX_DAYS_READ = 60, MAX_CHUNK_FETCH = 1500;
 
 let liveCache = null, liveCacheAt = 0; // public live counters, 2-min TTL
 
@@ -82,27 +82,103 @@ async function listDay(day){
   return blobs;
 }
 
-/* Merge the day's compacted file (if any) with every outstanding chunk.
-   First read of a finished day compacts it down to one file. */
+/* Pacific hour '00'-'23' for a timestamp — the intra-day shard key. */
+function hourKey(t){
+  return new Date(t).toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }).slice(0, 2);
+}
+/* Which hour a chunk belongs to: new layout ev/<day>/<hh>/c-...; legacy
+   layout ev/<day>/c-<ms>-... falls back to the hour of its write time. */
+function chunkHour(pathname){
+  let m = pathname.match(/^ev\/[^/]+\/(\d{2})\/c-/);
+  if(m) return m[1];
+  m = pathname.match(/^ev\/[^/]+\/c-(\d+)-/);
+  if(m) return hourKey(Number(m[1]));
+  return '99';
+}
+const fetchJsonBatch = async (blobs, par) => {
+  const out = [];
+  for(let i = 0; i < blobs.length; i += par){
+    const part = await Promise.all(blobs.slice(i, i + par).map(b =>
+      bfetch(b.url).then(r => r.json()).catch(() => [])));
+    out.push(...part);
+  }
+  return out;
+};
+
+/* Read one day: compacted day file + compacted hour files + the NEWEST
+   outstanding chunks (newest first so live dashboards always see the present
+   even while a backlog exists). High-traffic scale: finished hours are rolled
+   into single h-<hh>.json files by compactDayPass, so steady-state reads are
+   ~25 files + the current hour's chunks. */
 async function readDay(day, compactPast){
   const blobs = await listDay(day);
   const fileB = blobs.find(b => b.pathname === 'ev/' + day + '.json');
-  const chunkBs = blobs.filter(b => b.pathname.startsWith('ev/' + day + '/')).slice(0, MAX_CHUNK_FETCH);
-  const [base, parts] = await Promise.all([
+  const hourFiles = blobs.filter(b => /^ev\/[^/]+\/h-\d{2}\.json$/.test(b.pathname));
+  const chunkBs = blobs.filter(b => b.pathname.includes('/c-'))
+    .sort((a, b) => (chunkHour(b.pathname) + b.pathname).localeCompare(chunkHour(a.pathname) + a.pathname))
+    .slice(0, MAX_CHUNK_FETCH);
+  const [base, hourParts, chunkParts] = await Promise.all([
     fileB ? bfetch(fileB.url).then(r => r.json()).catch(() => []) : [],
-    Promise.all(chunkBs.map(b => bfetch(b.url).then(r => r.json()).catch(() => [])))
+    fetchJsonBatch(hourFiles, 30),
+    fetchJsonBatch(chunkBs, 120)
   ]);
-  let all = (Array.isArray(base) ? base : []).concat(parts.flat().filter(Boolean));
+  let all = (Array.isArray(base) ? base : [])
+    .concat(hourParts.flat().filter(Boolean))
+    .concat(chunkParts.flat().filter(Boolean));
   if(all.length > MAX_DAY_EVENTS) all = all.slice(all.length - MAX_DAY_EVENTS);
-  if(compactPast && !fileB && chunkBs.length && day !== dayKey(Date.now())){
-    try{
-      const { put, del } = await import('@vercel/blob');
-      await put('ev/' + day + '.json', JSON.stringify(all), blobOpts({
-        access: 'private', addRandomSuffix: false, contentType: 'application/json' }));
-      await del(chunkBs.map(b => b.url), blobOpts());
-    }catch(e){} // compaction is an optimization — never let it break a read
-  }
+  if(compactPast) compactDayPass(day, 1200).catch(() => {}); // fire-and-forget tidy
   return all;
+}
+
+/* One bounded compaction pass: merge finished-hour chunks (and, for past
+   days, everything) into h-<hh>.json / <day>.json files and delete the
+   merged chunks. Budgeted so it can run inside a read or be looped via
+   ?compact=KEY to digest a backlog. Returns chunks remaining afterwards. */
+async function compactDayPass(day, chunkBudget){
+  const { put, del } = await import('@vercel/blob');
+  const isToday = day === dayKey(Date.now());
+  const curHour = hourKey(Date.now());
+  const blobs = await listDay(day);
+  const chunkAll = blobs.filter(b => b.pathname.includes('/c-'));
+  const groups = {};
+  for(const b of chunkAll){
+    const h = chunkHour(b.pathname);
+    if(isToday && h >= curHour) continue; // never compact the live hour
+    (groups[h] = groups[h] || []).push(b);
+  }
+  let spent = 0;
+  const hours = Object.keys(groups).sort(); // oldest first
+  for(const h of hours){
+    if(spent >= chunkBudget) break;
+    const batch = groups[h].slice(0, Math.max(50, chunkBudget - spent));
+    spent += batch.length;
+    const hourPath = 'ev/' + day + '/h-' + h + '.json';
+    const hourFile = blobs.find(b => b.pathname === hourPath);
+    const [baseArr, parts] = await Promise.all([
+      hourFile ? bfetch(hourFile.url).then(r => r.json()).catch(() => []) : [],
+      fetchJsonBatch(batch, 120)
+    ]);
+    const merged = (Array.isArray(baseArr) ? baseArr : []).concat(parts.flat().filter(Boolean));
+    await put(hourPath, JSON.stringify(merged), blobOpts({
+      access: 'private', addRandomSuffix: false, allowOverwrite: true,
+      contentType: 'application/json' }));
+    await del(batch.map(b => b.url), blobOpts());
+  }
+  // past day fully chunk-free → collapse hour files into the single day file
+  if(!isToday && !blobs.find(b => b.pathname === 'ev/' + day + '.json')){
+    const after = await listDay(day);
+    const remChunks = after.filter(b => b.pathname.includes('/c-'));
+    const hFiles = after.filter(b => /^ev\/[^/]+\/h-\d{2}\.json$/.test(b.pathname));
+    if(!remChunks.length && hFiles.length){
+      const parts = await fetchJsonBatch(hFiles, 30);
+      await put('ev/' + day + '.json', JSON.stringify(parts.flat().filter(Boolean)), blobOpts({
+        access: 'private', addRandomSuffix: false, allowOverwrite: true,
+        contentType: 'application/json' }));
+      await del(hFiles.map(b => b.url), blobOpts());
+    }
+  }
+  const left = (await listDay(day)).filter(b => b.pathname.includes('/c-'));
+  return { remaining: left.length, compacted: spent };
 }
 
 async function readRange(days, compactPast){
@@ -127,11 +203,14 @@ function cleanEvents(body){
 
 async function appendEvents(events){
   const { put } = await import('@vercel/blob');
-  const byDay = {};
-  for(const e of events) (byDay[dayKey(e.t)] = byDay[dayKey(e.t)] || []).push(e);
-  for(const day of Object.keys(byDay)){
-    const name = 'ev/' + day + '/c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.json';
-    await put(name, JSON.stringify(byDay[day]), blobOpts({
+  const byShard = {}; // day/hour shard → events
+  for(const e of events){
+    const k = dayKey(e.t) + '/' + hourKey(e.t);
+    (byShard[k] = byShard[k] || []).push(e);
+  }
+  for(const shard of Object.keys(byShard)){
+    const name = 'ev/' + shard + '/c-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.json';
+    await put(name, JSON.stringify(byShard[shard]), blobOpts({
       access: 'private', addRandomSuffix: false, contentType: 'application/json' }));
   }
 }
@@ -168,6 +247,16 @@ module.exports = async (req, res) => {
         }
         return res.status(200).json({ ok: true, wrote: 1, store: 'vercel-blob',
           dayBlobs: blobs.length, chunks: chunks.length, readBack });
+      }
+
+      /* key-gated: one bounded compaction pass on a day's chunk backlog.
+         Loop until remaining is ~0. ?day=YYYY-MM-DD targets a specific day
+         (default today). */
+      if(q.compact){
+        if(q.compact !== READ_KEY) return res.status(403).json({ error: 'bad key' });
+        const day = /^\d{4}-\d{2}-\d{2}$/.test(String(q.day || '')) ? String(q.day) : dayKey(Date.now());
+        const r = await compactDayPass(day, Math.min(6000, parseInt(q.budget, 10) || 2500));
+        return res.status(200).json({ ok: true, day, compacted: r.compacted, chunks_remaining: r.remaining });
       }
 
       /* one-time: pull whatever survives of the legacy jsonblob days into Blob */

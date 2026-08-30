@@ -14,7 +14,7 @@
       "maxDuration": 60
     },
     "api/collect.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "api/lead.js": {
       "maxDuration": 60
