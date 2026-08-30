@@ -2672,6 +2672,7 @@ let userEmail = '';
 let dsBuild = null;        // {project_id, resume_url, status_url} once started
 let dsStatus = null;       // last status payload once the store is ready
 let dsBuildError = null;   // set if the build could not be started
+let sellProductId = 0;     // "Sell this one" email deep-link (?p=<featuredProductId>) — durable product anchor
 
 /* Stable anonymous id, so every step of this visitor's journey stitches
    together in the funnel report (and links to the build they start). */
@@ -2817,6 +2818,7 @@ function startRealBuild(){
       email:        userEmail,
       what_to_sell: chosen ? chosen.name : '',
       trending_id:  (chosen && chosen.dsId) || undefined,
+      featured_product_id: sellProductId || undefined, // "Sell this one" email deep-link — resolved on our backend, durable
       audience:     answers.goal || undefined,
       store_style:  'modern',
       cid:          dsCid(),
@@ -3380,7 +3382,11 @@ function claimStore(e){
     })
     .then(r=>r.json())
     .then(j=>{
-      if(j && j.ok && j.unlimited){
+      // Honor the free unlock ONLY for buyers carrying a real Unlimited link
+      // token. 2026-08-30: the partner endpoint began answering unlimited:true
+      // for everyone, silently skipping the $20 checkout for all buyers — the
+      // token requirement makes a bad partner answer unable to bypass payment.
+      if(j && j.ok && j.unlimited && dsUnlimited){
         spLog('claim_unlimited', dsBuild.project_id);
         playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.5, 120);
         showToast('♾️','Unlimited plan — this store is included!');
@@ -4085,6 +4091,50 @@ function dsPickFromEmail(){
   return true;
 }
 
+/* "Sell this one" from a Products-of-the-Day email:
+   …/?p=<featuredProductId>&email=<their email>.
+   Skip the quiz AND the picker — build the store around that ONE product right
+   away, then play the build animation → preview → unlock. The product is
+   resolved on our backend from featured_product_id (durable), so the link keeps
+   working long after the email was sent, unlike a cached trending_id. TG12577. */
+function dsSellFromEmail(){
+  const q = new URLSearchParams(location.search);
+  const pid = parseInt(q.get('p') || '', 10);
+  if(!(pid > 0)) return false;
+  sellProductId = pid;
+  pickLinkMode = true;
+
+  const em = String(q.get('email') || '').trim().toLowerCase();
+  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em);
+  if(hasEmail){
+    userEmail = em;
+    try{
+      const lead = JSON.parse(localStorage.getItem('spai_lead') || '{}');
+      lead.email = em; localStorage.setItem('spai_lead', JSON.stringify(lead));
+    }catch(e){}
+  }
+  spLog('sell_link', hasEmail ? 'with_email' : 'bare');
+
+  // Cosmetic only — the real product + store name come back from the build.
+  // Show the emailed product's own 3:2 hero during the build animation, and
+  // borrow its name if the live catalogue happens to be loaded (never wait on it).
+  const base = DS_API.replace(/\/api\/express$/, '');
+  let nm = '';
+  try{
+    const m = (PRODUCTS||[]).find(c => c && c.image && c.image.indexOf('/featured-main/'+pid+'/') !== -1);
+    if(m) nm = m.name || '';
+  }catch(e){}
+  chosen = { name: nm, image: base + '/start/featured-main/' + pid + '/3x2', emoji: '📦' };
+
+  if(hasEmail){
+    startRealBuild();   // posts featured_product_id → builds around this product
+    go('s-build');
+  } else {
+    go('s-email');      // no email on the link — collect it, then the normal submit builds
+  }
+  return true;
+}
+
 function dsResumeFromEmail(){
   const q = new URLSearchParams(location.search);
   const pid = q.get('resume');
@@ -4318,10 +4368,10 @@ function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40
 /* boot */
 setBar('s-landing');
 updateBack();
-if(!/paid=1|upsold=1|resume=/.test(location.search)) spLog('screen', 's-landing');
+if(!/paid=1|upsold=1|resume=|[?&]p=/.test(location.search)) spLog('screen', 's-landing');
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
-if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsPickFromEmail()) dsResumeFromEmail();
+if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsSellFromEmail() && !dsPickFromEmail()) dsResumeFromEmail();
 
 /* Safe visual preview of the image-ads upsell (?upsellpreview=1): renders the
    screen with checkout disabled so it can be reviewed on production without
