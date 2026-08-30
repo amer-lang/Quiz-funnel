@@ -138,7 +138,15 @@ async function compactDayPass(day, chunkBudget){
   const { put, del } = await import('@vercel/blob');
   const isToday = day === dayKey(Date.now());
   const curHour = hourKey(Date.now());
-  const blobs = await listDay(day);
+  let blobs = await listDay(day);
+  // single-compactor lease: overlapping passes on one hour can overwrite each
+  // other's merges and lose events, so a fresh lease marker means back off
+  const lease = blobs.find(b => b.pathname === 'ev/' + day + '/.compacting');
+  if(lease && Date.now() - new Date(lease.uploadedAt).getTime() < 90000)
+    return { remaining: -1, compacted: 0, busy: true };
+  await put('ev/' + day + '/.compacting', String(Date.now()), blobOpts({
+    access: 'private', addRandomSuffix: false, allowOverwrite: true, contentType: 'text/plain' }));
+  blobs = blobs.filter(b => b.pathname !== 'ev/' + day + '/.compacting');
   const chunkAll = blobs.filter(b => b.pathname.includes('/c-'));
   const groups = {};
   for(const b of chunkAll){
@@ -177,6 +185,7 @@ async function compactDayPass(day, chunkBudget){
       await del(hFiles.map(b => b.url), blobOpts());
     }
   }
+  try{ await del('ev/' + day + '/.compacting', blobOpts()); }catch(e){}
   const left = (await listDay(day)).filter(b => b.pathname.includes('/c-'));
   return { remaining: left.length, compacted: spent };
 }
@@ -255,8 +264,13 @@ module.exports = async (req, res) => {
       if(q.compact){
         if(q.compact !== READ_KEY) return res.status(403).json({ error: 'bad key' });
         const day = /^\d{4}-\d{2}-\d{2}$/.test(String(q.day || '')) ? String(q.day) : dayKey(Date.now());
-        const r = await compactDayPass(day, Math.min(6000, parseInt(q.budget, 10) || 2500));
-        return res.status(200).json({ ok: true, day, compacted: r.compacted, chunks_remaining: r.remaining });
+        try{
+          const r = await compactDayPass(day, Math.min(6000, parseInt(q.budget, 10) || 2500));
+          return res.status(200).json({ ok: true, day, compacted: r.compacted,
+            chunks_remaining: r.remaining, busy: !!r.busy });
+        }catch(e){
+          return res.status(200).json({ ok: false, day, error: String(e && e.message || e).slice(0, 200) });
+        }
       }
 
       /* one-time: pull whatever survives of the legacy jsonblob days into Blob */
