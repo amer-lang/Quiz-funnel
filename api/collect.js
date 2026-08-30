@@ -170,7 +170,9 @@ async function compactDayPass(day, chunkBudget){
     await put(hourPath, JSON.stringify(merged), blobOpts({
       access: 'private', addRandomSuffix: false, allowOverwrite: true,
       contentType: 'application/json' }));
-    await del(batch.map(b => b.url), blobOpts());
+    const urls = batch.map(b => b.url);
+    for(let i = 0; i < urls.length; i += 900) // blob del caps at 1,000 urls/call
+      await del(urls.slice(i, i + 900), blobOpts());
   }
   // past day fully chunk-free → collapse hour files into the single day file
   if(!isToday && !blobs.find(b => b.pathname === 'ev/' + day + '.json')){
