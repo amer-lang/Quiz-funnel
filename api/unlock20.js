@@ -47,7 +47,22 @@ async function stripe(path, method, params, idemKey, version){
   return j;
 }
 
-function sessionParams(projectId, email, product, uiMode){
+/* Email-attribution UTMs (funnel stores the click, sends it with the claim).
+   Stamped on the session so /api/emailrev can pay commission on Stripe truth.
+   Upsell PIs all carry metadata[base_cs] → they join to this session's UTM. */
+function utmFromBody(body){
+  const clean = v => String(v || '').toLowerCase().replace(/[^a-z0-9._\-]/g, '').slice(0, 60);
+  const src = clean(body && body.utm_source);
+  if(!src) return null;
+  const p = { 'metadata[utm_source]': src };
+  const med = clean(body && body.utm_medium);
+  const camp = clean(body && body.utm_campaign);
+  if(med) p['metadata[utm_medium]'] = med;
+  if(camp) p['metadata[utm_campaign]'] = camp;
+  return p;
+}
+
+function sessionParams(projectId, email, product, uiMode, utm){
   const params = {
     'mode': 'payment',
     'ui_mode': uiMode,
@@ -63,6 +78,7 @@ function sessionParams(projectId, email, product, uiMode){
     'metadata[project_id]': String(projectId || ''),
     'metadata[product]': String(product || '').slice(0, 120)
   };
+  if(utm) Object.assign(params, utm);
   if(email) params['customer_email'] = String(email).slice(0, 120);
   return params;
 }
@@ -71,18 +87,18 @@ function sessionParams(projectId, email, product, uiMode){
    dahlia release renamed 'custom' to 'elements'). If the account/API rejects
    it for any reason, fall back to the embedded checkout that ran the price
    flip — checkout must never be down over UI mode. */
-async function createSession(projectId, email, product, forceEmbedded){
+async function createSession(projectId, email, product, forceEmbedded, utm){
   if(!forceEmbedded){
     try{
       const s = await stripe('checkout/sessions', 'POST',
-        sessionParams(projectId, email, product, 'elements'), null, STRIPE_VERSION);
+        sessionParams(projectId, email, product, 'elements', utm), null, STRIPE_VERSION);
       return { s, ui: 'custom' };
     }catch(e){
       var customErr = String(e && e.message || e).slice(0, 200);
     }
   }
   const s = await stripe('checkout/sessions', 'POST',
-    sessionParams(projectId, email, product, 'embedded'));
+    sessionParams(projectId, email, product, 'embedded', utm));
   return { s, ui: 'embedded', custom_error: customErr || '' };
 }
 
@@ -148,9 +164,10 @@ module.exports = async (req, res) => {
     if(q.probe){
       if(q.probe !== READ_KEY) return res.status(403).json({ ok:false });
       if(!sk || !pk) return res.status(200).json({ ok:false, status:'no_keys' });
-      const c = await createSession('0', '', 'probe');
+      const utm = utmFromBody({ utm_source: q.utm_source, utm_medium: q.utm_medium, utm_campaign: q.utm_campaign });
+      const c = await createSession('0', '', 'probe', false, utm);
       return res.status(200).json({ ok:true, session: c.s.id, has_secret: !!c.s.client_secret,
-        ui: c.ui, custom_error: c.custom_error || '' });
+        ui: c.ui, custom_error: c.custom_error || '', metadata: c.s.metadata || {} });
     }
 
     if(q.verify){
@@ -219,7 +236,8 @@ module.exports = async (req, res) => {
     //   if(owned) return res.status(200).json({ ok:true, unlimited:true, cs: owned });
     // }
 
-    const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded);
+    const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
+      utmFromBody(body));
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
       ui: c.ui, custom_error: c.custom_error || '' });
   }catch(e){

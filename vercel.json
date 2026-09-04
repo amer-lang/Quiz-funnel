@@ -13,6 +13,9 @@
     "api/metrics.js": {
       "maxDuration": 60
     },
+    "api/emailrev.js": {
+      "maxDuration": 60
+    },
     "api/collect.js": {
       "maxDuration": 60
     },

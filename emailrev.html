@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Email Revenue — Sell Products AI</title>
+<style>
+  :root{ --navy:#0B1020; --card:#121A30; --card2:#1B2440; --line:#26304A;
+         --text:#F5F8FF; --muted:#93A0BC; --gold:#FFC93C; --green:#22C55E; --red:#F87171; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--navy); color:var(--text);
+        font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+  .wrap{ max-width:960px; margin:0 auto; padding:28px 18px 60px; }
+  h1{ font-size:22px; margin-bottom:2px; }
+  .sub{ color:var(--muted); font-size:12.5px; margin-bottom:22px; }
+  .chip{ display:inline-block; background:var(--gold); color:#241500; font-weight:700;
+         font-size:11px; letter-spacing:1px; padding:3px 10px; border-radius:99px; margin-bottom:10px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:14px 0 20px; }
+  .tile .k{ color:var(--muted); font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+  .tile .v{ font-size:26px; font-weight:700; margin-top:4px; }
+  .tile .v.gold{ color:var(--gold); } .tile .v.green{ color:var(--green); }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ text-align:left; color:var(--muted); font-weight:600; font-size:11px; letter-spacing:1px;
+      text-transform:uppercase; padding:8px 10px; border-bottom:1px solid var(--line); }
+  td{ padding:8px 10px; border-bottom:1px solid var(--line); }
+  td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  tr:last-child td{ border-bottom:none; }
+  .section{ margin-top:22px; }
+  .section h2{ font-size:15px; margin-bottom:10px; }
+  .range{ display:flex; gap:8px; margin:6px 0 4px; }
+  .range button{ background:var(--card); color:var(--muted); border:1px solid var(--line);
+      border-radius:8px; padding:6px 14px; font-size:13px; cursor:pointer; }
+  .range button.on{ background:var(--gold); color:#241500; font-weight:700; border-color:var(--gold); }
+  .muted{ color:var(--muted); } .green{ color:var(--green); } .red{ color:var(--red); } .gold{ color:var(--gold); }
+  input[type=password], input[type=text]{ background:var(--card2); border:1px solid var(--line);
+      color:var(--text); border-radius:8px; padding:10px 12px; font-size:14px; width:100%; }
+  .btn{ background:var(--gold); color:#241500; font-weight:700; border:none; border-radius:8px;
+        padding:10px 18px; font-size:14px; cursor:pointer; }
+  #gate{ max-width:360px; margin:120px auto; text-align:center; }
+  #gate .card{ padding:26px 22px; }
+  #gate h1{ margin-bottom:14px; font-size:18px; }
+  #gate input{ margin-bottom:12px; text-align:center; }
+  .err{ color:var(--red); font-size:12.5px; margin-top:8px; display:none; }
+  .linkout{ background:var(--card2); border:1px solid var(--line); border-radius:8px;
+      padding:10px 12px; font-size:12.5px; word-break:break-all; margin-top:10px;
+      font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .note{ font-size:12px; color:var(--muted); line-height:1.6; }
+  .row2{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
+  #loading{ color:var(--muted); padding:30px 0; text-align:center; display:none; }
+  .scroll{ overflow-x:auto; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <h1>🔒 Email Revenue Dashboard</h1>
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password">
+    <button class="btn" style="width:100%" onclick="tryGate()">Open dashboard</button>
+    <div class="err" id="pwErr">Password incorrect</div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <span class="chip">SELL PRODUCTS AI</span>
+  <h1>Email Revenue</h1>
+  <div class="sub">Revenue attributed to your email campaigns — verified in Stripe, net of refunds, includes upsells from your buyers. All days are US Pacific time. Commission: <b class="gold">5% of net</b>.</div>
+
+  <div class="range" id="range">
+    <button data-d="7">7 days</button>
+    <button data-d="14">14 days</button>
+    <button data-d="30" class="on">30 days</button>
+    <button data-d="60">60 days</button>
+  </div>
+  <div id="loading">Pulling every sale from Stripe — first load of a new range can take up to a minute…</div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="section card scroll">
+    <h2>By campaign</h2>
+    <table id="campT"><thead><tr>
+      <th>Campaign</th><th class="num">Orders</th><th class="num">Store sales</th>
+      <th class="num">Upsells</th><th class="num">Refunds</th><th class="num">Net</th><th class="num">Your 5%</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="section card scroll">
+    <h2>By day (Pacific)</h2>
+    <table id="dayT"><thead><tr>
+      <th>Day</th><th class="num">Orders</th><th class="num">Store sales</th>
+      <th class="num">Upsells</th><th class="num">Refunds</th><th class="num">Net</th><th class="num">Your 5%</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="section card">
+    <h2>Build a tracking link</h2>
+    <div class="note" style="margin-bottom:10px">
+      Every link in every email must carry your tracking tags — that's what pays you.
+      Type a campaign name for the email you're sending (lowercase, hyphens, date first —
+      e.g. <b>2026-09-05-activation</b>) and use the generated link everywhere in that email.
+    </div>
+    <div class="row2">
+      <input type="text" id="campIn" placeholder="2026-09-05-activation" oninput="buildLink()">
+      <button class="btn" onclick="copyLink()">Copy link</button>
+    </div>
+    <div class="linkout" id="linkOut">https://www.sellproducts.ai/?utm_source=email&amp;utm_medium=email</div>
+  </div>
+
+  <div class="section note">
+    <b>How attribution works:</b> when someone clicks your link, the click is remembered for
+    7 days (last click wins). If they buy the $20 store unlock in that window, the order —
+    plus every upsell that buyer takes ($39 bump, $49 ad pack, add-ons, $299 video package) —
+    is credited to your campaign. Refunds are subtracted. Everything is read directly from
+    Stripe payment records, so the numbers here are the same ones the business is paid on.
+    Today's row updates live (2-minute refresh); past days are final.
+  </div>
+</div>
+
+<script>
+/* To change the password: run in any browser console
+     sha256('new-password').then(console.log)                 → PW_HASH below
+     sha256('emailrev:new-password').then(console.log)        → EMAILREV_KEY in /api/emailrev.js */
+const PW_HASH = 'abd6e808f66dd494c3763977277f1e3453d47d39459f6618c5e7e3c72a9104b3';
+async function sha256(s){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+let KEY = '';
+async function tryGate(){
+  const pw = document.getElementById('pw').value.trim();
+  if(await sha256(pw) === PW_HASH){
+    KEY = await sha256('emailrev:' + pw);
+    try{ sessionStorage.setItem('sper_pw', pw); }catch(e){}
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    load(30);
+  }else{
+    document.getElementById('pwErr').style.display = 'block';
+  }
+}
+document.getElementById('pw').addEventListener('keydown', e => { if(e.key === 'Enter') tryGate(); });
+(async function(){
+  try{
+    const pw = sessionStorage.getItem('sper_pw');
+    if(pw && await sha256(pw) === PW_HASH){
+      KEY = await sha256('emailrev:' + pw);
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      load(30);
+    }
+  }catch(e){}
+})();
+
+const $ = s => document.querySelector(s);
+const money = c => (c < 0 ? '-$' : '$') + (Math.abs(c) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let curDays = 30, loadSeq = 0;
+
+document.getElementById('range').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#range button').forEach(x => x.classList.toggle('on', x === b));
+  load(parseInt(b.dataset.d, 10));
+});
+
+async function load(n, attempt){
+  curDays = n;
+  const seq = ++loadSeq;
+  $('#loading').style.display = 'block';
+  try{
+    const r = await fetch('/api/emailrev?key=' + KEY + '&days=' + n);
+    const j = await r.json();
+    if(seq !== loadSeq) return; // a newer range was requested meanwhile
+    if(!j.ok) throw new Error(j.error || 'API error');
+    render(j);
+    $('#loading').style.display = 'none';
+  }catch(e){
+    if(seq !== loadSeq) return;
+    if((attempt || 0) < 2){ return load(n, (attempt || 0) + 1); } // cold start / long first pull
+    $('#loading').textContent = 'Could not load data (' + e.message + ') — refresh to retry.';
+  }
+}
+
+function render(j){
+  const t = j.totals;
+  $('#tiles').innerHTML = [
+    ['Your commission (5%)', money(t.commission), 'gold'],
+    ['Net attributed revenue', money(t.net), 'green'],
+    ['Attributed orders', t.orders.toLocaleString(), ''],
+    ['Upsell revenue', money(t.upsell), ''],
+  ].map(x => '<div class="card tile"><div class="k">' + x[0] + '</div><div class="v ' + x[2] + '">' + x[1] + '</div></div>').join('');
+
+  const rowHtml = (name, r) => '<tr><td>' + name + '</td><td class="num">' + r.orders +
+    '</td><td class="num">' + money(r.gross) + '</td><td class="num">' + money(r.upsell) +
+    '</td><td class="num ' + (r.refunds ? 'red' : 'muted') + '">' + (r.refunds ? '-' + money(r.refunds) : '—') +
+    '</td><td class="num">' + money(r.net) + '</td><td class="num gold"><b>' + money(r.commission) + '</b></td></tr>';
+
+  const camps = Object.entries(j.campaigns).sort((a, b) => b[1].net - a[1].net);
+  $('#campT tbody').innerHTML = camps.length
+    ? camps.map(([name, r]) => rowHtml(name, r)).join('')
+    : '<tr><td colspan="7" class="muted">No attributed sales in this range yet — make sure every email link carries your utm tags.</td></tr>';
+
+  $('#dayT tbody').innerHTML = j.days.filter(r => r.orders || r.upsell || r.refunds).map(r => rowHtml(r.day, r)).join('') ||
+    '<tr><td colspan="7" class="muted">No attributed sales in this range yet.</td></tr>';
+}
+
+function buildLink(){
+  const raw = document.getElementById('campIn').value.trim().toLowerCase()
+    .replace(/\s+/g, '-').replace(/[^a-z0-9._\-]/g, '');
+  const u = 'https://www.sellproducts.ai/?utm_source=email&utm_medium=email' +
+    (raw ? '&utm_campaign=' + raw : '');
+  document.getElementById('linkOut').textContent = u;
+  return u;
+}
+function copyLink(){
+  const u = buildLink();
+  navigator.clipboard.writeText(u).then(() => {
+    const b = event.target; const old = b.textContent;
+    b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = old, 1200);
+  });
+}
+</script>
+</body>
+</html>

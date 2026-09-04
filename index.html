@@ -2042,6 +2042,26 @@ const PRICE20 = true || (function(){
     return localStorage.getItem('spai_price20test') === '1';
   }catch(e){ return false; }
 })();
+
+/* Email-attribution UTMs. Last click wins; a purchase within 7 days of the
+   click credits the campaign. Sent with the unlock20 claim so the UTM lands
+   in Stripe session metadata — /api/emailrev pays commission off that. */
+(function(){
+  try{
+    const p = new URLSearchParams(location.search);
+    if(p.get('utm_source')) localStorage.setItem('spai_utm', JSON.stringify({
+      s: p.get('utm_source') || '', m: p.get('utm_medium') || '',
+      c: p.get('utm_campaign') || '', t: Date.now() }));
+  }catch(e){}
+})();
+function dsUtm(){
+  try{
+    const u = JSON.parse(localStorage.getItem('spai_utm') || 'null');
+    if(u && u.s && u.t && Date.now() - u.t < 7 * 86400 * 1000)
+      return { utm_source: u.s, utm_medium: u.m || '', utm_campaign: u.c || '' };
+  }catch(e){}
+  return {};
+}
 if(PRICE20){ document.addEventListener('DOMContentLoaded', function(){
   // test-lane cosmetics: price on the claim CTAs (full static copy sweep
   // happens at the real flip, not here)
@@ -2082,8 +2102,8 @@ async function dsOpenPay20(clientSecret, pubKey){
     try{
       const j = await fetch('/api/unlock20', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ embedded: 1, project_id: (dsBuild && dsBuild.project_id) || '',
-          email: userEmail || '', product: (chosen && chosen.name) || '' })
+        body: JSON.stringify(Object.assign({ embedded: 1, project_id: (dsBuild && dsBuild.project_id) || '',
+          email: userEmail || '', product: (chosen && chosen.name) || '' }, dsUtm()))
       }).then(r=>r.json());
       if(j && j.ok && j.client_secret) return dsOpenPay(j.client_secret, j.publishable_key, false);
     }catch(e2){}
@@ -3410,8 +3430,8 @@ function dsPaidClaim(btn){
   if(PRICE20 && DS_LIVE && dsBuild && dsBuild.project_id){
     fetch('/api/unlock20', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ project_id: dsBuild.project_id, email: userEmail || '',
-        product: (chosen && chosen.name) || '' })
+      body: JSON.stringify(Object.assign({ project_id: dsBuild.project_id, email: userEmail || '',
+        product: (chosen && chosen.name) || '' }, dsUtm()))
     })
     .then(r=>r.json())
     .then(j=>{
