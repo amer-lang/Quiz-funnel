@@ -69,6 +69,8 @@
   <div class="sub">Revenue attributed to your email campaigns — verified in Stripe, net of refunds, includes upsells from your buyers. All days are US Pacific time. Commission: <b class="gold">5% of net</b>.</div>
 
   <div class="range" id="range">
+    <button data-d="today">Today</button>
+    <button data-d="mtd">Month to date</button>
     <button data-d="7">7 days</button>
     <button data-d="14">14 days</button>
     <button data-d="30" class="on">30 days</button>
@@ -157,10 +159,17 @@ const $ = s => document.querySelector(s);
 const money = c => (c < 0 ? '-$' : '$') + (Math.abs(c) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 let curDays = 30, loadSeq = 0;
 
+/* 'today' = the current Pacific day; 'mtd' = Pacific 1st of month → today */
+function rangeDays(d){
+  if(d === 'today') return 1;
+  if(d === 'mtd') return parseInt(new Date().toLocaleDateString('en-US',
+    { timeZone: 'America/Los_Angeles', day: 'numeric' }), 10);
+  return parseInt(d, 10);
+}
 document.getElementById('range').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
   document.querySelectorAll('#range button').forEach(x => x.classList.toggle('on', x === b));
-  load(parseInt(b.dataset.d, 10));
+  load(rangeDays(b.dataset.d));
 });
 
 async function load(n, attempt){
