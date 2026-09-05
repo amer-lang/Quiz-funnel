@@ -325,6 +325,7 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 /* ============ state ============ */
 let CS = '', STATE = { done: [], email: '', product: '' }, CURRENT = 1, VIEWING = 0;
 const WELCOME_VIDEO = '1224146303';
+const DEMO = () => CS === 'cs_test_roadmap'; // owner preview: always fresh, never persists
 
 const RANKS = [
   { name:'ROOKIE',     icon:'🎖️' },
@@ -345,11 +346,6 @@ const M = [
   html: `
   <h2>Why this mission is everything</h2>
   <p>An offline store has a <b>0.000% chance</b> of a first sale. Every mission after this one is dead weight until your store is live. This is a ten-minute mission and it's the one most people never do — which means finishing it already puts you ahead of most buyers on earth.</p>
-  <div class="actbox">
-    <div style="font-weight:800;font-size:.9rem;margin-bottom:8px">Haven't activated yet? Get your activation link:</div>
-    <button class="bt" id="actBtn" onclick="resendActivation()">Send me my activation link 📩</button>
-    <div class="out" id="actOut"></div>
-  </div>
   <h2>Do this now</h2>
   <ol>
     <li><b>Open your activation link</b> (button above — we show it here and email it to you).</li>
@@ -455,11 +451,6 @@ const M = [
     <li><b>Auto-captions ON, big font</b> — most people watch muted.</li>
     <li>Export 1080×1920. Name them ad1–ad5.</li>
   </ul>
-  <div class="dfy">
-    <h3>Or skip this entire mission 🎬</h3>
-    <p>Our team produces all 5 videos for you — hooks, captions, music, your exact product — delivered to your email. You jump straight to Mission 5 and launch.</p>
-    <button class="bt" onclick="openDfy()">Have us make my 5 videos — $299</button>
-  </div>
   <h2 class="red">Landmines</h2>
   <ul>
     <li>One "perfect" video instead of five rough ones. Volume finds winners; perfectionism finds excuses.</li>
@@ -588,6 +579,10 @@ async function load(){
       return;
     }
     STATE = { done: j.done || [], email: j.email || '', product: j.product || '' };
+    if(DEMO()){ // preview always starts at Mission 1 with a clean slate
+      STATE.done = [];
+      for(let i = 1; i <= 7; i++){ try{ localStorage.removeItem(subKey(i)); }catch(e){} }
+    }
     document.getElementById('app').style.display = 'block';
     render();
   }catch(e){
@@ -646,6 +641,11 @@ function renderMission(id, readonly){
     (readonly ? '<div class="ro-back"><a onclick="render()">← Back to my current mission</a></div>' : '') +
     '</div>' +
 
+    (id === 1 && !readonly ?
+      '<div class="actbox" style="margin:12px 0 0"><div style="font-weight:800;font-size:.9rem;margin-bottom:8px">Haven\'t activated yet? Get your activation link:</div>' +
+      '<button class="bt" id="actBtn" onclick="resendActivation()">Send me my activation link 📩</button>' +
+      '<div class="out" id="actOut"></div></div>' : '') +
+
     '<div class="checks"><div class="ch-top"><h4>Mission checklist</h4><div class="ch-count" id="chCount"></div></div>' +
     '<div class="ch-bar"><div class="ch-fill" id="chFill"></div></div>' +
     m.subs.map((s, i) =>
@@ -653,7 +653,12 @@ function renderMission(id, readonly){
       '<div class="box">✓</div><span>' + s + '</span></div>').join('') +
     '</div>' +
 
-    '<div class="brief open" id="brief"><div class="b-head" onclick="this.parentNode.classList.toggle(\'open\')">📖 Mission briefing — everything you need<span class="ar">▾</span></div>' +
+    (id === 4 && !readonly ?
+      '<div class="dfy" style="margin:12px 0 0"><h3>Or skip this entire mission 🎬</h3>' +
+      '<p>Our team produces all 5 videos for you — hooks, captions, music, your exact product — delivered to your email.</p>' +
+      '<button class="bt" onclick="openDfy()">Have us make my 5 videos — $299</button></div>' : '') +
+
+    '<div class="brief" id="brief"><div class="b-head" onclick="this.parentNode.classList.toggle(\'open\')">📖 Need the details? Open the full briefing<span class="ar">▾</span></div>' +
     '<div class="b-body">' + m.html + '</div></div>';
 
   document.getElementById('dock').style.display = readonly ? 'none' : 'block';
@@ -667,7 +672,7 @@ function renderVictory(){
     '<div style="font-size:56px;margin-bottom:6px">👑</div>' +
     '<h1 style="font-family:Cinzel,serif;font-size:1.6rem;letter-spacing:.08em" class="gold-text">MOGUL</h1>' +
     '<p style="font-size:.82rem;color:var(--muted);margin:8px 0 4px;line-height:1.7">All 7 missions complete — 1000/1000 XP. From here it\'s the daily 10-minute loop: <b style="color:var(--text)">kill losers, feed the winner, new hooks weekly.</b></p></div>' +
-    '<div class="brief open"><div class="b-head" onclick="this.parentNode.classList.toggle(\'open\')">📈 The daily loop (Mission 7 playbook)<span class="ar">▾</span></div>' +
+    '<div class="brief"><div class="b-head" onclick="this.parentNode.classList.toggle(\'open\')">📈 The daily loop (Mission 7 playbook)<span class="ar">▾</span></div>' +
     '<div class="b-body">' + M[6].html + '</div></div>' +
     '<div class="review" style="text-align:center;margin-top:12px"><a onclick="openReview()">◂ review any mission</a></div>';
   document.getElementById('dock').style.display = 'none';
@@ -708,6 +713,7 @@ function refreshCta(){
 }
 async function completeCurrent(){
   if(STATE.done.includes(CURRENT)) return;
+  if(DEMO()){ STATE.done.push(CURRENT); playEpic(CURRENT); return; } // preview never persists
   const btn = document.getElementById('ctaBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try{
