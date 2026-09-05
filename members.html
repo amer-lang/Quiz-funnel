@@ -48,6 +48,7 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 
 /* ---- video (bare frame — no labels, the video is the message) ---- */
 .vidwrap{margin-top:12px}
+.beginbtn{display:block;width:100%;margin-top:14px;padding:17px;border:none;border-radius:14px;font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer;background:var(--grad-money);color:#241500;box-shadow:0 10px 30px rgba(245,158,11,.4);animation:ctaPulse 1.8s ease-in-out infinite}
 .vc-frame{position:relative;width:100%;padding-top:56.25%;border-radius:16px;overflow:hidden;background:#000;border:1px solid var(--line-strong);box-shadow:0 10px 34px rgba(0,0,0,.45)}
 .vc-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 
@@ -579,8 +580,9 @@ async function load(){
       return;
     }
     STATE = { done: j.done || [], email: j.email || '', product: j.product || '' };
-    if(DEMO()){ // preview always starts at Mission 1 with a clean slate
+    if(DEMO()){ // preview always starts at the Welcome step with a clean slate
       STATE.done = [];
+      try{ localStorage.removeItem(wKey()); }catch(e){}
       for(let i = 1; i <= 7; i++){ try{ localStorage.removeItem(subKey(i)); }catch(e){} }
     }
     document.getElementById('app').style.display = 'block';
@@ -616,16 +618,30 @@ function render(){
     ? '<a onclick="openReview()">◂ review completed missions</a>' : '';
 
   if(ri >= 7) return renderVictory();
+  if(ri === 0 && !welcomed()) return renderWelcome();
   renderMission(CURRENT, false);
+}
+
+/* ============ welcome step (before Mission 1: video + one CTA) ============ */
+function wKey(){ return 'spai_welcome_' + CS.slice(-8); }
+function welcomed(){ try{ return localStorage.getItem(wKey()) === '1'; }catch(e){ return false; } }
+function beginRoadmap(){ try{ localStorage.setItem(wKey(), '1'); }catch(e){} render(); }
+function renderWelcome(){
+  document.getElementById('stage').innerHTML =
+    '<div class="vidwrap"><div class="vc-frame"><iframe src="https://player.vimeo.com/video/' + WELCOME_VIDEO +
+    '?dnt=1&byline=0&title=0&portrait=0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Welcome"></iframe></div></div>' +
+    '<button class="beginbtn" onclick="beginRoadmap()">⚡ Begin Mission 1 →</button>';
+  document.getElementById('dock').style.display = 'none';
+  window.scrollTo({ top: 0 });
 }
 
 function renderMission(id, readonly){
   VIEWING = readonly ? id : 0;
   const m = M[id - 1];
   const saved = readonly ? m.subs.map((_, i) => i) : getSubs(id);
-  // per-mission video when one exists; the standalone welcome video greets
-  // fresh members (nothing completed yet) — no labels, just the video
-  const vid = m.video || (!readonly && rankIndex() === 0 ? WELCOME_VIDEO : null);
+  // per-mission video when one exists (the welcome video lives on its own
+  // Welcome step before Mission 1 — never inside a mission)
+  const vid = m.video || null;
 
   document.getElementById('stage').innerHTML =
     (vid ? '<div class="vidwrap"><div class="vc-frame"><iframe src="https://player.vimeo.com/video/' + vid + '?dnt=1&byline=0&title=0&portrait=0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Welcome"></iframe></div></div>' : '') +
