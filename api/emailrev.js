@@ -177,6 +177,45 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok:false, error:'no stripe key' });
 
   try{
+    /* ?diag=1&day=YYYY-MM-DD — fresh Stripe truth for one Pacific day, no
+       caches. Shows whether utm-stamped paid sessions exist at all, plus a
+       comparison against the cached day record to expose stale caches. */
+    if(q.diag){
+      const day = /^\d{4}-\d{2}-\d{2}$/.test(q.day || '') ? q.day : dayStr(Date.now());
+      const gte = Math.floor(dayStartMs(day) / 1000);
+      const lt = Math.floor(nextDayStartMs(day) / 1000);
+      const [sesR, piR] = await Promise.all([
+        pageAll('checkout/sessions?', gte, lt),
+        pageAll('payment_intents?', gte, lt)
+      ]);
+      const paid20 = sesR.items.filter(s => s.payment_status === 'paid' && s.metadata && s.metadata.type === 'store_unlock20');
+      const withUtm = paid20.filter(s => s.metadata.utm_source);
+      const anyUtm = sesR.items.filter(s => s.metadata && s.metadata.utm_source);
+      const srcs = {}, camps = {};
+      for(const s of anyUtm){
+        srcs[s.metadata.utm_source] = (srcs[s.metadata.utm_source] || 0) + 1;
+        const c = s.metadata.utm_campaign || '(none)';
+        camps[c] = camps[c] || { sessions: 0, paid: 0, cents: 0 };
+        camps[c].sessions++;
+        if(s.payment_status === 'paid'){ camps[c].paid++; camps[c].cents += s.amount_total || 0; }
+      }
+      let cached = null;
+      try{
+        const { head } = await import('@vercel/blob');
+        const h = await head('emailrev/d-' + day + '.json', blobOpts());
+        const rec = await bfetch(h.url).then(r => r.json());
+        cached = { v: rec.v, ses: (rec.ses || []).length, ups: (rec.ups || []).length };
+      }catch(e){ cached = 'none'; }
+      return res.status(200).json({ ok:true, day,
+        sessions_total: sesR.items.length, truncated: sesR.truncated || piR.truncated,
+        unlock20_paid: paid20.length,
+        unlock20_paid_with_utm: withUtm.length,
+        sessions_with_utm_any_status: anyUtm.length,
+        utm_sources: srcs, utm_campaigns: camps,
+        upsell_pis_with_base: piR.items.filter(p => p.status === 'succeeded' && p.metadata && p.metadata.base_cs).length,
+        cached_record: cached });
+    }
+
     if(q.rebuild && /^\d{4}-\d{2}-\d{2}$/.test(q.rebuild)){
       if(q.key !== READ_KEY) return res.status(403).json({ ok:false, error:'bad key' });
       delete dayMemo[q.rebuild];
