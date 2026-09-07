@@ -206,6 +206,16 @@ module.exports = async (req, res) => {
         const rec = await bfetch(h.url).then(r => r.json());
         cached = { v: rec.v, ses: (rec.ses || []).length, ups: (rec.ups || []).length };
       }catch(e){ cached = 'none'; }
+      // payment-failure forensics: PI status mix + decline codes for the day
+      const piStatus = {}, declines = {};
+      for(const p of piR.items){
+        piStatus[p.status] = (piStatus[p.status] || 0) + 1;
+        const e2 = p.last_payment_error;
+        if(e2){
+          const code = e2.decline_code || e2.code || 'unknown';
+          declines[code] = (declines[code] || 0) + 1;
+        }
+      }
       return res.status(200).json({ ok:true, day,
         sessions_total: sesR.items.length, truncated: sesR.truncated || piR.truncated,
         unlock20_paid: paid20.length,
@@ -213,6 +223,7 @@ module.exports = async (req, res) => {
         sessions_with_utm_any_status: anyUtm.length,
         utm_sources: srcs, utm_campaigns: camps,
         upsell_pis_with_base: piR.items.filter(p => p.status === 'succeeded' && p.metadata && p.metadata.base_cs).length,
+        pi_status: piStatus, declines,
         cached_record: cached });
     }
 
