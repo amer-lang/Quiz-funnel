@@ -23,7 +23,9 @@ module.exports = async (req, res) => {
     return res.status(403).json({ ok: false });
 
   const now = Date.now();
-  const days = [dayStr(now), dayStr(now - 86400000), dayStr(now - 2 * 86400000)];
+  // look back to D-4 so a day that fell behind while the cron was busy with
+  // fresher days still gets ground down instead of aging out of the window
+  const days = [0, 1, 2, 3, 4].map(i => dayStr(now - i * 86400000));
   const out = [];
   for(const day of days){
     try{
