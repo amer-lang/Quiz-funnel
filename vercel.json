@@ -24,6 +24,12 @@
     },
     "api/members.js": {
       "maxDuration": 30
+    },
+    "api/compactcron.js": {
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/compactcron", "schedule": "*/5 * * * *" }
+  ]
 }
