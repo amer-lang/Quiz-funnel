@@ -2253,7 +2253,7 @@ function onEnter(id){
   if(id==='s-upsell-ads') runUpsellAds();
   if(id==='s-launch1') lsEnterLaunch();
   if(id==='s-seo') lsSeoScan();
-  if(id==='s-vsl199') ls199Warm();
+  if(id==='s-vsl199') ls199Start();
   if(id==='s-done') runDone();
   document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
   dsTrack(id);
@@ -3876,12 +3876,17 @@ function lsSeoSkip(e){
 /* ---- LAUNCH STEP 2 · $199 "5 Done-For-You Video Ads" VSL (vturb) ----
    Sold by the video; the button is a TRUE one-click on the saved card via
    /api/upsell199 (same rail as the $49/$299). No → the $49 image-ads step. */
-let ls199ScriptOn = false, ls199Busy = false;
+let ls199ScriptOn = false, ls199PlayerOn = false, ls199Busy = false;
+const LS199_PLAYER_SRC = 'https://scripts.converteai.net/3a8aba91-b169-4e7a-99d8-473e149dd22d/players/6aa07bf8fa5c342cdfb78b5a/v4/player.js';
 function ls199Warm(){
+  // Preloads ONLY — never executes the player. The vturb player boots (and
+  // autoplays AUDIO) the instant its script runs and finds the element, even
+  // on a hidden screen, so the script itself waits for ls199Start().
   if(ls199ScriptOn) return; ls199ScriptOn = true;
   try{
     window._plt = window._plt || (performance && performance.timeOrigin ? performance.timeOrigin + performance.now() : Date.now());
     const pre = [
+      ['preload','script', LS199_PLAYER_SRC],
       ['preload','script','https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js'],
       ['preload','fetch','https://cdn.converteai.net/3a8aba91-b169-4e7a-99d8-473e149dd22d/6aa07b7105f8112d55c42a75/main.m3u8'],
       ['dns-prefetch','','https://cdn.converteai.net'],
@@ -3890,10 +3895,32 @@ function ls199Warm(){
       ['dns-prefetch','','https://license.vturb.com']
     ];
     pre.forEach(([rel,as,href])=>{ const l=document.createElement('link'); l.rel=rel; if(as) l.as=as; l.href=href; document.head.appendChild(l); });
+  }catch(e){}
+}
+function ls199Start(){
+  // Runs on ENTERING s-vsl199: the preloaded script executes instantly and
+  // the player boots while its screen is actually visible.
+  ls199Warm();
+  if(ls199PlayerOn) return; ls199PlayerOn = true;
+  try{
     const s = document.createElement('script');
-    s.src = 'https://scripts.converteai.net/3a8aba91-b169-4e7a-99d8-473e149dd22d/players/6aa07bf8fa5c342cdfb78b5a/v4/player.js';
-    s.async = true;
+    s.src = LS199_PLAYER_SRC; s.async = true;
     document.head.appendChild(s);
+  }catch(e){}
+}
+function ls199Kill(){
+  // Leaving the VSL for good (one-way flow) — remove the player so its audio
+  // can never bleed into the next screen.
+  try{ const el = document.getElementById('vid-6aa07bf8fa5c342cdfb78b5a'); if(el) el.remove(); }catch(e){}
+}
+function ls199Hush(){
+  // Best-effort pause (embedded-checkout fallback opens OVER the screen).
+  try{
+    const el = document.getElementById('vid-6aa07bf8fa5c342cdfb78b5a');
+    if(!el) return;
+    [el, el.shadowRoot].forEach(root=>{
+      if(root && root.querySelectorAll) root.querySelectorAll('video,audio').forEach(v=>{ try{ v.pause(); }catch(e){} });
+    });
   }catch(e){}
 }
 function ls199Buy(btn){
@@ -3920,25 +3947,29 @@ function ls199Buy(btn){
         'upsell199_' + ((dsBuild && dsBuild.project_id) || j.pi));
       spLog('paid_upsell', 'vsl199');
       spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
+      ls199Kill();
       setTimeout(()=>go('s-upsell-ads'), 900);
       return;
     }
     if(j && j.ok && j.client_secret){
       // saved card couldn't be charged silently → embedded checkout fallback
+      ls199Hush();
       btn.textContent = 'Yes! Send Me My 5 Video Ads — $199 🎬';
       return dsOpenPay(j.client_secret, j.publishable_key, false);
     }
     // declined / error — never trap them, keep the sequence moving
     spLog('upsell_decline', 'vsl199_fail_' + ((j && j.status) || ''));
     showToast('⚠️','Couldn’t add the video pack — continuing');
+    ls199Kill();
     setTimeout(()=>go('s-upsell-ads'), 700);
   })
-  .catch(()=>{ ls199Busy = false; go('s-upsell-ads'); });
+  .catch(()=>{ ls199Busy = false; ls199Kill(); go('s-upsell-ads'); });
 }
 function ls199No(e){
   if(e) e.preventDefault();
   if(upsellPreviewMode){ showToast('👀','Preview mode — nothing happens'); return; }
   spLog('upsell_decline','vsl199');
+  ls199Kill();
   go('s-upsell-ads');
   return false;
 }
