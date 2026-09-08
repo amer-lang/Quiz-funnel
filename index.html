@@ -1831,7 +1831,8 @@ window.dsFire('PageView');
     <!-- ================ 13b · VIDEO ADS UPSELL (post-purchase) ================
          Shown after the $1 charge clears, before hand-off to the store setup. -->
     <!-- ============ 13b · LAUNCH SEQUENCE (post-$20 purchase) ============
-         s-launch1 → s-seo ($29) → s-upsell-ads ($49) → s-addons (combo) → done.
+         s-launch1 → s-seo ($29) → s-vsl199 ($199 VSL) → s-upsell-ads ($49) → done.
+         (s-addons is retired from the flow — section kept dormant below.)
          Shopify preframe/activation screens intentionally NOT here yet — the
          hand-off still runs through dsFinalize/resume_url until the dev wires
          the $1 Shopify flow. -->
@@ -1872,6 +1873,22 @@ window.dsFire('PageView');
         <button class="cta gold pulse" id="seoBtn" onclick="lsSeoBuy(this)">Make My Store Findable — $29 🔎</button>
         <p class="cta-note">One click charges a one-time <b>$29</b> to your card on file · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
         <a href="#" class="oto-decline" onclick="return lsSeoSkip(event)">Skip — launch invisible while competitors stay on page 1</a>
+      </div>
+    </section>
+
+    <!-- ====== 13b2 · $199 VSL — 5 done-for-you video ads (vturb player) ====== -->
+    <section class="screen" id="s-vsl199" style="justify-content:flex-start">
+      <div class="oto-alert">
+        <span class="oto-alert__dot">!</span>
+        <span><b>Wait!</b> Your order is not complete yet — watch the video below before your store goes live.</span>
+      </div>
+      <div style="margin:14px 0 4px">
+        <vturb-smartplayer id="vid-6aa07bf8fa5c342cdfb78b5a" style="display: block; margin: 0 auto; width: 100%; "><div class="vturb-player-placeholder" style="position: relative; width: 100%; padding: 64.55089820359281% 0 0; z-index: 0; background-color: black;"></div></vturb-smartplayer>
+      </div>
+      <div class="cta-dock">
+        <button type="button" class="cta gold pulse" id="vsl199Btn" onclick="ls199Buy(this)">Yes! Send Me My 5 Video Ads — $199 🎬</button>
+        <p class="cta-note">One click charges a one-time <b>$199</b> to your card on file · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+        <a href="#" class="oto-decline" onclick="return ls199No(event)">No thanks — I'll make my own videos</a>
       </div>
     </section>
 
@@ -2023,10 +2040,10 @@ const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
 // The VSL shown on the video-ads upsell screen (same one DropStart uses).
 const UPSELL_VIDEO = { account: '3a8aba91-b169-4e7a-99d8-473e149dd22d', player: '6a4d92062406c7e3ffb37813' };
 /* Upsell selector. true → the LAUNCH SEQUENCE flow: s-launch1 → s-seo ($29)
-   → s-upsell-ads ($49, /api/upsell49 + adsorder fulfillment) → s-addons
-   (combined charge via /api/addons) → done. false → the legacy $299 VSL
-   (s-upsell, /api/upsell299). Preview screens without checkout anytime with
-   ?upsellpreview=1. */
+   → s-vsl199 ($199 five-video VSL, /api/upsell199 one-click)
+   → s-upsell-ads ($49, /api/upsell49 + adsorder fulfillment) → done.
+   false → the legacy $299 VSL (s-upsell, /api/upsell299). Preview screens
+   without checkout anytime with ?upsellpreview=1. */
 const UPSELL_ADS = true;
 const UPSELL_ADS_PRICE = 49;
 /* $20 ONE-TIME unlock (replaces the $1 trial + $49/mo sub). LIVE.
@@ -2179,7 +2196,7 @@ const PROGRESS = {
   's-landing':4,'s-intro':10,'s-q1':20,'s-q2':29,'s-q3':38,'s-q4':46,
   's-dropship':51,'s-q5':56,'s-reality':64,'s-blueprint':72,'s-scan':80,
   's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-upsell':99,'s-upsell-ads':99,
-  's-launch1':99,'s-seo':99,'s-addons':99,'s-done':100
+  's-launch1':99,'s-seo':99,'s-vsl199':99,'s-addons':99,'s-done':100
 };
 PROGRESS['s-cost'] = 76;
 
@@ -2218,7 +2235,7 @@ function goBack(){
 }
 
 function updateBack(){
-  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-upsell','s-upsell-ads','s-launch1','s-seo','s-addons','s-done'];
+  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-upsell','s-upsell-ads','s-launch1','s-seo','s-vsl199','s-addons','s-done'];
   document.getElementById('backBtn').style.display =
     (noBack.includes(current) || !history.length) ? 'none' : 'flex';
 }
@@ -2236,6 +2253,7 @@ function onEnter(id){
   if(id==='s-upsell-ads') runUpsellAds();
   if(id==='s-launch1') lsEnterLaunch();
   if(id==='s-seo') lsSeoScan();
+  if(id==='s-vsl199') ls199Warm();
   if(id==='s-done') runDone();
   document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
   dsTrack(id);
@@ -3658,7 +3676,7 @@ function upsellYes(){
         try{ localStorage.setItem('spai_ads_cs', j.pi); }catch(e){}
         fetch('/api/adsorder?cs=' + encodeURIComponent(j.pi) + '&make=1').catch(()=>{}); // warm ad #1
         upsellBusy = false;
-        go('s-addons'); // launch sequence continues — finalize happens at the end
+        dsFinalize({}); // image ads is the LAST step — settle and land on s-done
         return;
       }
       if(j && j.ok && j.client_secret){
@@ -3669,7 +3687,7 @@ function upsellYes(){
       }
       throw new Error(j && j.status || 'upsell49');
     })
-    .catch(()=>{ upsellBusy = false; go('s-addons'); }); // never trap them — sequence continues
+    .catch(()=>{ upsellBusy = false; dsFinalize({}); }); // never trap them — settle & continue
     return;
   }
   // $299 video-ads pack: same proven rail as the $49 — /api/upsell299 charges
@@ -3714,7 +3732,7 @@ function upsellNo(e){
   if(e) e.preventDefault();
   if(upsellPreviewMode){ showToast('👀','Preview mode — nothing happens'); return; }
   spLog('upsell_decline');
-  if(UPSELL_ADS){ go('s-addons'); return; } // launch sequence: extras next, settle at the end
+  if(UPSELL_ADS){ dsFinalize({}); return; } // image ads is the last step — settle the store
   // Legacy VSL decline: settle the sale (unlock the store) and land on the
   // final page with the "set up on Shopify" link. dsFinalize handles it.
   dsFinalize({ upsell: 0 });
@@ -3802,6 +3820,7 @@ let lsScanRan = false;
 function lsSeoScan(){
   if(lsScanRan) return; lsScanRan = true;
   lsApplyNames();
+  ls199Warm(); // load the VSL player one screen early so the video starts instantly
   const lines = document.querySelectorAll('#s-seo .scanline');
   lines.forEach((d,i)=>setTimeout(()=>{ d.classList.add('show'); playPop(1 + i*.15); }, 250 + i*600));
   setTimeout(()=>{
@@ -3837,19 +3856,89 @@ function lsSeoBuy(btn){
         window.dsFire && window.dsFire('Purchase', { value: 29, currency: 'USD' }, 'seo_' + (dsPaidCs || ''));
         spLog('paid_seo', (dsBuild && dsBuild.project_id) || '');
       }
-      setTimeout(()=>go('s-upsell-ads'), 900);
+      setTimeout(()=>go('s-vsl199'), 900);
       return;
     }
     // declined / error — never trap them, keep the sequence moving
     spLog('seo_fail', (j && j.status) || '');
     showToast('⚠️','Couldn’t add SEO Boost — continuing');
-    setTimeout(()=>go('s-upsell-ads'), 700);
+    setTimeout(()=>go('s-vsl199'), 700);
   })
-  .catch(()=>{ lsSeoBusy = false; spLog('seo_fail','network'); go('s-upsell-ads'); });
+  .catch(()=>{ lsSeoBusy = false; spLog('seo_fail','network'); go('s-vsl199'); });
 }
 function lsSeoSkip(e){
   if(e) e.preventDefault();
   spLog('seo_skip');
+  go('s-vsl199');
+  return false;
+}
+
+/* ---- LAUNCH STEP 2 · $199 "5 Done-For-You Video Ads" VSL (vturb) ----
+   Sold by the video; the button is a TRUE one-click on the saved card via
+   /api/upsell199 (same rail as the $49/$299). No → the $49 image-ads step. */
+let ls199ScriptOn = false, ls199Busy = false;
+function ls199Warm(){
+  if(ls199ScriptOn) return; ls199ScriptOn = true;
+  try{
+    window._plt = window._plt || (performance && performance.timeOrigin ? performance.timeOrigin + performance.now() : Date.now());
+    const pre = [
+      ['preload','script','https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js'],
+      ['preload','fetch','https://cdn.converteai.net/3a8aba91-b169-4e7a-99d8-473e149dd22d/6aa07b7105f8112d55c42a75/main.m3u8'],
+      ['dns-prefetch','','https://cdn.converteai.net'],
+      ['dns-prefetch','','https://scripts.converteai.net'],
+      ['dns-prefetch','','https://images.converteai.net'],
+      ['dns-prefetch','','https://license.vturb.com']
+    ];
+    pre.forEach(([rel,as,href])=>{ const l=document.createElement('link'); l.rel=rel; if(as) l.as=as; l.href=href; document.head.appendChild(l); });
+    const s = document.createElement('script');
+    s.src = 'https://scripts.converteai.net/3a8aba91-b169-4e7a-99d8-473e149dd22d/players/6aa07bf8fa5c342cdfb78b5a/v4/player.js';
+    s.async = true;
+    document.head.appendChild(s);
+  }catch(e){}
+}
+function ls199Buy(btn){
+  if(upsellPreviewMode){ showToast('👀','Preview mode — checkout is off'); return; }
+  if(ls199Busy) return; ls199Busy = true;
+  spLog('upsell_click','vsl199');
+  initAudio(); playCoin(); vibrate([15,50,15]);
+  btn.textContent = 'Processing… ⏳';
+  let prodName = chosen && chosen.name;
+  if(!prodName){ try{ prodName = (JSON.parse(localStorage.getItem('spai_chosen') || 'null') || {}).name; }catch(e){} }
+  fetch('/api/upsell199', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ cs: dsPaidCs || '', project_id: (dsBuild && dsBuild.project_id) || '',
+      product: prodName || '' })
+  })
+  .then(r=>r.json())
+  .then(j=>{
+    ls199Busy = false;
+    if(j && j.ok && j.charged && j.pi){
+      playTada(); flashPulse();
+      confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 120);
+      showToast('🎬','5 custom video ads are being made for you!');
+      window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD' },
+        'upsell199_' + ((dsBuild && dsBuild.project_id) || j.pi));
+      spLog('paid_upsell', 'vsl199');
+      spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
+      setTimeout(()=>go('s-upsell-ads'), 900);
+      return;
+    }
+    if(j && j.ok && j.client_secret){
+      // saved card couldn't be charged silently → embedded checkout fallback
+      btn.textContent = 'Yes! Send Me My 5 Video Ads — $199 🎬';
+      return dsOpenPay(j.client_secret, j.publishable_key, false);
+    }
+    // declined / error — never trap them, keep the sequence moving
+    spLog('upsell_decline', 'vsl199_fail_' + ((j && j.status) || ''));
+    showToast('⚠️','Couldn’t add the video pack — continuing');
+    setTimeout(()=>go('s-upsell-ads'), 700);
+  })
+  .catch(()=>{ ls199Busy = false; go('s-upsell-ads'); });
+}
+function ls199No(e){
+  if(e) e.preventDefault();
+  if(upsellPreviewMode){ showToast('👀','Preview mode — nothing happens'); return; }
+  spLog('upsell_decline','vsl199');
   go('s-upsell-ads');
   return false;
 }
@@ -4066,16 +4155,38 @@ function dsResumeAfterUpsell49(){
       })
       .catch(()=>{});
   }
-  if(UPSELL_ADS){
-    // Launch sequence: the embedded-fallback $49 return re-enters at the
-    // extras step; finalize happens when the sequence completes.
-    document.getElementById('s-paywait').classList.remove('active');
-    document.getElementById('s-landing').classList.remove('active');
-    document.getElementById('s-addons').classList.add('active');
-    current = 's-addons'; setBar('s-addons'); updateBack(); onEnter('s-addons');
-    return true;
+  dsFinalize({}); // $49 was the last step — unlock + land on s-done
+  return true;
+}
+
+/* Returning from the $199 five-video checkout fallback:
+   …/?upsold199=1&cs=<base>&upsell_cs=<199>. Verify on our Stripe, record the
+   sale, then re-enter the launch sequence at the $49 image-ads step. */
+function dsResumeAfterUpsell199(){
+  const q = new URLSearchParams(location.search);
+  if(q.get('upsold199') !== '1') return false;
+  const cs = q.get('cs') || '';
+  const ucs = q.get('upsell_cs') || '';
+  if(!cs) return false;
+  payWait(true);
+  try{ dsBuild = JSON.parse(localStorage.getItem('ds_build') || 'null'); }catch(e){}
+  dsPaidCs = cs;
+  if(ucs){
+    fetch('/api/upsell199?verify=' + encodeURIComponent(ucs))
+      .then(r=>r.json())
+      .then(j=>{
+        if(!(j && j.paid)) return; // unpaid bounce-back → just continue the sequence
+        window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD' },
+          'upsell199_' + ((dsBuild && dsBuild.project_id) || ucs));
+        spLog('paid_upsell', 'vsl199');
+        spLead('videoads', j.email || null, ucs); // → AC list 7 (bridge verifies via Stripe)
+      })
+      .catch(()=>{});
   }
-  dsFinalize({}); // unlock + land on s-done (the $49 is recorded on our side)
+  document.getElementById('s-paywait').classList.remove('active');
+  document.getElementById('s-landing').classList.remove('active');
+  document.getElementById('s-upsell-ads').classList.add('active');
+  current = 's-upsell-ads'; setBar('s-upsell-ads'); updateBack(); onEnter('s-upsell-ads');
   return true;
 }
 
@@ -4391,7 +4502,7 @@ updateBack();
 if(!/paid=1|upsold=1|resume=|[?&]p=/.test(location.search)) spLog('screen', 's-landing');
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
-if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsSellFromEmail() && !dsPickFromEmail()) dsResumeFromEmail();
+if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell199() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsSellFromEmail() && !dsPickFromEmail()) dsResumeFromEmail();
 
 /* Safe visual preview of the image-ads upsell (?upsellpreview=1): renders the
    screen with checkout disabled so it can be reviewed on production without
