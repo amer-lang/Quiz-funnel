@@ -27,9 +27,15 @@
     },
     "api/compactcron.js": {
       "maxDuration": 60
+    },
+    "api/artax.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
-    { "path": "/api/compactcron", "schedule": "*/5 * * * *" }
+    {
+      "path": "/api/compactcron",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }
