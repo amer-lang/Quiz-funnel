@@ -3714,7 +3714,7 @@ function upsellYes(){
       window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' },
         'upsell299_' + ((dsBuild && dsBuild.project_id) || j.pi));
       spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
-      spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
+      spLead('videopack', j.email || userEmail || null, j.pi); // → "SPAI Video Pack" list (five-video buyers)
       dsFinalize({ upsell_cs: j.pi }); // record the $299 with the unlock
       return;
     }
@@ -3947,7 +3947,7 @@ function ls199Buy(btn){
       window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD' },
         'upsell199_' + ((dsBuild && dsBuild.project_id) || j.pi));
       spLog('paid_upsell', 'vsl199');
-      spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
+      spLead('videopack', j.email || userEmail || null, j.pi); // → "SPAI Video Pack" list (NOT list 7 — that's the $49 image pack)
       ls199Kill();
       setTimeout(()=>go('s-upsell-ads'), 900);
       return;
@@ -4211,7 +4211,7 @@ function dsResumeAfterUpsell199(){
         window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD' },
           'upsell199_' + ((dsBuild && dsBuild.project_id) || ucs));
         spLog('paid_upsell', 'vsl199');
-        spLead('videoads', j.email || null, ucs); // → AC list 7 (bridge verifies via Stripe)
+        spLead('videopack', j.email || null, ucs); // → "SPAI Video Pack" list (NOT list 7 — that's the $49 image pack)
       })
       .catch(()=>{});
   }

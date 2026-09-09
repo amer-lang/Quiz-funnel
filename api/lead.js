@@ -2,6 +2,7 @@
    Runs server-side so the AC API key never reaches the browser.
 
    POST {email, stage, cs?}  stage: optin → list 5 · unlocked → list 6 · videoads → list 7
+                             videopack → "SPAI Video Pack" (five-video buyers, own list)
      Syncs the contact into ActiveCampaign and subscribes it to the mapped list.
      Paid stages (unlocked/videoads) require `cs` (a verified PAID session); the
      verified store id is written to the AC custom field %ACTIVATION_LINK% (id 2)
@@ -82,6 +83,29 @@ async function emailsList(){
     if(c.ok && c.j.list) emailsListId = Number(c.j.list.id);
   }catch(e){}
   return emailsListId;
+}
+
+/* "SPAI Video Pack" list — verified five-video buyers ($199 VSL / $299) land
+   here so their OWN delivery automation can run. Deliberately separate from
+   list 7: that list's automation delivers the $49 IMAGE pack, and video
+   buyers were briefly being added there (this list fixes that). Resolved by
+   name; auto-created if missing. */
+let videopackListId = null;
+async function videopackList(){
+  if(videopackListId) return videopackListId;
+  try{
+    const r = await ac('/api/3/lists?limit=100');
+    const l = ((r.j && r.j.lists) || []).find(x =>
+      String(x.name || '').trim().toLowerCase() === 'spai video pack');
+    if(l){ videopackListId = Number(l.id); return videopackListId; }
+    const c = await ac('/api/3/lists', 'POST', { list: {
+      name: 'SPAI Video Pack', stringid: 'spai-video-pack',
+      sender_url: 'https://sellproducts.ai',
+      sender_reminder: 'You purchased the 5 custom video ads pack on sellproducts.ai.'
+    } });
+    if(c.ok && c.j.list) videopackListId = Number(c.j.list.id);
+  }catch(e){}
+  return videopackListId;
 }
 
 /* "SPAI Subscribers" — the master buyers list. Resolved by NAME once per
@@ -178,6 +202,10 @@ module.exports = async (req, res) => {
         emailsFieldId: efid || 'CREATE FAILED',
         list: elid ? { listId: elid, name: 'SPAI Email Pack' } : 'CREATE FAILED — make it manually in AC with this exact name'
       };
+      // provision the five-video-pack list on demand (idempotent)
+      const vplid = await videopackList();
+      out.video_pack = vplid ? { listId: vplid, name: 'SPAI Video Pack' }
+        : 'CREATE FAILED — make it manually in AC with this exact name';
       if((req.query || {}).backfill === TEST_KEY){
         const q2 = req.query;
         const dry = q2.dry !== '0';
@@ -422,6 +450,23 @@ module.exports = async (req, res) => {
         if(!cid2) return res.status(502).json({ error: 'ac sync failed' });
         const lid = await emailsList();
         if(lid) await ac('/api/3/contactLists', 'POST', { contactList: { list: lid, contact: cid2, status: 1 } });
+        return res.status(204).end();
+      }
+
+      /* Five-video pack buyers ($199 VSL / $299): a verified video_ads_5
+         charge → the "SPAI Video Pack" list ONLY. Never list 7 — that list's
+         automation delivers the $49 image pack. */
+      if(stage === 'videopack'){
+        const v = await verifyPaid(body.cs);
+        if(!v.paid || v.type !== 'video_ads_5') return res.status(204).end();
+        const vc = { email };
+        if(v.projectId) vc.fieldValues = [{ field: ACTIVATION_FIELD_ID,
+          value: 'https://sellproducts.ai/?resume=' + encodeURIComponent(v.projectId) }];
+        const vs = await ac('/api/3/contact/sync', 'POST', { contact: vc });
+        const vcid = vs.ok && vs.j.contact ? vs.j.contact.id : null;
+        if(!vcid) return res.status(502).json({ error: 'ac sync failed' });
+        const vlid = await videopackList();
+        if(vlid) await ac('/api/3/contactLists', 'POST', { contactList: { list: vlid, contact: vcid, status: 1 } });
         return res.status(204).end();
       }
 
