@@ -72,6 +72,14 @@ function sessionParams(projectId, email, product, uiMode, utm){
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': 'usd',
     'line_items[0][price_data][unit_amount]': String(AMOUNT),
+    // TAX-INCLUSIVE by owner decision (2026-09-09): the buyer always pays a
+    // flat $20.00; in states with an active Stripe Tax registration the tax
+    // is carved OUT of the $20 and remitted. Chosen over tax-on-top because
+    // this checkout's completion is measurably sensitive to any price/copy
+    // change. Product taxability comes from the account's default tax code
+    // in Stripe Tax settings — deliberately not hardcoded here.
+    'line_items[0][price_data][tax_behavior]': 'inclusive',
+    'automatic_tax[enabled]': 'true',
     'line_items[0][price_data][product_data][name]': SKU_NAME,
     'line_items[0][price_data][product_data][description]': SKU_DESC,
     'metadata[type]': 'store_unlock20',
@@ -167,7 +175,8 @@ module.exports = async (req, res) => {
       const utm = utmFromBody({ utm_source: q.utm_source, utm_medium: q.utm_medium, utm_campaign: q.utm_campaign });
       const c = await createSession('0', '', 'probe', false, utm);
       return res.status(200).json({ ok:true, session: c.s.id, has_secret: !!c.s.client_secret,
-        ui: c.ui, custom_error: c.custom_error || '', metadata: c.s.metadata || {} });
+        ui: c.ui, custom_error: c.custom_error || '', metadata: c.s.metadata || {},
+        automatic_tax: c.s.automatic_tax || null });
     }
 
     if(q.verify){
