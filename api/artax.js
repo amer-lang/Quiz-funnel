@@ -90,6 +90,70 @@ function daysBetween(from, to){ // inclusive, oldest first
   return out;
 }
 
+/* ---- WHOLE-ACCOUNT mode (&all=1): every succeeded CHARGE on the account,
+   regardless of product or who created it (funnel, partner traffic,
+   subscriptions). Charges carry billing_details.address directly and their
+   own amount_refunded, so each day reduces to a tiny aggregate. ---- */
+function arAddr(a){
+  a = a || {};
+  const st = String(a.state || '').trim().toUpperCase();
+  if(st){
+    if(st === 'AR' || st === 'ARKANSAS') return (a.country || 'US') === 'US' ? 'ar' : 'other';
+    return 'other';
+  }
+  const zip = String(a.postal_code || '').trim().slice(0, 3);
+  if(/^\d{3}$/.test(zip)){
+    const z = parseInt(zip, 10);
+    return (z >= 716 && z <= 729) ? 'ar' : 'other';
+  }
+  return 'unknown';
+}
+
+async function computeDayAll(day){
+  const gte = Math.floor(dayStartMs(day) / 1000);
+  const lt = Math.floor(nextDayStartMs(day) / 1000);
+  const chR = await pageAll('charges?', gte, lt);
+  const rec = { v: SCHEMA, day, truncated: chR.truncated,
+    all_cnt: 0, all_cents: 0, ar_cnt: 0, ar_cents: 0, ar_ref_cents: 0,
+    unk_cnt: 0, unk_cents: 0 };
+  for(const c of chR.items){
+    if(c.status !== 'succeeded' || !c.paid) continue;
+    rec.all_cnt++; rec.all_cents += c.amount || 0;
+    const loc = arAddr(c.billing_details && c.billing_details.address);
+    if(loc === 'ar'){
+      rec.ar_cnt++; rec.ar_cents += c.amount || 0;
+      rec.ar_ref_cents += c.amount_refunded || 0;
+    } else if(loc === 'unknown'){
+      rec.unk_cnt++; rec.unk_cents += c.amount || 0;
+    }
+  }
+  return rec;
+}
+
+async function readCachedAll(day){
+  const k = 'all:' + day;
+  if(dayMemo[k]) return dayMemo[k];
+  try{
+    const { head } = await import('@vercel/blob');
+    const h = await head('artax/c-' + day + '.json', blobOpts());
+    const rec = await bfetch(h.url).then(r => r.json());
+    if(rec && rec.v === SCHEMA){ dayMemo[k] = rec; return rec; }
+  }catch(e){}
+  return null;
+}
+
+async function computeAndCacheAll(day){
+  const rec = await computeDayAll(day);
+  try{
+    const { put } = await import('@vercel/blob');
+    await put('artax/c-' + day + '.json', JSON.stringify(rec), blobOpts({
+      access: 'private', addRandomSuffix: false, allowOverwrite: true,
+      contentType: 'application/json' }));
+  }catch(e){}
+  dayMemo['all:' + day] = rec;
+  return rec;
+}
+
 /* Is this session's buyer in Arkansas? 'ar' yes · 'other' no · 'unknown' */
 function arState(s){
   const a = (s.customer_details && s.customer_details.address) || {};
@@ -187,18 +251,45 @@ module.exports = async (req, res) => {
   const days = daysBetween(q.from, q.to);
 
   try{
+    const ALL = q.all === '1';
     if(q.warm){
       const t0 = Date.now();
       let computed = 0;
       const remaining = [];
       for(const d of days){
-        if(await readCached(d)) continue;
+        if(ALL ? await readCachedAll(d) : await readCached(d)) continue;
         if(Date.now() - t0 > 45000){ remaining.push(d); continue; }
-        await computeAndCache(d);
+        await (ALL ? computeAndCacheAll(d) : computeAndCache(d));
         computed++;
       }
-      return res.status(200).json({ ok:true, computed, remaining: remaining.length,
+      return res.status(200).json({ ok:true, all: ALL, computed, remaining: remaining.length,
         next: remaining[0] || null });
+    }
+
+    if(q.report && ALL){
+      const months = {};
+      const m0 = () => ({ ar_charges: 0, ar_cents: 0, ar_refund_cents: 0,
+        unknown_charges: 0, unknown_cents: 0, all_charges: 0, all_cents: 0 });
+      const missing = [];
+      for(const d of days){
+        const rec = await readCachedAll(d);
+        if(!rec){ missing.push(d); continue; }
+        const m = months[d.slice(0, 7)] = months[d.slice(0, 7)] || m0();
+        m.ar_charges += rec.ar_cnt; m.ar_cents += rec.ar_cents;
+        m.ar_refund_cents += rec.ar_ref_cents;
+        m.unknown_charges += rec.unk_cnt; m.unknown_cents += rec.unk_cents;
+        m.all_charges += rec.all_cnt; m.all_cents += rec.all_cents;
+      }
+      const rows = Object.keys(months).sort().map(mo =>
+        Object.assign({ month: mo, ar_net_cents: months[mo].ar_cents - months[mo].ar_refund_cents }, months[mo]));
+      const tot = rows.reduce((t, r) => {
+        for(const k of Object.keys(r)) if(k !== 'month') t[k] = (t[k] || 0) + r[k];
+        return t;
+      }, {});
+      return res.status(200).json({ ok:true, scope:'whole-account (every succeeded charge)',
+        tz: TZ, from: q.from, to: q.to, months: rows, totals: tot,
+        days_missing: missing.length, first_missing: missing[0] || null,
+        note: 'ar_net_cents = AR-billing-address charges minus their refunds, account-wide. Includes partner/non-funnel traffic. Tax owed = net × applicable AR rate for each product’s taxability — your tax pro’s call.' });
     }
 
     if(q.report){
