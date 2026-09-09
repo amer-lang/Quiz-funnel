@@ -222,20 +222,26 @@ module.exports = async (req, res) => {
       let videopack;
       if(q.videopack === '1'){
         videopack = [];
+        // one-click PIs AND fallback checkout sessions both count
         const vids = piR.items.filter(p => p.status === 'succeeded' &&
-          p.metadata && p.metadata.type === 'video_ads_5');
+            p.metadata && p.metadata.type === 'video_ads_5')
+          .map(p => ({ id: p.id, amount: p.amount, base: p.metadata.base_cs || '', em: p.receipt_email || '' }))
+          .concat(sesR.items.filter(s => s.payment_status === 'paid' &&
+            s.metadata && s.metadata.type === 'video_ads_5')
+          .map(s => ({ id: s.id, amount: s.amount_total, base: s.metadata.base_cs || '',
+            em: (s.customer_details && s.customer_details.email) || '' })));
         const imgBases = new Set(piR.items.filter(p => p.status === 'succeeded' &&
           p.metadata && p.metadata.type === 'image_ads_10').map(p => p.metadata.base_cs));
         for(const p of vids){
-          let em = p.receipt_email || '';
-          if(!em && p.metadata.base_cs){
+          let em = p.em;
+          if(!em && p.base){
             try{
-              const bs = await sget('checkout/sessions/' + encodeURIComponent(p.metadata.base_cs));
+              const bs = await sget('checkout/sessions/' + encodeURIComponent(p.base));
               em = (bs.customer_details && bs.customer_details.email) || '';
             }catch(e){}
           }
-          videopack.push({ pi: p.id, amount: p.amount, email: em,
-            also_bought_image_pack: imgBases.has(p.metadata.base_cs) });
+          videopack.push({ id: p.id, amount: p.amount, email: em,
+            also_bought_image_pack: imgBases.has(p.base) });
         }
       }
       return res.status(200).json({ ok:true, day,
