@@ -83,11 +83,86 @@ const nextDayStartMs = d => dayStartMs(dayStr(dayStartMs(d) + 30 * 3600 * 1000))
 function daysBetween(from, to){ // inclusive, oldest first
   const out = [];
   let d = from;
-  for(let i = 0; i < 400 && d <= to; i++){
+  for(let i = 0; i < 450 && d <= to; i++){
     out.push(d);
     d = dayStr(dayStartMs(d) + 30 * 3600 * 1000);
   }
   return out;
+}
+
+/* ---- MULTI-STATE whole-account mode (&states=1): every succeeded charge,
+   classified into the 8 registered states by billing state or ZIP range. */
+const TARGETS = {
+  AR: { zips: [[716, 729]], names: ['AR', 'ARKANSAS'] },
+  GA: { zips: [[300, 319], [398, 399]], names: ['GA', 'GEORGIA'] },
+  HI: { zips: [[967, 968]], names: ['HI', 'HAWAII'] },
+  KY: { zips: [[400, 427]], names: ['KY', 'KENTUCKY'] },
+  MD: { zips: [[206, 219]], names: ['MD', 'MARYLAND'] },
+  MN: { zips: [[550, 567]], names: ['MN', 'MINNESOTA'] },
+  NJ: { zips: [[70, 89]], names: ['NJ', 'NEW JERSEY'] },
+  OH: { zips: [[430, 459]], names: ['OH', 'OHIO'] }
+};
+const CODES = Object.keys(TARGETS);
+function stateOf(a){
+  a = a || {};
+  if(a.country && a.country !== 'US') return 'other';
+  const st = String(a.state || '').trim().toUpperCase();
+  if(st){
+    for(const c of CODES) if(TARGETS[c].names.includes(st)) return c;
+    return 'other';
+  }
+  const z3 = String(a.postal_code || '').trim().slice(0, 3);
+  if(/^\d{3}$/.test(z3)){
+    const n = parseInt(z3, 10);
+    for(const c of CODES)
+      for(const [lo, hi] of TARGETS[c].zips)
+        if(n >= lo && n <= hi) return c;
+    return 'other';
+  }
+  return 'unknown';
+}
+
+async function computeDayStates(day){
+  const gte = Math.floor(dayStartMs(day) / 1000);
+  const lt = Math.floor(nextDayStartMs(day) / 1000);
+  const chR = await pageAll('charges?', gte, lt);
+  const rec = { v: 2, day, truncated: chR.truncated,
+    all_cnt: 0, all_cents: 0, unk_cnt: 0, unk_cents: 0, st: {} };
+  CODES.forEach(c => rec.st[c] = { cnt: 0, cents: 0, ref: 0 });
+  for(const c of chR.items){
+    if(c.status !== 'succeeded' || !c.paid) continue;
+    rec.all_cnt++; rec.all_cents += c.amount || 0;
+    const s = stateOf(c.billing_details && c.billing_details.address);
+    if(s === 'unknown'){ rec.unk_cnt++; rec.unk_cents += c.amount || 0; continue; }
+    if(s === 'other') continue;
+    rec.st[s].cnt++; rec.st[s].cents += c.amount || 0;
+    rec.st[s].ref += c.amount_refunded || 0;
+  }
+  return rec;
+}
+
+async function readCachedStates(day){
+  const k = 'st:' + day;
+  if(dayMemo[k]) return dayMemo[k];
+  try{
+    const { head } = await import('@vercel/blob');
+    const h = await head('artax/s-' + day + '.json', blobOpts());
+    const rec = await bfetch(h.url).then(r => r.json());
+    if(rec && rec.v === 2){ dayMemo[k] = rec; return rec; }
+  }catch(e){}
+  return null;
+}
+
+async function computeAndCacheStates(day){
+  const rec = await computeDayStates(day);
+  try{
+    const { put } = await import('@vercel/blob');
+    await put('artax/s-' + day + '.json', JSON.stringify(rec), blobOpts({
+      access: 'private', addRandomSuffix: false, allowOverwrite: true,
+      contentType: 'application/json' }));
+  }catch(e){}
+  dayMemo['st:' + day] = rec;
+  return rec;
 }
 
 /* ---- WHOLE-ACCOUNT mode (&all=1): every succeeded CHARGE on the account,
@@ -252,18 +327,56 @@ module.exports = async (req, res) => {
 
   try{
     const ALL = q.all === '1';
+    const ST = q.states === '1';
     if(q.warm){
       const t0 = Date.now();
       let computed = 0;
       const remaining = [];
       for(const d of days){
-        if(ALL ? await readCachedAll(d) : await readCached(d)) continue;
+        if(ST ? await readCachedStates(d) : ALL ? await readCachedAll(d) : await readCached(d)) continue;
         if(Date.now() - t0 > 45000){ remaining.push(d); continue; }
-        await (ALL ? computeAndCacheAll(d) : computeAndCache(d));
+        await (ST ? computeAndCacheStates(d) : ALL ? computeAndCacheAll(d) : computeAndCache(d));
         computed++;
       }
-      return res.status(200).json({ ok:true, all: ALL, computed, remaining: remaining.length,
-        next: remaining[0] || null });
+      return res.status(200).json({ ok:true, mode: ST ? 'states' : ALL ? 'all' : 'funnel',
+        computed, remaining: remaining.length, next: remaining[0] || null });
+    }
+
+    if(q.report && ST){
+      const perState = {}; // code → month → aggregates
+      CODES.forEach(c => perState[c] = {});
+      let all_cents = 0, all_cnt = 0, unk_cents = 0, unk_cnt = 0;
+      const missing = [];
+      for(const d of days){
+        const rec = await readCachedStates(d);
+        if(!rec){ missing.push(d); continue; }
+        const mo = d.slice(0, 7);
+        all_cents += rec.all_cents; all_cnt += rec.all_cnt;
+        unk_cents += rec.unk_cents; unk_cnt += rec.unk_cnt;
+        for(const c of CODES){
+          const s = rec.st[c] || { cnt: 0, cents: 0, ref: 0 };
+          const m = perState[c][mo] = perState[c][mo] || { charges: 0, cents: 0, refund_cents: 0 };
+          m.charges += s.cnt; m.cents += s.cents; m.refund_cents += s.ref;
+        }
+      }
+      const states = {};
+      for(const c of CODES){
+        const months = Object.keys(perState[c]).sort()
+          .map(mo => Object.assign({ month: mo,
+            net_cents: perState[c][mo].cents - perState[c][mo].refund_cents }, perState[c][mo]))
+          .filter(r => r.charges > 0);
+        const t = months.reduce((t2, r) => ({ charges: t2.charges + r.charges,
+          cents: t2.cents + r.cents, refund_cents: t2.refund_cents + r.refund_cents,
+          net_cents: t2.net_cents + r.net_cents }),
+          { charges: 0, cents: 0, refund_cents: 0, net_cents: 0 });
+        states[c] = { months, totals: t };
+      }
+      return res.status(200).json({ ok:true, scope: 'whole-account (every succeeded charge)',
+        tz: TZ, from: q.from, to: q.to, states,
+        account_totals: { charges: all_cnt, cents: all_cents },
+        unknown_location: { charges: unk_cnt, cents: unk_cents },
+        days_missing: missing.length, first_missing: missing[0] || null,
+        note: 'net_cents = billing-address charges minus their refunds per state, account-wide (funnel + partner traffic). Tax owed = net × each state’s applicable rate for each product’s taxability — tax pro applies exact rates.' });
     }
 
     if(q.report && ALL){
