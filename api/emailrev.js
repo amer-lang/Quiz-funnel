@@ -216,6 +216,28 @@ module.exports = async (req, res) => {
           declines[code] = (declines[code] || 0) + 1;
         }
       }
+      // &videopack=1 — the day's five-video buyers with their emails (via the
+      // base $20 session) and whether they ALSO own the $49 image pack, for
+      // AC list cleanup. Owner-key-gated like the rest of this route.
+      let videopack;
+      if(q.videopack === '1'){
+        videopack = [];
+        const vids = piR.items.filter(p => p.status === 'succeeded' &&
+          p.metadata && p.metadata.type === 'video_ads_5');
+        const imgBases = new Set(piR.items.filter(p => p.status === 'succeeded' &&
+          p.metadata && p.metadata.type === 'image_ads_10').map(p => p.metadata.base_cs));
+        for(const p of vids){
+          let em = p.receipt_email || '';
+          if(!em && p.metadata.base_cs){
+            try{
+              const bs = await sget('checkout/sessions/' + encodeURIComponent(p.metadata.base_cs));
+              em = (bs.customer_details && bs.customer_details.email) || '';
+            }catch(e){}
+          }
+          videopack.push({ pi: p.id, amount: p.amount, email: em,
+            also_bought_image_pack: imgBases.has(p.metadata.base_cs) });
+        }
+      }
       return res.status(200).json({ ok:true, day,
         sessions_total: sesR.items.length, truncated: sesR.truncated || piR.truncated,
         unlock20_paid: paid20.length,
@@ -223,7 +245,7 @@ module.exports = async (req, res) => {
         sessions_with_utm_any_status: anyUtm.length,
         utm_sources: srcs, utm_campaigns: camps,
         upsell_pis_with_base: piR.items.filter(p => p.status === 'succeeded' && p.metadata && p.metadata.base_cs).length,
-        pi_status: piStatus, declines,
+        pi_status: piStatus, declines, videopack,
         cached_record: cached });
     }
 

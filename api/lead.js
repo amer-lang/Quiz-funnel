@@ -213,8 +213,13 @@ module.exports = async (req, res) => {
         // (owner-attested — used when purchases predate event tracking)
         if(q2.emails){
           const CUMUL = { optin: [5], unlocked: [5, 6], videoads: [5, 6, 7] };
+          if(String(q2.stage || '') === 'videopack'){
+            const vp = await videopackList();
+            if(!vp) return res.status(502).json({ error: 'video pack list unavailable' });
+            CUMUL.videopack = [vp]; // additive only — list-7 removal stays manual in AC
+          }
           const lists = CUMUL[String(q2.stage || '')];
-          if(!lists) return res.status(400).json({ error: 'stage must be optin|unlocked|videoads' });
+          if(!lists) return res.status(400).json({ error: 'stage must be optin|unlocked|videoads|videopack' });
           const emails = String(q2.emails).split(',').map(s => s.trim().toLowerCase())
             .filter(s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s)).slice(0, 100);
           const results = [];
