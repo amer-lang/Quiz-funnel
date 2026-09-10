@@ -239,8 +239,12 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .mod .pick{display:flex;align-items:center;gap:10px;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font:inherit;color:inherit;text-align:left;font-weight:800;font-size:.84rem}
 .mod .pick small{margin-left:auto;color:#7CF0A9;font-weight:800;font-size:.66rem}
 #modEmbed{min-height:420px}
-.mod .coWrap{background:#fff;border-radius:14px;overflow:hidden;position:relative;opacity:0;transition:opacity .35s ease}
+.mod.co{max-width:500px;padding:20px 18px 16px}
+.mod.co h3{margin-bottom:14px}
+.mod .coWrap{background:#fff;border-radius:18px;overflow:hidden;position:relative;padding:14px 10px;
+  box-shadow:0 12px 36px rgba(0,0,0,.35);opacity:0;transition:opacity .35s ease}
 .mod .coWrap.ready{opacity:1}
+.mod.co .row{margin-top:14px}
 .dfyspin{width:34px;height:34px;border:3px solid var(--line-strong);border-top-color:var(--gold);border-radius:50%;
   animation:dfySpin .9s linear infinite;margin:26px auto 14px}
 @keyframes dfySpin{to{transform:rotate(360deg)}}
@@ -1126,6 +1130,7 @@ async function resendActivation(){
 
 /* ============ mission 4: $299 done-for-you — straight to checkout ============ */
 function openDfy(){
+  document.getElementById('modIn').classList.add('co');
   document.getElementById('modIn').innerHTML =
     '<h3>🎬 5 Custom Video Ads — $299</h3>' +
     '<div id="dfyLoad"><div class="dfyspin"></div>' +
@@ -1135,7 +1140,10 @@ function openDfy(){
   document.getElementById('modal').classList.add('on');
   buyDfy();
 }
-function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+function closeModal(){
+  document.getElementById('modal').classList.remove('on');
+  document.getElementById('modIn').classList.remove('co');
+}
 let DFY_CO = null; // embedded-checkout instance, so Cancel can unmount it
 function dfyFail(msg){
   const l = document.getElementById('dfyLoad');
@@ -1186,6 +1194,7 @@ function dfyCancel(){
   closeModal();
 }
 function dfySuccess(email, repeat){
+  document.getElementById('modIn').classList.remove('co');
   document.getElementById('modIn').innerHTML =
     '<h3>🎬 You\'re in production</h3><p>Payment received' + (repeat ? ' (you already owned this — no double charge)' : '') +
     '. Your 5 videos are being produced and will arrive at <b>' + esc(email || STATE.email || 'your email') + '</b>. Jump to Mission 5 and build the campaign shell while you wait.</p>' +
