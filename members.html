@@ -238,7 +238,12 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .mod .no{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--line-strong)}
 .mod .pick{display:flex;align-items:center;gap:10px;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font:inherit;color:inherit;text-align:left;font-weight:800;font-size:.84rem}
 .mod .pick small{margin-left:auto;color:#7CF0A9;font-weight:800;font-size:.66rem}
-#modEmbed{margin-top:12px}
+#modEmbed{min-height:420px}
+.mod .coWrap{background:#fff;border-radius:14px;overflow:hidden;position:relative;opacity:0;transition:opacity .35s ease}
+.mod .coWrap.ready{opacity:1}
+.dfyspin{width:34px;height:34px;border:3px solid var(--line-strong);border-top-color:var(--gold);border-radius:50%;
+  animation:dfySpin .9s linear infinite;margin:26px auto 14px}
+@keyframes dfySpin{to{transform:rotate(360deg)}}
 /* gate */
 #gate{max-width:420px;margin:12vh auto 0;text-align:center;padding:0 18px}
 #gate .ic{font-size:44px;margin-bottom:10px}
@@ -1119,20 +1124,40 @@ async function resendActivation(){
   }
 }
 
-/* ============ mission 4: $299 done-for-you ============ */
+/* ============ mission 4: $299 done-for-you — straight to checkout ============ */
 function openDfy(){
   document.getElementById('modIn').innerHTML =
-    '<h3>5 Custom Video Ads — $299</h3>' +
-    '<p>Our team produces all five videos for <b>' + esc(STATE.product || 'your product') + '</b> — hooks, captions, music — delivered to your email. One-time $299 through secure Stripe checkout. No subscription.</p>' +
-    '<div class="row"><button class="no" onclick="closeModal()">Cancel</button>' +
-    '<button class="yes" id="dfyGo" onclick="buyDfy()">Confirm — $299</button></div><div id="modEmbed"></div>';
+    '<h3>🎬 5 Custom Video Ads — $299</h3>' +
+    '<div id="dfyLoad"><div class="dfyspin"></div>' +
+    '<p style="margin-bottom:6px">Opening secure checkout…</p></div>' +
+    '<div class="coWrap" id="coWrap" style="display:none"><div id="modEmbed"></div></div>' +
+    '<div class="row" style="margin-top:12px"><button class="no" onclick="dfyCancel()">Cancel</button></div>';
   document.getElementById('modal').classList.add('on');
+  buyDfy();
 }
 function closeModal(){ document.getElementById('modal').classList.remove('on'); }
 let DFY_CO = null; // embedded-checkout instance, so Cancel can unmount it
+function dfyFail(msg){
+  const l = document.getElementById('dfyLoad');
+  if(l) l.innerHTML = '<p style="margin:14px 0 4px">' + msg + '</p>' +
+    '<div class="row" style="margin-top:10px"><button class="yes" onclick="openDfy()">Try again</button></div>';
+}
+function dfyMount(j){
+  try{
+    const stripe = Stripe(j.publishable_key);
+    const maker = stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout;
+    maker.call(stripe, { clientSecret: j.client_secret }).then(co => {
+      DFY_CO = co;
+      const wrap = document.getElementById('coWrap');
+      if(!wrap) return; // modal closed while loading
+      co.mount('#modEmbed');
+      document.getElementById('dfyLoad').style.display = 'none';
+      wrap.style.display = 'block';
+      requestAnimationFrame(() => wrap.classList.add('ready'));
+    }).catch(() => dfyFail('Could not open checkout — nothing was charged.'));
+  }catch(e){ dfyFail('Could not open checkout — nothing was charged.'); }
+}
 async function buyDfy(){
-  const b = document.getElementById('dfyGo');
-  b.disabled = true; b.textContent = 'Opening checkout…';
   try{
     const r = await fetch('/api/upsell299', { method:'POST', headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ cs: CS, product: STATE.product || '', checkout: 1, return: 'members' }) });
@@ -1142,26 +1167,17 @@ async function buyDfy(){
       return;
     }
     if(j.ok && j.client_secret){
-      document.getElementById('modIn').innerHTML = '<h3>Secure checkout</h3><div id="modEmbed"></div>' +
-        '<div class="row" style="margin-top:10px"><button class="no" onclick="dfyCancel()">Cancel</button></div>';
+      if(window.Stripe){ dfyMount(j); return; }
       const s = document.createElement('script');
       s.src = 'https://js.stripe.com/dahlia/stripe.js';
-      s.onload = async () => {
-        try{
-          const stripe = Stripe(j.publishable_key);
-          const maker = stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout;
-          DFY_CO = await maker.call(stripe, { clientSecret: j.client_secret });
-          DFY_CO.mount('#modEmbed');
-        }catch(e){ document.getElementById('modEmbed').textContent = 'Could not open checkout — try again in a minute.'; }
-      };
+      s.onload = () => dfyMount(j);
+      s.onerror = () => dfyFail('Could not open checkout — nothing was charged.');
       document.body.appendChild(s);
       return;
     }
-    b.disabled = false; b.textContent = 'Confirm — $299';
-    alert('Checkout couldn\'t open (' + (j.status || 'error') + '). Nothing was charged — try again.');
+    dfyFail('Checkout couldn\'t open — nothing was charged.');
   }catch(e){
-    b.disabled = false; b.textContent = 'Confirm — $299';
-    alert('Network hiccup — nothing was charged. Try again.');
+    dfyFail('Network hiccup — nothing was charged.');
   }
 }
 function dfyCancel(){
