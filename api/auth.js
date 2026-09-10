@@ -31,7 +31,7 @@ async function resendKey(){
   RESEND_KEY_CACHE = (cfg && cfg.key) || '';
   return RESEND_KEY_CACHE;
 }
-const FROM_PRIMARY = 'Sell Products AI <login@sellproducts.ai>';
+const FROM_PRIMARY = 'Sell Products AI <login@account.sellproducts.ai>'; // Resend-verified subdomain
 const FROM_FALLBACK = 'Sell Products AI <onboarding@resend.dev>'; // works pre-DNS, but only to the Resend account owner
 const OK_TYPES = new Set(['store_unlock20', 'store_unlock']);
 const COOKIE = 'spai_sess';
@@ -70,10 +70,10 @@ async function bwrite(path, obj){
     contentType: 'application/json' }));
 }
 
-async function sget(path){
-  const r = await fetch('https://api.stripe.com/v1/' + path, {
-    headers: { Authorization: 'Bearer ' + (process.env.STRIPE_SECRET_KEY || '') }
-  });
+async function sget(path, ver){
+  const headers = { Authorization: 'Bearer ' + (process.env.STRIPE_SECRET_KEY || '') };
+  if(ver) headers['Stripe-Version'] = ver; // account default (2020-03-02) predates the Search API
+  const r = await fetch('https://api.stripe.com/v1/' + path, { headers });
   const j = await r.json().catch(() => ({}));
   if(!r.ok) throw new Error((j.error && j.error.message) || ('stripe ' + r.status));
   return j;
@@ -98,28 +98,11 @@ async function findMemberCs(email, diag){
   const idx = await bread(idxPath(email));
   if(idx && idx.cs){ if(diag) diag.src = 'index'; return idx.cs; }
 
-  // lane 1: charge search on billing email → its PI's checkout session
+  // customer objects → their succeeded PIs → the PI's checkout session.
+  // Every buyer has a customer (the one-click upsell rail requires a saved
+  // card); charge/PI search can't filter on email, so this is the one lane.
   try{
-    const q = "billing_details.email:'" + email.replace(/'/g, '') + "'";
-    const sr = await sget('charges/search?limit=20&query=' + encodeURIComponent(q));
-    for(const ch of (sr.data || [])){
-      if(ch.status !== 'succeeded' || !ch.paid || !ch.payment_intent) continue;
-      try{
-        const ss = await sget('checkout/sessions?limit=1&payment_intent=' + encodeURIComponent(
-          typeof ch.payment_intent === 'string' ? ch.payment_intent : ch.payment_intent.id));
-        const s = ss.data && ss.data[0];
-        if(s && s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')){
-          if(diag) diag.src = 'charge_search';
-          await bwrite(idxPath(email), { email, cs: s.id, src: 'charge_search', created: Date.now(), updated: Date.now() });
-          return s.id;
-        }
-      }catch(e){ if(diag) diag.session_err = String(e.message || e).slice(0, 120); }
-    }
-  }catch(e){ if(diag) diag.search_err = String(e.message || e).slice(0, 120); }
-
-  // lane 2: customer objects (sessions created with a customer)
-  try{
-    const cu = await sget('customers?limit=3&email=' + encodeURIComponent(email));
+    const cu = await sget('customers?limit=5&email=' + encodeURIComponent(email));
     for(const c of (cu.data || [])){
       const pis = await sget('payment_intents?limit=20&customer=' + encodeURIComponent(c.id));
       for(const pi of (pis.data || [])){
@@ -205,7 +188,8 @@ module.exports = async (req, res) => {
       if(q.probe === 'lookup'){
         const email = normEmail(q.email); const diag = {};
         const cs = await findMemberCs(email, diag);
-        return res.status(200).json({ ok:true, found: !!cs, cs_tail: cs ? '…' + cs.slice(-8) : '', diag });
+        return res.status(200).json({ ok:true, found: !!cs,
+          cs_tail: cs ? '…' + cs.slice(-8) : '', cs: q.full ? cs : undefined, diag });
       }
       if(q.probe === 'mail'){
         const r = await sendCodeEmail(normEmail(q.to), '000000');
