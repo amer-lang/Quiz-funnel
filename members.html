@@ -247,6 +247,11 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 #gate input{width:100%;padding:13px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--text);font:inherit;font-size:.85rem;text-align:center;margin-bottom:10px;outline:none}
 #gate button{width:100%;padding:13px;border:none;border-radius:12px;background:var(--grad-brand);color:#fff;font:inherit;font-weight:800;cursor:pointer}
 #gate .err{color:var(--red);font-size:.76rem;font-weight:700;margin-top:10px;display:none}
+#gate .alt{margin-top:16px;font-size:.74rem;font-weight:700;color:var(--muted)}
+#gate .alt a{color:#8EC5FF;cursor:pointer}
+#gate .alt a.cool{color:var(--muted);cursor:default}
+#gate #gateCode{letter-spacing:9px;font-weight:800;font-size:1.15rem}
+#gate button:disabled{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -254,10 +259,23 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 <div id="gate" style="display:none">
   <div class="ic">🔐</div>
   <h1>Members Area</h1>
-  <p>This area is for store owners. Open it from the link on your store's <b>done screen</b> or any of our emails — or paste your order ID (starts with <b>cs_</b>) below.</p>
-  <input id="gateCs" placeholder="cs_live_...">
-  <button onclick="gateGo()">Enter</button>
-  <div class="err" id="gateErr">That doesn't look like a store order. Check the ID and try again.</div>
+  <div id="gateStep1">
+    <p>Store owners only. Enter the email you used at checkout and we'll send you a 6-digit login code.</p>
+    <input id="gateEmail" type="email" placeholder="you@email.com" autocomplete="email">
+    <button id="gateSendBtn" onclick="gateSend()">Email me my login code</button>
+  </div>
+  <div id="gateStep2" style="display:none">
+    <p>Code sent to <b id="gateSentTo"></b> — check your inbox (and spam). It expires in 10 minutes.</p>
+    <input id="gateCode" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code">
+    <button id="gateVerifyBtn" onclick="gateVerify()">Enter the members area →</button>
+    <div class="alt"><a id="gateResend" onclick="gateResend()">Resend code</a> · <a onclick="gateBack()">Use a different email</a></div>
+  </div>
+  <div class="err" id="gateErr"></div>
+  <div class="alt"><a onclick="gateToggleCs()">Have your order ID (starts with cs_)? Enter it instead</a></div>
+  <div id="gateCsRow" style="display:none;margin-top:10px">
+    <input id="gateCs" placeholder="cs_live_...">
+    <button onclick="gateGo()">Enter</button>
+  </div>
 </div>
 
 <div class="wrap" id="app" style="display:none">
@@ -571,22 +589,133 @@ const M = [
 }
 ];
 
-/* ============ boot ============ */
-function boot(){
+/* ============ boot + auth ============
+   Priority: ?cs link (activation email — exchanges for a 90-day cookie and the
+   session id leaves the address bar) → cookie session → legacy saved cs →
+   email + 6-digit code login. */
+function authApi(body){
+  return fetch('/api/auth', { method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(body), cache:'no-store' }).then(r => r.json());
+}
+async function boot(){
   const u = new URL(location.href);
   const p = u.searchParams.get('cs');
+  if(p === 'cs_test_roadmap'){ CS = p; load(); return; } // owner preview: untouched
+  if(p){
+    CS = p;
+    try{ localStorage.setItem('spai_members_cs', p); }catch(e){}
+    authApi({ action:'exchange', cs: p }).catch(() => {});
+    try{ history.replaceState({}, '', location.pathname); }catch(e){}
+    load(); return;
+  }
   try{
-    if(p) localStorage.setItem('spai_members_cs', p);
-    CS = p || localStorage.getItem('spai_members_cs') || '';
-  }catch(e){ CS = p || ''; }
-  if(!CS){ document.getElementById('gate').style.display = 'block'; return; }
-  load();
+    const j = await fetch('/api/auth?action=session', { cache:'no-store' }).then(r => r.json());
+    if(j.ok && j.cs){ CS = j.cs; load(); return; }
+  }catch(e){}
+  let saved = '';
+  try{ saved = localStorage.getItem('spai_members_cs') || ''; }catch(e){}
+  if(saved && saved !== 'cs_test_roadmap'){
+    CS = saved;
+    authApi({ action:'exchange', cs: saved }).catch(() => {});
+    load(); return;
+  }
+  document.getElementById('gate').style.display = 'block';
+}
+
+const GATE_ERRS = {
+  not_found: 'We couldn\'t find a store purchase under that email. Try the exact email you used at checkout — or use your order ID below.',
+  rate_limited: 'Too many codes requested for this email. Wait an hour, or use your order ID below.',
+  send_failed: 'We couldn\'t send the email just now. Try again in a minute, or use your order ID below.',
+  mail_unconfigured: 'Code emails are momentarily unavailable — use your order ID below.',
+  bad_email: 'That doesn\'t look like an email address.',
+  wrong_code: 'Wrong code — check the newest email and try again.',
+  expired: 'That code expired. Send yourself a fresh one.',
+  too_many_tries: 'Too many attempts. Send yourself a fresh code.'
+};
+function gateErr(code){
+  const el = document.getElementById('gateErr');
+  if(!code){ el.style.display = 'none'; return; }
+  el.textContent = GATE_ERRS[code] || 'Something went wrong — try again.';
+  el.style.display = 'block';
+}
+let gateEmail = '', gateCool = null;
+function gateCooldown(){
+  const a = document.getElementById('gateResend');
+  let left = 60;
+  a.classList.add('cool'); a.textContent = 'Resend code (' + left + 's)';
+  clearInterval(gateCool);
+  gateCool = setInterval(() => {
+    left--;
+    if(left <= 0){ clearInterval(gateCool); a.classList.remove('cool'); a.textContent = 'Resend code'; }
+    else a.textContent = 'Resend code (' + left + 's)';
+  }, 1000);
+}
+async function gateSend(){
+  const email = document.getElementById('gateEmail').value.trim();
+  gateErr('');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return gateErr('bad_email');
+  const btn = document.getElementById('gateSendBtn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    const j = await authApi({ action:'start', email });
+    btn.disabled = false; btn.textContent = 'Email me my login code';
+    if(!j.ok) return gateErr(j.error || 'send_failed');
+    gateEmail = email;
+    document.getElementById('gateStep1').style.display = 'none';
+    document.getElementById('gateStep2').style.display = 'block';
+    document.getElementById('gateSentTo').textContent = email;
+    document.getElementById('gateCode').value = '';
+    document.getElementById('gateCode').focus();
+    gateCooldown();
+  }catch(e){
+    btn.disabled = false; btn.textContent = 'Email me my login code';
+    gateErr('send_failed');
+  }
+}
+async function gateResend(){
+  if(document.getElementById('gateResend').classList.contains('cool')) return;
+  gateErr('');
+  try{
+    const j = await authApi({ action:'start', email: gateEmail });
+    if(!j.ok) return gateErr(j.error || 'send_failed');
+    gateCooldown();
+  }catch(e){ gateErr('send_failed'); }
+}
+function gateBack(){
+  gateErr('');
+  document.getElementById('gateStep2').style.display = 'none';
+  document.getElementById('gateStep1').style.display = 'block';
+}
+async function gateVerify(){
+  const code = document.getElementById('gateCode').value.replace(/\D/g, '');
+  gateErr('');
+  if(code.length !== 6) return gateErr('wrong_code');
+  const btn = document.getElementById('gateVerifyBtn');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const j = await authApi({ action:'verify', email: gateEmail, code });
+    btn.disabled = false; btn.textContent = 'Enter the members area →';
+    if(!j.ok) return gateErr(j.error || 'wrong_code');
+    if(!j.cs) return gateErr('not_found');
+    CS = j.cs;
+    try{ localStorage.setItem('spai_members_cs', CS); }catch(e){}
+    document.getElementById('gate').style.display = 'none';
+    load();
+  }catch(e){
+    btn.disabled = false; btn.textContent = 'Enter the members area →';
+    gateErr('send_failed');
+  }
+}
+function gateToggleCs(){
+  const row = document.getElementById('gateCsRow');
+  row.style.display = row.style.display === 'none' ? 'block' : 'none';
 }
 function gateGo(){
   const v = document.getElementById('gateCs').value.trim();
-  if(!/^cs_/.test(v)){ document.getElementById('gateErr').style.display = 'block'; return; }
+  if(!/^cs_/.test(v)){ gateErr('not_found'); return; }
   CS = v;
   try{ localStorage.setItem('spai_members_cs', v); }catch(e){}
+  authApi({ action:'exchange', cs: v }).catch(() => {});
   document.getElementById('gate').style.display = 'none';
   load();
 }
@@ -596,7 +725,7 @@ async function load(){
     const j = await r.json();
     if(!j.ok){
       document.getElementById('gate').style.display = 'block';
-      document.getElementById('gateErr').style.display = 'block';
+      gateErr('not_found');
       return;
     }
     STATE = { done: j.done || [], email: j.email || '', product: j.product || '' };
@@ -609,7 +738,7 @@ async function load(){
     render();
   }catch(e){
     document.getElementById('gate').style.display = 'block';
-    document.getElementById('gateErr').style.display = 'block';
+    gateErr('send_failed');
   }
 }
 
@@ -951,6 +1080,9 @@ async function buyDfy(){
   }
 }
 
+document.getElementById('gateEmail').addEventListener('keydown', e => { if(e.key === 'Enter') gateSend(); });
+document.getElementById('gateCode').addEventListener('keydown', e => { if(e.key === 'Enter') gateVerify(); });
+document.getElementById('gateCs').addEventListener('keydown', e => { if(e.key === 'Enter') gateGo(); });
 boot();
 </script>
 </body>
