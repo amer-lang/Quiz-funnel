@@ -122,6 +122,24 @@ module.exports = async (req, res) => {
       const key = await anthropicKey();
       return res.status(200).json({ ok:true, has_anthropic_key: !!key, has_stripe: !!process.env.STRIPE_SECRET_KEY });
     }
+    /* owner smoke test: runs one real model call end-to-end (GET, key-gated) */
+    if(q.probe === 'test' && q.key === READ_KEY){
+      const key = await anthropicKey();
+      if(!key) return res.status(200).json({ ok:false, error:'chat_unconfigured' });
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey: key });
+      const r = await client.beta.messages.create({
+        model: 'claude-opus-5', max_tokens: 200,
+        output_config: { effort: 'low' },
+        betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+        system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: 'In one sentence: what does Mission 1 ask me to do?' }]
+      });
+      let reply = '';
+      for(const b of r.content){ if(b.type === 'text') reply += b.text; }
+      return res.status(200).json({ ok:true, model: r.model, stop: r.stop_reason, reply,
+        usage: { in: r.usage.input_tokens, out: r.usage.output_tokens, cached: r.usage.cache_read_input_tokens || 0 } });
+    }
 
     if(req.method !== 'POST') return res.status(405).json({ ok:false });
     let body = {};
