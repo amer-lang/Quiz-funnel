@@ -16,6 +16,7 @@
 
 const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const RETURN_URL = 'https://www.sellproducts.ai/?upsold=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
+const RETURN_URL_MEMBERS = 'https://www.sellproducts.ai/members?dfy=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
 const SKU_NAME = '5 Custom Video Ads';
 const SKU_DESC = 'Five ready-to-run video ads produced for your store’s product. Delivered digitally to your email.';
 const AMOUNT = 29900; // cents
@@ -56,11 +57,12 @@ async function defaultPm(customer){
   return '';
 }
 
-async function createSession(customer, baseCs, projectId, product){
+async function createSession(customer, baseCs, projectId, product, ret){
+  const tpl = ret === 'members' ? RETURN_URL_MEMBERS : RETURN_URL;
   const params = {
     'mode': 'payment',
     'ui_mode': 'embedded',
-    'return_url': RETURN_URL.replace('{BASE}', encodeURIComponent(baseCs || '')),
+    'return_url': tpl.replace('{BASE}', encodeURIComponent(baseCs || '')),
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': 'usd',
     'line_items[0][price_data][unit_amount]': String(AMOUNT),
@@ -134,6 +136,11 @@ module.exports = async (req, res) => {
     const projectId = String(body.project_id || '');
     const product = String(body.product || '').slice(0, 120);
 
+    /* members area asks for the visible Stripe checkout instead of the silent
+       one-click charge (body.checkout) — dedupe still runs first */
+    const wantCheckout = body.checkout === 1 || body.checkout === '1' || body.checkout === true;
+    const ret = body.return === 'members' ? 'members' : '';
+
     /* ONE-CLICK: charge the payment method saved by the $20 unlock,
        off-session — no checkout UI at all. The idempotency key pins one $299
        charge per base session, so double-taps can never double-charge. */
@@ -145,6 +152,11 @@ module.exports = async (req, res) => {
           p.metadata && p.metadata.type === SKU_TYPE && p.metadata.base_cs === baseCs);
         if(hit) return res.status(200).json({ ok:true, charged:true, pi: hit.id, email, repeat:true });
       }catch(e){}
+
+      if(wantCheckout){
+        const s = await createSession(customer, baseCs, projectId, product, ret);
+        return res.status(200).json({ ok:true, client_secret: s.client_secret, publishable_key: pk });
+      }
 
       const pm = await defaultPm(customer);
       if(pm){
@@ -162,7 +174,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    const s = await createSession(customer, baseCs, projectId, product);
+    const s = await createSession(customer, baseCs, projectId, product, ret);
     return res.status(200).json({ ok:true, client_secret: s.client_secret, publishable_key: pk });
   }catch(e){
     return res.status(200).json({ ok:false, status:'error', detail: String(e && e.message || e).slice(0, 300) });

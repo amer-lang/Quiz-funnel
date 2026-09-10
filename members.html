@@ -600,13 +600,16 @@ function authApi(body){
 async function boot(){
   const u = new URL(location.href);
   const p = u.searchParams.get('cs');
+  const dfyCs = u.searchParams.get('dfy') ? (u.searchParams.get('upsell_cs') || '') : '';
   if(p === 'cs_test_roadmap'){ CS = p; load(); return; } // owner preview: untouched
   if(p){
     CS = p;
     try{ localStorage.setItem('spai_members_cs', p); }catch(e){}
     authApi({ action:'exchange', cs: p }).catch(() => {});
     try{ history.replaceState({}, '', location.pathname); }catch(e){}
-    load(); return;
+    await load();
+    if(dfyCs) dfyResume(dfyCs);
+    return;
   }
   try{
     const j = await fetch('/api/auth?action=session', { cache:'no-store' }).then(r => r.json());
@@ -1019,8 +1022,11 @@ async function resendActivation(){
     const j = await r.json();
     out.style.display = 'block';
     if(j.ok && j.link){
-      out.innerHTML = '✅ Sent to <b>' + esc(j.email || 'your email') + '</b>. Or open it right now:<br><a href="' + j.link + '" target="_blank">' + j.link + '</a>';
-      btn.textContent = 'Link sent ✓';
+      out.innerHTML = (j.mailed
+        ? '✅ Emailed to <b>' + esc(j.email || 'your email') + '</b>. Or open it right now:'
+        : '⚡ Here\'s your activation link:') +
+        '<br><a href="' + j.link + '" target="_blank">' + j.link + '</a>';
+      btn.textContent = j.mailed ? 'Link sent ✓' : 'Link found ✓';
     } else {
       out.innerHTML = 'We couldn\'t auto-locate your link. Reply to any of our emails and a person will send it within the day.';
       btn.textContent = 'Send me my activation link 📩'; btn.disabled = false;
@@ -1036,48 +1042,73 @@ async function resendActivation(){
 function openDfy(){
   document.getElementById('modIn').innerHTML =
     '<h3>5 Custom Video Ads — $299</h3>' +
-    '<p>Our team produces all five videos for <b>' + esc(STATE.product || 'your product') + '</b> — hooks, captions, music — delivered to your email. One-time $299, charged to the card from your store order. No subscription.</p>' +
+    '<p>Our team produces all five videos for <b>' + esc(STATE.product || 'your product') + '</b> — hooks, captions, music — delivered to your email. One-time $299 through secure Stripe checkout. No subscription.</p>' +
     '<div class="row"><button class="no" onclick="closeModal()">Cancel</button>' +
     '<button class="yes" id="dfyGo" onclick="buyDfy()">Confirm — $299</button></div><div id="modEmbed"></div>';
   document.getElementById('modal').classList.add('on');
 }
 function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+let DFY_CO = null; // embedded-checkout instance, so Cancel can unmount it
 async function buyDfy(){
   const b = document.getElementById('dfyGo');
-  b.disabled = true; b.textContent = 'Processing…';
+  b.disabled = true; b.textContent = 'Opening checkout…';
   try{
     const r = await fetch('/api/upsell299', { method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ cs: CS, product: STATE.product || '' }) });
+      body: JSON.stringify({ cs: CS, product: STATE.product || '', checkout: 1, return: 'members' }) });
     const j = await r.json();
-    if(j.ok && j.charged){
-      document.getElementById('modIn').innerHTML =
-        '<h3>🎬 You\'re in production</h3><p>Payment received' + (j.repeat ? ' (you already owned this — no double charge)' : '') +
-        '. Your 5 videos are being produced and will arrive at <b>' + esc(j.email || STATE.email || 'your email') + '</b>. Jump to Mission 5 and build the campaign shell while you wait.</p>' +
-        '<div class="row"><button class="yes" onclick="closeModal()">Let\'s go →</button></div>';
+    if(j.ok && j.charged){ // already owned — never double-charge
+      dfySuccess(j.email, !!j.repeat);
       return;
     }
     if(j.ok && j.client_secret){
-      // saved card couldn't be charged silently — secure Stripe checkout fallback
-      document.getElementById('modIn').innerHTML = '<h3>Secure checkout</h3><div id="modEmbed"></div>';
+      document.getElementById('modIn').innerHTML = '<h3>Secure checkout</h3><div id="modEmbed"></div>' +
+        '<div class="row" style="margin-top:10px"><button class="no" onclick="dfyCancel()">Cancel</button></div>';
       const s = document.createElement('script');
       s.src = 'https://js.stripe.com/dahlia/stripe.js';
       s.onload = async () => {
         try{
           const stripe = Stripe(j.publishable_key);
           const maker = stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout;
-          const co = await maker.call(stripe, { clientSecret: j.client_secret });
-          co.mount('#modEmbed');
+          DFY_CO = await maker.call(stripe, { clientSecret: j.client_secret });
+          DFY_CO.mount('#modEmbed');
         }catch(e){ document.getElementById('modEmbed').textContent = 'Could not open checkout — try again in a minute.'; }
       };
       document.body.appendChild(s);
       return;
     }
     b.disabled = false; b.textContent = 'Confirm — $299';
-    alert('Payment didn\'t go through (' + (j.status || 'error') + '). Nothing was charged — try again.');
+    alert('Checkout couldn\'t open (' + (j.status || 'error') + '). Nothing was charged — try again.');
   }catch(e){
     b.disabled = false; b.textContent = 'Confirm — $299';
     alert('Network hiccup — nothing was charged. Try again.');
   }
+}
+function dfyCancel(){
+  try{ if(DFY_CO && DFY_CO.destroy) DFY_CO.destroy(); }catch(e){}
+  DFY_CO = null;
+  closeModal();
+}
+function dfySuccess(email, repeat){
+  document.getElementById('modIn').innerHTML =
+    '<h3>🎬 You\'re in production</h3><p>Payment received' + (repeat ? ' (you already owned this — no double charge)' : '') +
+    '. Your 5 videos are being produced and will arrive at <b>' + esc(email || STATE.email || 'your email') + '</b>. Jump to Mission 5 and build the campaign shell while you wait.</p>' +
+    '<div class="row"><button class="yes" onclick="closeModal()">Let\'s go →</button></div>';
+  document.getElementById('modal').classList.add('on');
+}
+/* return leg from the embedded $299 checkout (?dfy=1&upsell_cs=...) */
+async function dfyResume(upsellCs){
+  try{
+    const r = await fetch('/api/upsell299?verify=' + encodeURIComponent(upsellCs), { cache:'no-store' });
+    const j = await r.json();
+    if(j.paid){
+      const email = j.email || STATE.email || '';
+      if(email){
+        fetch('/api/lead', { method:'POST', headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ email, stage:'videopack', cs: upsellCs }), keepalive:true }).catch(() => {});
+      }
+      dfySuccess(email, false);
+    }
+  }catch(e){}
 }
 
 document.getElementById('gateEmail').addEventListener('keydown', e => { if(e.key === 'Enter') gateSend(); });

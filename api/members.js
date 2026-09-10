@@ -39,6 +39,43 @@ async function sget(path){
   return j;
 }
 
+/* Resend (same config home as /api/auth): env var wins, else the private-blob
+   key stored via auth's ?probe=setmail */
+let RESEND_KEY_CACHE = null;
+async function resendKey(){
+  if(process.env.RESEND_API_KEY) return process.env.RESEND_API_KEY;
+  if(RESEND_KEY_CACHE !== null) return RESEND_KEY_CACHE;
+  try{
+    const { head } = await import('@vercel/blob');
+    const h = await head('members/config/resend.json', blobOpts());
+    const j = await bfetch(h.url).then(r => r.json());
+    RESEND_KEY_CACHE = (j && j.key) || '';
+  }catch(e){ RESEND_KEY_CACHE = ''; }
+  return RESEND_KEY_CACHE;
+}
+async function sendActivationEmail(to, link, product){
+  const key = await resendKey();
+  if(!key) return false;
+  const html =
+    '<div style="font-family:Arial,Helvetica,sans-serif;max-width:440px;margin:0 auto;padding:28px 20px">' +
+    '<div style="font-size:18px;font-weight:800;margin-bottom:14px">Sell Products <span style="background:#F59E0B;color:#241500;border-radius:6px;padding:1px 6px">AI</span></div>' +
+    '<p style="font-size:15px;color:#333;margin:0 0 18px">Here\'s the activation link for your store' +
+    (product ? ' (<b>' + String(product).replace(/[<>&]/g, '') + '</b>)' : '') + ':</p>' +
+    '<a href="' + link + '" style="display:block;background:#F59E0B;color:#241500;font-weight:800;font-size:16px;text-align:center;border-radius:12px;padding:16px 0;text-decoration:none">⚡ Activate my store</a>' +
+    '<p style="font-size:13px;color:#777;margin:18px 0 0">Or copy this link into your browser:<br>' +
+    '<a href="' + link + '" style="color:#3B82F6;word-break:break-all">' + link + '</a></p>' +
+    '</div>';
+  try{
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'Sell Products AI <activate@account.sellproducts.ai>',
+        to: [to], subject: 'Your store activation link ⚡', html })
+    });
+    return r.status >= 200 && r.status < 300;
+  }catch(e){ return false; }
+}
+
 async function ac(path, method, body){
   const r = await fetch(AC_URL + path, {
     method: method || 'GET',
@@ -128,7 +165,9 @@ module.exports = async (req, res) => {
 
     if(q.activation){
       const link = await activationLink(email, s.metadata || {});
-      return res.status(200).json({ ok:true, link, email });
+      let mailed = false;
+      if(link && email) mailed = await sendActivationEmail(email, link, product);
+      return res.status(200).json({ ok:true, link, email, mailed });
     }
 
     const rec = await readProgress(cs);
