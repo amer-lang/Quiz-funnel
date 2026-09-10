@@ -2,6 +2,7 @@
   "name": "nwq",
   "private": true,
   "dependencies": {
-    "@vercel/blob": "latest"
+    "@vercel/blob": "latest",
+    "@anthropic-ai/sdk": "latest"
   }
 }

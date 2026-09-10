@@ -252,6 +252,26 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 #gate .alt a.cool{color:var(--muted);cursor:default}
 #gate #gateCode{letter-spacing:9px;font-weight:800;font-size:1.15rem}
 #gate button:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---- support chat ---- */
+#chatFab{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:75;width:54px;height:54px;
+  border-radius:50%;border:none;cursor:pointer;background:var(--grad-brand);color:#fff;font-size:24px;
+  box-shadow:0 10px 30px rgba(59,130,246,.45);display:none}
+#chatPanel{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:85;width:min(92vw,360px);
+  height:min(66vh,500px);display:none;flex-direction:column;background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line-strong);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden}
+#chatPanel.on{display:flex}
+.ch-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:800;font-size:.9rem}
+.ch-head .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+#chatMsgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ch-m{max-width:85%;padding:9px 12px;border-radius:13px;font-size:.83rem;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.ch-m.u{align-self:flex-end;background:var(--grad-brand);color:#fff;border-bottom-right-radius:4px}
+.ch-m.a{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--line);border-bottom-left-radius:4px}
+.ch-m.t{align-self:flex-start;color:var(--muted);font-size:.78rem}
+.ch-in{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.ch-in input{flex:1;min-width:0;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--text);font:inherit;font-size:.84rem;outline:none}
+.ch-in button{padding:0 16px;border:none;border-radius:11px;background:var(--grad-money);color:#241500;font:inherit;font-weight:800;cursor:pointer}
+.ch-in button:disabled{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -357,6 +377,17 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 
 <div id="modal">
   <div class="mod" id="modIn"></div>
+</div>
+
+<!-- support chat -->
+<button id="chatFab" onclick="chatToggle()" title="Questions? Ask us anything">💬</button>
+<div id="chatPanel">
+  <div class="ch-head">🤖 Store Support<button class="x" onclick="chatToggle()">✕</button></div>
+  <div id="chatMsgs"></div>
+  <div class="ch-in">
+    <input id="chatInput" placeholder="Ask anything about your store…" maxlength="1000">
+    <button id="chatSendBtn" onclick="chatSend()">Send</button>
+  </div>
 </div>
 
 <script>
@@ -738,6 +769,7 @@ async function load(){
       for(let i = 1; i <= 7; i++){ try{ localStorage.removeItem(subKey(i)); }catch(e){} }
     }
     document.getElementById('app').style.display = 'block';
+    document.getElementById('chatFab').style.display = 'block';
     render();
   }catch(e){
     document.getElementById('gate').style.display = 'block';
@@ -752,9 +784,17 @@ function esc(s){ return String(s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;
 function subKey(id){ return 'spai_m' + id + '_' + CS.slice(-8); }
 function getSubs(id){ try{ return JSON.parse(localStorage.getItem(subKey(id)) || '[]'); }catch(e){ return []; } }
 
+/* the mission to show = first one not yet done (done can be non-contiguous
+   when progress was saved under two orders — never trust done.length+1) */
+function firstOpenMission(){
+  for(let i = 1; i <= 7; i++){ if(!STATE.done.includes(i)) return i; }
+  return 8;
+}
 function render(){
+  STATE.done = [...new Set(STATE.done)].sort((a, b) => a - b);
   const ri = rankIndex();
-  CURRENT = Math.min(ri + 1, 7);
+  const open = firstOpenMission();
+  CURRENT = Math.min(open, 7);
   document.getElementById('rcIc').textContent = RANKS[ri].icon;
   document.getElementById('rcName').textContent = RANKS[ri].name;
   document.getElementById('rcXp').textContent = xpTotal() + ' / 1000 XP';
@@ -880,7 +920,7 @@ function refreshCta(){
   btn.textContent = all ? '⚡ COMPLETE MISSION ' + CURRENT + ' — RANK UP' : 'Finish the checklist to advance (' + onCount + '/' + (boxes.length || 0) + ')';
 }
 async function completeCurrent(){
-  if(STATE.done.includes(CURRENT)) return;
+  if(STATE.done.includes(CURRENT)){ render(); return; } // already done → advance, never a dead button
   if(DEMO()){ STATE.done.push(CURRENT); playEpic(CURRENT); return; } // preview never persists
   const btn = document.getElementById('ctaBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -1110,6 +1150,59 @@ async function dfyResume(upsellCs){
     }
   }catch(e){}
 }
+
+/* ============ support chat (Claude via /api/chat) ============ */
+let CHAT = [], chatBusy = false;
+function chatToggle(){
+  const p = document.getElementById('chatPanel');
+  p.classList.toggle('on');
+  if(p.classList.contains('on')){
+    if(!CHAT.length) chatBubble('a', "Hey! 👋 I'm your store assistant. Ask me anything — activating your store, your current mission, running ads, or your order.");
+    document.getElementById('chatInput').focus();
+  }
+}
+function chatBubble(kind, text){
+  const box = document.getElementById('chatMsgs');
+  const d = document.createElement('div');
+  d.className = 'ch-m ' + kind;
+  d.textContent = text;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  return d;
+}
+async function chatSend(){
+  if(chatBusy) return;
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = '';
+  chatBubble('u', text);
+  CHAT.push({ role:'user', content: text });
+  chatBusy = true;
+  document.getElementById('chatSendBtn').disabled = true;
+  const typing = chatBubble('t', '…thinking');
+  try{
+    const r = await fetch('/api/chat', { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ messages: CHAT.slice(-12), cs: CS,
+        context: { product: STATE.product || '', mission: CURRENT } }) });
+    const j = await r.json();
+    typing.remove();
+    if(j.ok && j.reply){
+      chatBubble('a', j.reply);
+      CHAT.push({ role:'assistant', content: j.reply });
+    } else if(j.error === 'rate_limited'){
+      chatBubble('a', "You've hit the hourly message limit — give it a bit, or reply to any of our emails and a human will help.");
+    } else {
+      chatBubble('a', "Chat's having a moment — try again in a minute, or reply to any of our emails for a human.");
+    }
+  }catch(e){
+    typing.remove();
+    chatBubble('a', "Network hiccup — try again, or reply to any of our emails for a human.");
+  }
+  chatBusy = false;
+  document.getElementById('chatSendBtn').disabled = false;
+}
+document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key === 'Enter') chatSend(); });
 
 document.getElementById('gateEmail').addEventListener('keydown', e => { if(e.key === 'Enter') gateSend(); });
 document.getElementById('gateCode').addEventListener('keydown', e => { if(e.key === 'Enter') gateVerify(); });
