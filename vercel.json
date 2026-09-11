@@ -36,11 +36,18 @@
     },
     "api/chat.js": {
       "maxDuration": 60
+    },
+    "api/ordersheet.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
     {
       "path": "/api/compactcron",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/ordersheet",
       "schedule": "*/5 * * * *"
     }
   ]
