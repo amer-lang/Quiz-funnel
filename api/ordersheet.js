@@ -113,7 +113,7 @@ async function collectOrders(gteSec){
   return rows;
 }
 
-async function pushRow(url, row){
+async function pushRow(url, row, diag){
   const r = await fetch(url, {
     method: 'POST', redirect: 'follow',
     headers: { 'Content-Type': 'application/json' },
@@ -121,6 +121,10 @@ async function pushRow(url, row){
       date: ptDate(row.created), email: row.email, product: row.product,
       amount: row.amount, source: row.source, id: row.id })
   });
+  if(diag){
+    diag.status = r.status;
+    diag.body = String(await r.text().catch(() => '')).slice(0, 300);
+  }
   return r.status >= 200 && r.status < 400;
 }
 
@@ -147,6 +151,15 @@ module.exports = async (req, res) => {
     if(q.ping === '1' && isOwner){
       return res.status(200).json({ ok:true, has_sheet_url: !!(cfg && cfg.url),
         logged_orders: Object.keys(ledger.seen || {}).length });
+    }
+    /* owner diagnostic: push one TEST row and report Google's raw response */
+    if(q.probe === 'push' && isOwner){
+      if(!cfg || !cfg.url) return res.status(200).json({ ok:false, error:'no_sheet_url' });
+      const diag = {};
+      const ok = await pushRow(cfg.url, { created: Math.floor(Date.now() / 1000),
+        email: 'test@sellproducts.ai', product: 'TEST ROW — delete me',
+        amount: '$0.00', source: 'diagnostic', id: 'test_' + Date.now() }, diag);
+      return res.status(200).json({ ok, google_status: diag.status, google_body: diag.body });
     }
 
     if(!cfg || !cfg.url) return res.status(200).json({ ok:false, error:'no_sheet_url' });
