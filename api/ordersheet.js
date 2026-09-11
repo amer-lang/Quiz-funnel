@@ -152,6 +152,14 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok:true, has_sheet_url: !!(cfg && cfg.url),
         logged_orders: Object.keys(ledger.seen || {}).length });
     }
+    /* owner diagnostic: plain GET to the script URL — distinguishes an access
+       wall (Workspace restriction) from a POST/redirect problem */
+    if(q.probe === 'getcheck' && isOwner){
+      if(!cfg || !cfg.url) return res.status(200).json({ ok:false, error:'no_sheet_url' });
+      const r = await fetch(cfg.url, { redirect: 'follow' });
+      const body = String(await r.text().catch(() => '')).slice(0, 400);
+      return res.status(200).json({ ok:true, google_status: r.status, google_body: body });
+    }
     /* owner diagnostic: push one TEST row and report Google's raw response */
     if(q.probe === 'push' && isOwner){
       if(!cfg || !cfg.url) return res.status(200).json({ ok:false, error:'no_sheet_url' });
