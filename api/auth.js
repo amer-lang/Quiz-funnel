@@ -98,9 +98,28 @@ async function findMemberCs(email, diag){
   const idx = await bread(idxPath(email));
   if(idx && idx.cs){ if(diag) diag.src = 'index'; return idx.cs; }
 
-  // customer objects → their succeeded PIs → the PI's checkout session.
-  // Every buyer has a customer (the one-click upsell rail requires a saved
-  // card); charge/PI search can't filter on email, so this is the one lane.
+  // lane 1: checkout sessions filtered by the email typed at checkout — the
+  // direct route, and the only one that finds buyers whose purchase never
+  // created a Customer object (or whose customer record carries no email).
+  // The filter needs a newer API version than the account default.
+  try{
+    let after = '';
+    for(let page = 0; page < 3; page++){
+      const ss = await sget('checkout/sessions?limit=100&customer_details[email]=' + encodeURIComponent(email) +
+        (after ? '&starting_after=' + after : ''), '2023-10-16');
+      for(const s of (ss.data || [])){
+        if(s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')){
+          if(diag) diag.src = 'session_email';
+          await bwrite(idxPath(email), { email, cs: s.id, src: 'session_email', created: Date.now(), updated: Date.now() });
+          return s.id;
+        }
+      }
+      if(!ss.has_more || !ss.data.length) break;
+      after = ss.data[ss.data.length - 1].id;
+    }
+  }catch(e){ if(diag) diag.session_email_err = String(e.message || e).slice(0, 120); }
+
+  // lane 2: customer objects → their succeeded PIs → the PI's checkout session
   try{
     const cu = await sget('customers?limit=5&email=' + encodeURIComponent(email));
     for(const c of (cu.data || [])){
