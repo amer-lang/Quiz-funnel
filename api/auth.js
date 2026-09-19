@@ -93,51 +93,67 @@ async function storeSession(csId){
 }
 
 /* email → newest paid store order. Index first; Stripe lanes as backfill for
-   buyers from before this feature existed. */
-async function findMemberCs(email, diag){
+   buyers from before this feature existed.
+   Stripe's email filters are CASE-SENSITIVE and store the email exactly as
+   typed at checkout (phone keyboards auto-capitalize), so every lane tries
+   the casings that occur in the wild: lowercase, Capitalized-first-letter,
+   and whatever the member typed at login. The index stays keyed on the
+   lowercase canonical form. */
+function emailVariants(email, rawInput){
+  const lower = normEmail(email);
+  const ucfirst = lower.replace(/^[a-z]/, c => c.toUpperCase());
+  const raw = String(rawInput || '').trim().slice(0, 200);
+  return [...new Set([lower, ucfirst, raw].filter(Boolean))];
+}
+async function findMemberCs(email, diag, rawInput){
   const idx = await bread(idxPath(email));
   if(idx && idx.cs){ if(diag) diag.src = 'index'; return idx.cs; }
+  const variants = emailVariants(email, rawInput);
 
   // lane 1: checkout sessions filtered by the email typed at checkout — the
   // direct route, and the only one that finds buyers whose purchase never
   // created a Customer object (or whose customer record carries no email).
   // The filter needs a newer API version than the account default.
-  try{
-    let after = '';
-    for(let page = 0; page < 3; page++){
-      const ss = await sget('checkout/sessions?limit=100&customer_details[email]=' + encodeURIComponent(email) +
-        (after ? '&starting_after=' + after : ''), '2023-10-16');
-      for(const s of (ss.data || [])){
-        if(s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')){
-          if(diag) diag.src = 'session_email';
-          await bwrite(idxPath(email), { email, cs: s.id, src: 'session_email', created: Date.now(), updated: Date.now() });
-          return s.id;
-        }
-      }
-      if(!ss.has_more || !ss.data.length) break;
-      after = ss.data[ss.data.length - 1].id;
-    }
-  }catch(e){ if(diag) diag.session_email_err = String(e.message || e).slice(0, 120); }
-
-  // lane 2: customer objects → their succeeded PIs → the PI's checkout session
-  try{
-    const cu = await sget('customers?limit=5&email=' + encodeURIComponent(email));
-    for(const c of (cu.data || [])){
-      const pis = await sget('payment_intents?limit=20&customer=' + encodeURIComponent(c.id));
-      for(const pi of (pis.data || [])){
-        if(pi.status !== 'succeeded') continue;
-        try{
-          const ss = await sget('checkout/sessions?limit=1&payment_intent=' + encodeURIComponent(pi.id));
-          const s = ss.data && ss.data[0];
-          if(s && s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')){
-            if(diag) diag.src = 'customer';
-            await bwrite(idxPath(email), { email, cs: s.id, src: 'customer', created: Date.now(), updated: Date.now() });
+  for(const variant of variants){
+    try{
+      let after = '';
+      for(let page = 0; page < 3; page++){
+        const ss = await sget('checkout/sessions?limit=100&customer_details[email]=' + encodeURIComponent(variant) +
+          (after ? '&starting_after=' + after : ''), '2023-10-16');
+        for(const s of (ss.data || [])){
+          if(s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')){
+            if(diag) diag.src = 'session_email:' + variant;
+            await bwrite(idxPath(email), { email, cs: s.id, src: 'session_email', created: Date.now(), updated: Date.now() });
             return s.id;
           }
-        }catch(e){}
+        }
+        if(!ss.has_more || !ss.data.length) break;
+        after = ss.data[ss.data.length - 1].id;
       }
-    }
-  }catch(e){ if(diag) diag.customer_err = String(e.message || e).slice(0, 120); }
+    }catch(e){ if(diag) diag.session_email_err = String(e.message || e).slice(0, 120); }
+  }
+
+  // lane 2: customer objects → their succeeded PIs → the PI's checkout session
+  for(const variant of variants){
+    try{
+      const cu = await sget('customers?limit=5&email=' + encodeURIComponent(variant));
+      for(const c of (cu.data || [])){
+        const pis = await sget('payment_intents?limit=20&customer=' + encodeURIComponent(c.id));
+        for(const pi of (pis.data || [])){
+          if(pi.status !== 'succeeded') continue;
+          try{
+            const ss = await sget('checkout/sessions?limit=1&payment_intent=' + encodeURIComponent(pi.id));
+            const s = ss.data && ss.data[0];
+            if(s && s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')){
+              if(diag) diag.src = 'customer:' + variant;
+              await bwrite(idxPath(email), { email, cs: s.id, src: 'customer', created: Date.now(), updated: Date.now() });
+              return s.id;
+            }
+          }catch(e){}
+        }
+      }
+    }catch(e){ if(diag) diag.customer_err = String(e.message || e).slice(0, 120); }
+  }
   return '';
 }
 
@@ -206,7 +222,7 @@ module.exports = async (req, res) => {
     if(q.probe && q.key === READ_KEY){
       if(q.probe === 'lookup'){
         const email = normEmail(q.email); const diag = {};
-        const cs = await findMemberCs(email, diag);
+        const cs = await findMemberCs(email, diag, q.email);
         return res.status(200).json({ ok:true, found: !!cs,
           cs_tail: cs ? '…' + cs.slice(-8) : '', cs: q.full ? cs : undefined, diag });
       }
@@ -279,7 +295,7 @@ module.exports = async (req, res) => {
       const prev = (await bread(codePath(email))) || {};
       const sends = (prev.sends || []).filter(t => now - t < 3600000);
       if(sends.length >= MAX_SENDS_PER_HOUR) return res.status(200).json({ ok:false, error:'rate_limited' });
-      const cs = await findMemberCs(email);
+      const cs = await findMemberCs(email, null, q.email);
       if(!cs) return res.status(200).json({ ok:false, error:'not_found' });
       const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
       sends.push(now);
@@ -302,7 +318,7 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok:false, error:'wrong_code', left: MAX_TRIES - rec.tries });
       }
       await bwrite(codePath(email), { used: Date.now(), sends: rec.sends || [] });
-      const cs = await findMemberCs(email);
+      const cs = await findMemberCs(email, null, q.email);
       setSession(res, email);
       return res.status(200).json({ ok:true, email, cs });
     }
