@@ -1699,7 +1699,7 @@ window.dsFire('PageView');
           </div>
           <div class="pick-body">
             <div class="pick-top">
-              <div class="pick-name" id="pName">Aurora Sunset Lamp</div>
+              <div class="pick-name" id="pName">Your product</div>
               <div class="sold-tick" id="soldTick" style="visibility:hidden">🔥 <b id="pSold">0</b> stores reserved today</div>
             </div>
             <div class="pick-cat" id="pCat"><span class="stars">★★★★★</span> · Home &amp; Vibes</div>
@@ -1740,7 +1740,7 @@ window.dsFire('PageView');
       <div class="claim-mini">
         <div class="claim-thumb" id="cThumb">🌅</div>
         <div class="claim-info">
-          <div class="claim-name" id="cName">Aurora Sunset Lamp</div>
+          <div class="claim-name" id="cName">Your product</div>
           <div class="claim-profit" id="cProfit">💰 $28.79 profit per sale</div>
         </div>
         <span class="claim-lock">🔒</span>
@@ -1787,7 +1787,7 @@ window.dsFire('PageView');
     <section class="screen" id="s-preview" style="padding-bottom:235px">
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> Build complete · Store #<span id="buildNo">2,417</span></div>
       <h2><span class="grad-text" id="pvProdName">Your store</span> isn't a mockup.<br>It's <span class="gold-text">built — and it's yours.</span></h2>
-      <p class="sub" style="margin-bottom:10px;font-size:.86rem">You told the AI you're aiming for <b id="dreamRev" style="color:var(--gold)">$10,000/mo</b>. Here's the store it built to chase that goal — live on every device 👇</p>
+      <p class="sub" style="margin-bottom:10px;font-size:.86rem">Here's the store the AI just built for you — real products, real supplier, live on every device 👇</p>
 
       <!-- DEVELOPER: the three device screens are filled automatically by runPreview():
            DropStart preview_image → panning image · PREVIEW_URL → iframes · fallback → mock store. -->
@@ -1812,16 +1812,12 @@ window.dsFire('PageView');
       </div>
 
       <div class="engine">
-        <div class="engine-title">✨ THE MATH ON YOUR DREAM</div>
+        <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
         <div class="eq">
-          <div class="eq-tile"><b id="eqProfit">$0.00</b><span>profit / sale</span></div>
-          <span class="eq-op">×</span>
-          <div class="eq-tile"><b id="eqSales">0</b><span>sales / day</span></div>
-          <span class="eq-op">=</span>
-          <div class="eq-tile gold"><b id="eqMonth">$0</b><span>per month</span></div>
+          <div class="eq-tile gold"><b id="eqProfit">$0.00</b><span>margin / sale</span></div>
         </div>
-        <div class="engine-note" id="engineNote">example based on this store's list price &amp; supplier cost</div>
-        <p class="disclaim" style="margin-top:8px;max-width:none">This math is a hypothetical example, not a projection, prediction or promise. It assumes daily sales you may never get and excludes your costs (advertising, payment fees, taxes, refunds). Many new stores make little or nothing — your results depend on your own effort.</p>
+        <div class="engine-note" id="engineNote">list price minus supplier cost — before ad costs, payment fees, taxes &amp; refunds</div>
+        <p class="disclaim" style="margin-top:8px;max-width:none">That margin is a fact about this product's pricing — not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
       </div>
 
       <div class="stack-line">
@@ -1975,7 +1971,7 @@ window.dsFire('PageView');
     <section class="screen" id="s-done">
       <div class="done-check">✓</div>
       <div class="kicker green" style="align-self:center"><span class="dot"></span> Store in production</div>
-      <h2>Your <span class="gold-text" id="doneName">Aurora Sunset Lamp</span> store is almost yours! 🎉</h2>
+      <h2>Your <span class="gold-text" id="doneName">new</span> store is almost yours! 🎉</h2>
       <p class="sub">Here's what happens next:</p>
 
       <div class="done-steps">
@@ -2006,6 +2002,19 @@ window.dsFire('PageView');
 
   </main>
 </div>
+
+<script>
+/* Pre-paint guard (TG13280): on a real payment return (a paid/upsold param WITH
+   a cs), show the "securing your order" loader immediately so the funnel's first
+   screen never flashes before the boot verify handlers run. CSS-only. */
+(function(){ try{
+  var s = location.search || '';
+  if(/[?&](paid20|upsold199|upsold49|upsold|paid)=1(?:&|$)/.test(s) && /[?&]cs=[^&]/.test(s)){
+    var land = document.getElementById('s-landing'), wait = document.getElementById('s-paywait');
+    if(land && wait){ land.classList.remove('active'); wait.classList.add('active'); }
+  }
+}catch(e){} })();
+</script>
 
 <script>
 /* ============================================================
@@ -2566,15 +2575,18 @@ function dsShuffle(arr){
   return arr;
 }
 
-dsLoadProducts()
+// Expose a "catalogue is loaded" promise so the "Sell this one" deep-link can fill
+// in the real product name once the live catalogue arrives (it loads after boot). TG13325.
+let dsCatalogReady = dsLoadProducts()
   .catch(dsLoadProductsJson)
   .then(list=>{
     if(list && list.length){
       PRODUCTS = dsShuffle(list);
       dsPreloadImages(PRODUCTS);
     }
+    return PRODUCTS;
   })
-  .catch(()=>{});
+  .catch(()=>PRODUCTS);
 
 function matchScore(i){ return 93 + ((i*37 + (answers.rev||'').length*7) % 6); } // stable 93–98
 function stars(r){ const f=Math.round(r||4.8); return '★★★★★'.slice(0,f)+'☆☆☆☆☆'.slice(f); }
@@ -3070,20 +3082,13 @@ function runGlam(p){
   const d = new Date();
   document.getElementById('buildNo').textContent = (2391 + d.getDate()*3 + d.getDay()).toLocaleString();
 
-  // the math on THEIR dream: goal ÷ this store's real profit per sale
-  const goal = Number(answers.rev || '10000');
+  // the store's unit margin — a product-pricing fact, never projected
+  // into income (compliance: no computed monthly figures, no goal tie-in)
   const profit = Math.max(1, Number(p.price) - Number(p.cost));
-  const sales = Math.max(1, Math.ceil(goal / 30 / profit));
-  const month = Math.round(sales * profit * 30);
-  document.getElementById('dreamRev').textContent = '$' + goal.toLocaleString() + '/mo';
   setTimeout(()=>{
     countUp(document.getElementById('eqProfit'), 0, profit, 900, v=>'$'+v.toFixed(2));
-    countUp(document.getElementById('eqSales'), 0, sales, 900, v=>Math.round(v));
-    countUp(document.getElementById('eqMonth'), 0, month, 1400, v=>'$'+Math.round(v).toLocaleString());
-    setTimeout(()=>{ playCoin(); }, 1450);
+    setTimeout(()=>{ playCoin(); }, 950);
   }, 900);
-  document.getElementById('engineNote').textContent =
-    'Example only — if you averaged ' + sales + ' sales/day at this margin. Not a prediction or guarantee.';
 
   // reservation hold — 15 minutes, survives refresh, and REALLY expires:
   // at 0:00 the claim is disabled until they restore it (one extra tap).
@@ -4060,6 +4065,46 @@ function payWait(on){
   else  { wait.classList.remove('active'); land.classList.add('active'); current = 's-landing'; }
 }
 
+/* Verify-with-retry behind the s-paywait loader. The buyer has ALREADY paid
+   (Stripe only redirects to the return_url after the charge completes), so we
+   NEVER send them back to the funnel: keep the loader up while the charge settles
+   (automatic_tax can lag a few seconds) and only after real exhaustion show a
+   reassuring "still confirming" card. Replaces the old single check that ran
+   payWait(false) -> the funnel's first screen on any hiccup. TG13280. */
+function dsVerifyLoop(doFetch, isPaid, onPaid, opts){
+  opts = opts || {};
+  var maxMs = opts.maxMs || 45000, stepMs = opts.stepMs || 1500, t0 = Date.now(), done = false;
+  (function attempt(){
+    if(done) return;
+    Promise.resolve().then(doFetch).then(function(j){
+      if(done) return;
+      // Mark done BEFORE onPaid + wrap it, so a throw in the success handler can
+      // never re-enter the loop (no duplicate analytics / retry storm). TG13280.
+      if(isPaid(j)){ done = true; try{ onPaid(j); }catch(e){ try{ spLog('verify_onpaid_err', String(e && e.message || e).slice(0,80)); }catch(_){} } return; }
+      if(Date.now() - t0 >= maxMs){ done = true; dsPayConfirmSlow(); return; }
+      setTimeout(attempt, stepMs);
+    }).catch(function(){
+      if(done) return;
+      if(Date.now() - t0 >= maxMs){ done = true; dsPayConfirmSlow(); return; }
+      setTimeout(attempt, stepMs);
+    });
+  })();
+}
+
+/* Couldn't confirm in-page within the window — the payment DID go through, so
+   reassure and point to email instead of dumping the buyer back to the funnel. */
+function dsPayConfirmSlow(){
+  var wait = document.getElementById('s-paywait');
+  if(wait){
+    var h = wait.querySelector('h2'), p = wait.querySelector('.sub');
+    if(h) h.textContent = 'Payment received — finishing up';
+    if(p) p.textContent = 'This is taking a moment to confirm on Stripe’s side — your payment went through. Check your email for your store link; it’ll arrive shortly.';
+    wait.classList.add('active');
+  }
+  var land = document.getElementById('s-landing'); if(land) land.classList.remove('active');
+  current = 's-paywait';
+}
+
 /* Coming back from the $20 one-time checkout (OUR Stripe): …/?paid20=1&cs=….
    Verify on our account, then continue exactly like the $1 path — upsell next. */
 function dsResumeAfterPayment20(){
@@ -4068,10 +4113,12 @@ function dsResumeAfterPayment20(){
   const cs = q.get('cs') || '';
   if(!cs) return false;
   payWait(true);
-  fetch('/api/unlock20?verify=' + encodeURIComponent(cs))
-    .then(r=>r.json())
-    .then(j=>{
-      if(!(j && j.paid)){ payWait(false); return; } // unpaid bounce-back → quiz
+  // Poll the verify behind the loader — never bounce to the funnel while the
+  // charge settles (automatic_tax can lag a few seconds). TG13280.
+  dsVerifyLoop(
+    function(){ return fetch('/api/unlock20?verify=' + encodeURIComponent(cs)).then(r=>r.json()); },
+    function(j){ return !!(j && j.paid); },
+    function(j){
       window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD' },
         'purchase_' + (j.project_id || cs));
       spLog('paid_20', j.project_id || '');
@@ -4087,8 +4134,8 @@ function dsResumeAfterPayment20(){
       document.getElementById('s-landing').classList.remove('active');
       document.getElementById(upScreen).classList.add('active');
       current = upScreen; setBar(upScreen); updateBack(); onEnter(upScreen);
-    })
-    .catch(()=>{ payWait(false); });
+    }
+  );
   return true;
 }
 
@@ -4108,33 +4155,34 @@ function dsResumeAfterPayment(){
 
   const body = { cs };
   if(DS_TEST) body.test = DS_TEST;
-  fetch(DS_API + '/verify-checkout', {
-    method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
-    body: JSON.stringify(body)
-  })
-  .then(r=>r.json())
-  .then(j=>{
-    if(!(j && j.ok && j.paid && j.project_id)){ payWait(false); return; } // not a real paid session → back to the quiz
-    // Meta Purchase for the $1 unlock — SAME onceKey as the /store page fires, so
-    // whichever the buyer reaches, Meta counts it once. Fired here off the
-    // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
-    window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD' }, 'purchase_' + j.project_id);
-    spLog('paid_1dollar', j.project_id);
-    spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
-    if(j.unlocked){ /* already fully done — nothing to upsell */ }
-    dsPaidCs = cs;
-    dsBuild  = { ok:true, project_id: j.project_id };
-    dsStatus = { ready:true, store_name: j.store_name };
-    try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
-    // the page reloaded across checkout — bring the picked product back for the upsell
-    if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
-    const upScreen = UPSELL_ADS ? 's-upsell-ads' : 's-upsell';
-    document.getElementById('s-paywait').classList.remove('active');
-    document.getElementById('s-landing').classList.remove('active');
-    document.getElementById(upScreen).classList.add('active');
-    current = upScreen; setBar(upScreen); updateBack(); onEnter(upScreen);
-  })
-  .catch(()=>{ payWait(false); }); // network hiccup → back to the quiz, not a broken upsell
+  // Poll the verify behind the loader — never bounce to the funnel. TG13280.
+  dsVerifyLoop(
+    function(){ return fetch(DS_API + '/verify-checkout', {
+      method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      body: JSON.stringify(body)
+    }).then(r=>r.json()); },
+    function(j){ return !!(j && j.ok && j.paid && j.project_id); },
+    function(j){
+      // Meta Purchase for the $1 unlock — SAME onceKey as the /store page fires, so
+      // whichever the buyer reaches, Meta counts it once. Fired here off the
+      // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
+      window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD' }, 'purchase_' + j.project_id);
+      spLog('paid_1dollar', j.project_id);
+      spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
+      if(j.unlocked){ /* already fully done — nothing to upsell */ }
+      dsPaidCs = cs;
+      dsBuild  = { ok:true, project_id: j.project_id };
+      dsStatus = { ready:true, store_name: j.store_name };
+      try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
+      // the page reloaded across checkout — bring the picked product back for the upsell
+      if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
+      const upScreen = UPSELL_ADS ? 's-upsell-ads' : 's-upsell';
+      document.getElementById('s-paywait').classList.remove('active');
+      document.getElementById('s-landing').classList.remove('active');
+      document.getElementById(upScreen).classList.add('active');
+      current = upScreen; setBar(upScreen); updateBack(); onEnter(upScreen);
+    }
+  );
   return true; // we've claimed the ?paid param either way (don't also run ?resume)
 }
 
@@ -4278,16 +4326,37 @@ function dsSellFromEmail(){
   }
   spLog('sell_link', hasEmail ? 'with_email' : 'bare');
 
-  // Cosmetic only — the real product + store name come back from the build.
-  // Show the emailed product's own 3:2 hero during the build animation, and
-  // borrow its name if the live catalogue happens to be loaded (never wait on it).
+  // Cosmetic only — the real store name comes back from the build. But show the
+  // emailed product's own PHOTO + name + profit on the "reserved for you" card now.
+  // The photo is deterministic from pid (/featured-main/<pid>/3x2) so set it as the
+  // card icon immediately; the name + profit live in the live catalogue (card
+  // image_card holds /featured-main/<pid>/, label = name, price/cost = profit),
+  // which loads AFTER boot — so fill those the moment it arrives. Never leave the
+  // demo placeholder (icon/name/profit) showing. TG13325 + TG13331 (product image as icon).
   const base = DS_API.replace(/\/api\/express$/, '');
-  let nm = '';
-  try{
-    const m = (PRODUCTS||[]).find(c => c && c.image && c.image.indexOf('/featured-main/'+pid+'/') !== -1);
-    if(m) nm = m.name || '';
-  }catch(e){}
-  chosen = { name: nm, image: base + '/start/featured-main/' + pid + '/3x2', emoji: '📦' };
+  const dsSellImg = base + '/start/featured-main/' + pid + '/3x2';
+  const dsSellCard = () => {
+    try{ return (PRODUCTS||[]).find(c => c && c.image && c.image.indexOf('/featured-main/'+pid+'/') !== -1) || null; }
+    catch(e){ return null; }
+  };
+  const dsApplySellCard = (card) => {
+    if(!card) return;
+    if(card.name){
+      if(chosen) chosen.name = card.name;
+      ['pName','cName','doneName'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = card.name; });
+    }
+    if(chosen){ if(card.price!=null) chosen.price = card.price; if(card.cost!=null) chosen.cost = card.cost; }
+    const profit = (Number(card.price)||0) - (Number(card.cost)||0);
+    if(profit > 0){ const el = document.getElementById('cProfit'); if(el) el.textContent = '💰 $'+profit.toFixed(2)+' profit per sale'; }
+  };
+  chosen = { name: '', image: dsSellImg, emoji: '📦' };
+  // the real product photo as the reserve-card icon — deterministic, no catalogue needed
+  const dsThumbEl = document.getElementById('cThumb');
+  if(dsThumbEl) dsThumbEl.innerHTML = '<img src="' + dsSellImg + '" alt="">';
+  // name + profit as soon as the catalogue is in (or immediately if already loaded)
+  const dsCard0 = dsSellCard();
+  if(dsCard0){ dsApplySellCard(dsCard0); }
+  else if(typeof dsCatalogReady !== 'undefined' && dsCatalogReady){ dsCatalogReady.then(() => dsApplySellCard(dsSellCard())); }
 
   if(hasEmail){
     startRealBuild();   // posts featured_product_id → builds around this product
