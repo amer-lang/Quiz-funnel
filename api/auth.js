@@ -210,6 +210,38 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok:true, found: !!cs,
           cs_tail: cs ? '…' + cs.slice(-8) : '', cs: q.full ? cs : undefined, diag });
       }
+      /* deep trace: EVERYTHING Stripe has for an email — every session match
+         (any status/type, raw and lowercased casing) + customer objects */
+      if(q.probe === 'trace'){
+        const raw = String(q.email || '').trim().slice(0, 200);
+        const lower = raw.toLowerCase();
+        const out = { sessions: [], customers: [] };
+        const seen = new Set();
+        for(const variant of [...new Set([lower, raw])]){
+          try{
+            const ss = await sget('checkout/sessions?limit=100&customer_details[email]=' + encodeURIComponent(variant), '2023-10-16');
+            for(const s of (ss.data || [])){
+              if(seen.has(s.id)) continue;
+              seen.add(s.id);
+              out.sessions.push({ tail: '…' + s.id.slice(-8), status: s.payment_status,
+                type: (s.metadata && s.metadata.type) || '(none)',
+                amount: ((s.amount_total || 0) / 100),
+                mode: s.mode, created: new Date(s.created * 1000).toISOString().slice(0, 10),
+                email_as_stored: (s.customer_details && s.customer_details.email) || '' });
+            }
+          }catch(e){ out['sessions_err_' + variant] = String(e.message || e).slice(0, 120); }
+        }
+        for(const variant of [...new Set([lower, raw])]){
+          try{
+            const cu = await sget('customers?limit=10&email=' + encodeURIComponent(variant));
+            for(const c of (cu.data || [])){
+              out.customers.push({ tail: '…' + c.id.slice(-6), email: c.email || '',
+                created: new Date(c.created * 1000).toISOString().slice(0, 10) });
+            }
+          }catch(e){ out['customers_err_' + variant] = String(e.message || e).slice(0, 120); }
+        }
+        return res.status(200).json({ ok:true, email_raw: raw, trace: out });
+      }
       if(q.probe === 'mail'){
         const r = await sendCodeEmail(normEmail(q.to), '000000');
         return res.status(200).json({ ok:true, mail: r });
