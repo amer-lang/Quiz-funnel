@@ -102,13 +102,43 @@ async function storeSession(csId){
 function emailVariants(email, rawInput){
   const lower = normEmail(email);
   const ucfirst = lower.replace(/^[a-z]/, c => c.toUpperCase());
+  const upper = lower.toUpperCase();
   const raw = String(rawInput || '').trim().slice(0, 200);
-  return [...new Set([lower, ucfirst, raw].filter(Boolean))];
+  return [...new Set([lower, ucfirst, upper, raw].filter(Boolean))];
+}
+/* a customer object → their newest paid store order */
+async function csFromCustomer(customerId){
+  const pis = await sget('payment_intents?limit=20&customer=' + encodeURIComponent(customerId));
+  for(const pi of (pis.data || [])){
+    if(pi.status !== 'succeeded') continue;
+    try{
+      const ss = await sget('checkout/sessions?limit=1&payment_intent=' + encodeURIComponent(pi.id));
+      const s = ss.data && ss.data[0];
+      if(s && s.payment_status === 'paid' && OK_TYPES.has((s.metadata && s.metadata.type) || '')) return s.id;
+    }catch(e){}
+  }
+  return '';
 }
 async function findMemberCs(email, diag, rawInput){
   const idx = await bread(idxPath(email));
   if(idx && idx.cs){ if(diag) diag.src = 'index'; return idx.cs; }
   const variants = emailVariants(email, rawInput);
+
+  // lane 0: customers SEARCH — unlike the list filters, the search index
+  // matches email case-insensitively, so this finds a buyer no matter how
+  // their email was capitalized at checkout.
+  try{
+    const sr = await sget('customers/search?limit=10&query=' +
+      encodeURIComponent('email:"' + normEmail(email).replace(/"/g, '') + '"'), '2023-10-16');
+    for(const c of (sr.data || [])){
+      const cs = await csFromCustomer(c.id);
+      if(cs){
+        if(diag) diag.src = 'customer_search';
+        await bwrite(idxPath(email), { email, cs, src: 'customer_search', created: Date.now(), updated: Date.now() });
+        return cs;
+      }
+    }
+  }catch(e){ if(diag) diag.customer_search_err = String(e.message || e).slice(0, 120); }
 
   // lane 1: checkout sessions filtered by the email typed at checkout — the
   // direct route, and the only one that finds buyers whose purchase never
@@ -256,6 +286,11 @@ module.exports = async (req, res) => {
             }
           }catch(e){ out['customers_err_' + variant] = String(e.message || e).slice(0, 120); }
         }
+        try{ // search lane sensitivity check: lowercase query only
+          const sr = await sget('customers/search?limit=10&query=' +
+            encodeURIComponent('email:"' + lower.replace(/"/g, '') + '"'), '2023-10-16');
+          out.customers_search_lowercase = (sr.data || []).map(c => ({ tail: '…' + c.id.slice(-6), email: c.email || '' }));
+        }catch(e){ out.customers_search_err = String(e.message || e).slice(0, 120); }
         return res.status(200).json({ ok:true, email_raw: raw, trace: out });
       }
       if(q.probe === 'mail'){
