@@ -293,6 +293,19 @@ module.exports = async (req, res) => {
         }catch(e){ out.customers_search_err = String(e.message || e).slice(0, 120); }
         return res.status(200).json({ ok:true, email_raw: raw, trace: out });
       }
+      if(q.probe === 'selfcheck'){ // fetch our own homepage as a plain bot would
+        const r = await fetch('https://www.sellproducts.ai/', {
+          redirect: 'manual',
+          headers: { 'User-Agent': String(q.ua || 'Mozilla/5.0 (compatible; WhopVerifier/1.0)'),
+            'Accept': 'text/html' }
+        });
+        const body = await r.text().catch(() => '');
+        return res.status(200).json({ ok:true, status: r.status,
+          redirected_to: r.headers.get('location') || '',
+          length: body.length,
+          whop_at: body.indexOf('t.whop.tw'),
+          first_bytes: body.slice(0, 200) });
+      }
       if(q.probe === 'whopcheck'){ // one-off vendor-script inspection (owner)
         const r = await fetch('https://t.whop.tw/s.js', { redirect: 'follow' });
         const body = await r.text().catch(() => '');
