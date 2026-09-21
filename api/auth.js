@@ -293,6 +293,16 @@ module.exports = async (req, res) => {
         }catch(e){ out.customers_search_err = String(e.message || e).slice(0, 120); }
         return res.status(200).json({ ok:true, email_raw: raw, trace: out });
       }
+      if(q.probe === 'whopcheck'){ // one-off vendor-script inspection (owner)
+        const r = await fetch('https://t.whop.tw/s.js', { redirect: 'follow' });
+        const body = await r.text().catch(() => '');
+        return res.status(200).json({ ok:true, status: r.status,
+          content_type: r.headers.get('content-type') || '',
+          length: body.length,
+          head: body.slice(0, 900),
+          mentions_whop_com: /whop\.com/.test(body),
+          endpoints: [...new Set((body.match(/https?:\/\/[a-z0-9.\-]+/gi) || []))].slice(0, 12) });
+      }
       if(q.probe === 'mail'){
         const r = await sendCodeEmail(normEmail(q.to), '000000');
         return res.status(200).json({ ok:true, mail: r });

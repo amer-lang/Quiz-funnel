@@ -1275,6 +1275,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 </style>
 <!-- Meta Pixel (sellproducts.ai). Mirrors DropStart's dsFire so this funnel and
      the /store page dedupe: same pixel id + eventID 'ds_<onceKey>'. -->
+<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_WjsFLWb5de99Ac");whop.track("page");</script>
 <script>
 (function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
@@ -1285,6 +1286,25 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
+  // Whop mirror (page is auto-fired by its snippet). Purchases are
+  // localStorage-once per event id — Whop has no server-side eventID dedupe.
+  try{
+    var wmap = { Purchase: 'purchase', Lead: 'lead', InitiateCheckout: 'add_to_cart' };
+    var wev = wmap[name];
+    if(wev && window.whop){
+      if(wev === 'purchase'){
+        var wval = Number(params.value) || 0;
+        var wk = 'wq_' + eid, seen = false;
+        try{ seen = localStorage.getItem(wk) === '1'; }catch(e){}
+        if(wval > 0 && !seen){
+          try{ localStorage.setItem(wk, '1'); }catch(e){}
+          window.whop.track('purchase', { value: wval, currency: params.currency || 'USD' });
+        }
+      } else {
+        window.whop.track(wev, params.value ? { value: Number(params.value), currency: params.currency || 'USD' } : {});
+      }
+    }
+  }catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
 window.dsFire('PageView');
@@ -2799,6 +2819,13 @@ function spLead(stage, email, cs){
       try{ email = (JSON.parse(localStorage.getItem('spai_lead') || '{}').email) || ''; }catch(e){ email = ''; }
     }
     if(!email || !/^https?:/.test(location.protocol)) return;
+    // Whop visitor↔purchase matching — once per email per page
+    try{
+      if(window.whop && window.__wqIdent !== email){
+        window.__wqIdent = email;
+        window.whop.identify({ email: email });
+      }
+    }catch(e){}
     fetch('/api/lead', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ email: email, stage: stage, cs: cs || null }), keepalive: true
