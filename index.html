@@ -1286,23 +1286,15 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
-  // Whop mirror (page is auto-fired by its snippet). Purchases are
-  // localStorage-once per event id — Whop has no server-side eventID dedupe.
+  // Whop mirror — page is auto-fired by its snippet; PURCHASE is deliberately
+  // NOT sent from the browser: the server-side conversions sweep is the single
+  // purchase source (Stripe payment id as event_id), so double-counting is
+  // structurally impossible.
   try{
-    var wmap = { Purchase: 'purchase', Lead: 'lead', InitiateCheckout: 'add_to_cart' };
+    var wmap = { Lead: 'lead', InitiateCheckout: 'add_to_cart' };
     var wev = wmap[name];
     if(wev && window.whop){
-      if(wev === 'purchase'){
-        var wval = Number(params.value) || 0;
-        var wk = 'wq_' + eid, seen = false;
-        try{ seen = localStorage.getItem(wk) === '1'; }catch(e){}
-        if(wval > 0 && !seen){
-          try{ localStorage.setItem(wk, '1'); }catch(e){}
-          window.whop.track('purchase', { value: wval, currency: params.currency || 'USD' });
-        }
-      } else {
-        window.whop.track(wev, params.value ? { value: Number(params.value), currency: params.currency || 'USD' } : {});
-      }
+      window.whop.track(wev, params.value ? { value: Number(params.value), currency: params.currency || 'USD' } : {});
     }
   }catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
