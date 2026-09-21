@@ -2088,16 +2088,24 @@ const PRICE20 = true || (function(){
 (function(){
   try{
     const p = new URLSearchParams(location.search);
-    if(p.get('utm_source')) localStorage.setItem('spai_utm', JSON.stringify({
+    // Whop ad clicks land with waid/wacid/wasid (their click ids) — capture
+    // them like UTMs so the purchase can be attributed to the exact ad.
+    if(p.get('utm_source') || p.get('waid')) localStorage.setItem('spai_utm', JSON.stringify({
       s: p.get('utm_source') || '', m: p.get('utm_medium') || '',
-      c: p.get('utm_campaign') || '', t: Date.now() }));
+      c: p.get('utm_campaign') || '', w: p.get('waid') || '',
+      w2: p.get('wacid') || '', w3: p.get('wasid') || '', t: Date.now() }));
   }catch(e){}
 })();
 function dsUtm(){
   try{
     const u = JSON.parse(localStorage.getItem('spai_utm') || 'null');
-    if(u && u.s && u.t && Date.now() - u.t < 7 * 86400 * 1000)
-      return { utm_source: u.s, utm_medium: u.m || '', utm_campaign: u.c || '' };
+    if(u && u.t && (u.s || u.w) && Date.now() - u.t < 7 * 86400 * 1000){
+      const out = { utm_source: u.s || '', utm_medium: u.m || '', utm_campaign: u.c || '' };
+      if(u.w) out.waid = u.w;
+      if(u.w2) out.wacid = u.w2;
+      if(u.w3) out.wasid = u.w3;
+      return out;
+    }
   }catch(e){}
   return {};
 }

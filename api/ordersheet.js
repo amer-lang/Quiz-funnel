@@ -94,6 +94,9 @@ function utmOf(meta){
   if(meta.utm_source) u.utm_source = String(meta.utm_source).slice(0, 100);
   if(meta.utm_medium) u.utm_medium = String(meta.utm_medium).slice(0, 100);
   if(meta.utm_campaign) u.utm_campaign = String(meta.utm_campaign).slice(0, 100);
+  if(meta.waid) u.waid = String(meta.waid).slice(0, 100);   // Whop ad click ids
+  if(meta.wacid) u.wacid = String(meta.wacid).slice(0, 100);
+  if(meta.wasid) u.wasid = String(meta.wasid).slice(0, 100);
   return u;
 }
 const SOURCE_BY_TYPE = { store_unlock20: '$20 unlock', store_unlock: 'legacy unlock',
