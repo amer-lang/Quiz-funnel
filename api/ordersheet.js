@@ -183,6 +183,7 @@ async function pushWhop(key, row, diag){
   const payload = {
     account_id: WHOP_ACCOUNT,
     event_name: 'purchase',
+    event_time: new Date(row.created * 1000).toISOString(), // true purchase time (sweep sends up to 5 min later; retro sends up to 48h)
     event_id: row.id,            // Stripe payment id — unique per conversion
     value: row.value,
     currency: 'usd',
