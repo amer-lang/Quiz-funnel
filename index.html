@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_WjsFLWb5de99Ac");whop.track("page");</script>
+<!-- TikTok Pixel Code Start -->
+<script>
+!function (w, d, t) {
+  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
+var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+
+
+  ttq.load('DAQ54CBC77U88MSO3G70');
+  ttq.page();
+}(window, document, 'ttq');
+</script>
+<!-- TikTok Pixel Code End -->
 <title>Sell Products AI — Launch Your eCommerce Store</title>
 <meta name="description" content="Our AI finds you a trending winning product, connects the supplier, and builds you a one-product store built to convert. See it before you pay.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1286,15 +1298,14 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
-  // Whop mirror — page is auto-fired by its snippet; PURCHASE is deliberately
-  // NOT sent from the browser: the server-side conversions sweep is the single
-  // purchase source (Stripe payment id as event_id), so double-counting is
-  // structurally impossible.
+  // TikTok mirror — event_id rides along so a future server-side CAPI can dedupe
   try{
-    var wmap = { Lead: 'lead', InitiateCheckout: 'add_to_cart' };
-    var wev = wmap[name];
-    if(wev && window.whop){
-      window.whop.track(wev, params.value ? { value: Number(params.value), currency: params.currency || 'USD' } : {});
+    var tmap = { Purchase: 'CompletePayment', Lead: 'CompleteRegistration', InitiateCheckout: 'InitiateCheckout' };
+    var tev = tmap[name];
+    if(tev && window.ttq){
+      var tp = {};
+      if(params.value){ tp.value = Number(params.value); tp.currency = params.currency || 'USD'; }
+      window.ttq.track(tev, tp, { event_id: eid });
     }
   }catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
@@ -2091,20 +2102,22 @@ const PRICE20 = true || (function(){
     const p = new URLSearchParams(location.search);
     // Whop ad clicks land with waid/wacid/wasid (their click ids) — capture
     // them like UTMs so the purchase can be attributed to the exact ad.
-    if(p.get('utm_source') || p.get('waid')) localStorage.setItem('spai_utm', JSON.stringify({
+    if(p.get('utm_source') || p.get('waid') || p.get('ttclid')) localStorage.setItem('spai_utm', JSON.stringify({
       s: p.get('utm_source') || '', m: p.get('utm_medium') || '',
       c: p.get('utm_campaign') || '', w: p.get('waid') || '',
-      w2: p.get('wacid') || '', w3: p.get('wasid') || '', t: Date.now() }));
+      w2: p.get('wacid') || '', w3: p.get('wasid') || '',
+      tk: p.get('ttclid') || '', t: Date.now() }));
   }catch(e){}
 })();
 function dsUtm(){
   try{
     const u = JSON.parse(localStorage.getItem('spai_utm') || 'null');
-    if(u && u.t && (u.s || u.w) && Date.now() - u.t < 7 * 86400 * 1000){
+    if(u && u.t && (u.s || u.w || u.tk) && Date.now() - u.t < 7 * 86400 * 1000){
       const out = { utm_source: u.s || '', utm_medium: u.m || '', utm_campaign: u.c || '' };
       if(u.w) out.waid = u.w;
       if(u.w2) out.wacid = u.w2;
       if(u.w3) out.wasid = u.w3;
+      if(u.tk) out.ttclid = u.tk;
       return out;
     }
   }catch(e){}
@@ -2821,9 +2834,9 @@ function spLead(stage, email, cs){
     if(!email || !/^https?:/.test(location.protocol)) return;
     // Whop visitor↔purchase matching — once per email per page
     try{
-      if(window.whop && window.__wqIdent !== email){
+      if(window.__wqIdent !== email){
         window.__wqIdent = email;
-        window.whop.identify({ email: email });
+        if(window.ttq) window.ttq.identify({ email: email }); // SDK hashes before sending
       }
     }catch(e){}
     fetch('/api/lead', {
