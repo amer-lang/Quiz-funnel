@@ -2055,7 +2055,8 @@ const CHECKOUT_URL = '';
    The key is origin-locked to this domain and rate-limited server-side.
    Set DS_LIVE = false to run the funnel in demo mode (mock store, no build,
    no network) — handy for design work.                                     */
-const DS_API  = 'https://chat.dropstart.app/api/express';
+const DS_API  = '/api/ds'; // proxied server-side — the express key never ships to the browser
+const DS_ORIGIN = 'https://chat.dropstart.app'; // public assets (product images) only
 // Where DropStart picks the buyer up once this funnel is done with them: it
 // verifies the charge, unlocks the store and runs the Shopify setup.
 const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
@@ -2187,7 +2188,6 @@ async function dsPay20Go(){
   }
   dsPay20Busy = false;
 }
-const DS_KEY  = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
 const DS_LIVE = true;
 // STRIPE TEST MODE: append ?test=<secret> to the URL and the whole payment flow
 // (checkout + upsell + go-live) runs on Stripe TEST keys — 4242 4242 4242 4242
@@ -2540,7 +2540,7 @@ let soldTimer = null;
      3. the FALLBACK_PRODUCTS baked in above                                */
 function dsLoadProducts(){
   if(!DS_LIVE) return Promise.reject();
-  return fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
+  return fetch(DS_API + '/trending')
     .then(r=>r.ok ? r.json() : Promise.reject())
     .then(j=>{
       const list = ((j && j.products) || []).filter(p=>p && p.label && (p.image_card || p.image));
@@ -2837,7 +2837,7 @@ function dsTrack(id){
   if(!DS_LIVE || !DS_STEPS[id]) return;
   fetch(DS_API + '/track', {
     method:'POST',
-    headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ cid: dsCid(), step: DS_STEPS[id], source_url: location.href })
   }).catch(()=>{});
 }
@@ -2891,7 +2891,7 @@ function startRealBuild(){
   dsBuild = null; dsStatus = null; dsBuildError = null;
   fetch(DS_API + '/build', {
     method:'POST',
-    headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       email:        userEmail,
       what_to_sell: chosen ? chosen.name : '',
@@ -3012,7 +3012,7 @@ function dsWaitThenPreview(startedAt){
   }
   if(Date.now() - startedAt > 180000) return buildFinish();
 
-  fetch(dsBuild.status_url, { headers: { 'X-Express-Key': DS_KEY } })
+  fetch(DS_API + '/status/' + encodeURIComponent((dsBuild && dsBuild.project_id) || ''))
     .then(r=>r.json())
     .then(j=>{
       if(j && j.ready){
@@ -3089,7 +3089,7 @@ function dsApplyUnlimitedUi(){
   const body = { project_id: dsBuild.project_id, email: userEmail || '', unlimited_token: dsUnlimited || '', check: 1 };
   if(DS_TEST) body.test = DS_TEST;
   fetch(DS_API + '/unlimited-claim', {
-    method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(body)
   })
   .then(r=>r.json())
@@ -3448,7 +3448,7 @@ function claimStore(e){
     const ub = { project_id: dsBuild.project_id, email: userEmail || '', unlimited_token: dsUnlimited || '' };
     if(DS_TEST) ub.test = DS_TEST;
     fetch(DS_API + '/unlimited-claim', {
-      method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(ub)
     })
     .then(r=>r.json())
@@ -3521,7 +3521,7 @@ function dsPaidClaim(btn){
     if(DS_TEST) body.test = DS_TEST;
     fetch(DS_API + '/checkout', {
       method:'POST',
-      headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body)
     })
     .then(r=>r.json())
@@ -3786,7 +3786,7 @@ function dsFinalize(extra){
     go('s-done'); return;
   }
   fetch(DS_API + '/finalize', {
-    method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(body)
   })
   .then(r=>r.json())
@@ -4185,7 +4185,7 @@ function dsResumeAfterPayment(){
   // Poll the verify behind the loader — never bounce to the funnel. TG13280.
   dsVerifyLoop(
     function(){ return fetch(DS_API + '/verify-checkout', {
-      method:'POST', headers:{'Content-Type':'application/json','X-Express-Key':DS_KEY},
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body)
     }).then(r=>r.json()); },
     function(j){ return !!(j && j.ok && j.paid && j.project_id); },
@@ -4360,7 +4360,7 @@ function dsSellFromEmail(){
   // image_card holds /featured-main/<pid>/, label = name, price/cost = profit),
   // which loads AFTER boot — so fill those the moment it arrives. Never leave the
   // demo placeholder (icon/name/profit) showing. TG13325 + TG13331 (product image as icon).
-  const base = DS_API.replace(/\/api\/express$/, '');
+  const base = DS_ORIGIN;
   const dsSellImg = base + '/start/featured-main/' + pid + '/3x2';
   const dsSellCard = () => {
     try{ return (PRODUCTS||[]).find(c => c && c.image && c.image.indexOf('/featured-main/'+pid+'/') !== -1) || null; }
@@ -4399,7 +4399,7 @@ function dsResumeFromEmail(){
   const pid = q.get('resume');
   if(!pid || !/^\d+$/.test(pid)) return false;
 
-  fetch(DS_API + '/status/' + encodeURIComponent(pid), { headers: { 'X-Express-Key': DS_KEY } })
+  fetch(DS_API + '/status/' + encodeURIComponent(pid))
     .then(r=>r.json())
     .then(j=>{
       if(!j || !j.ok) return;                 // unknown store — leave the quiz as-is

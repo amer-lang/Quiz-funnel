@@ -871,8 +871,7 @@ const FALLBACK = [
   {e:'💪', n:'FlexBand Home Gym',      cat:'Fitness',           cost:13.40, price:45.99},
   {e:'🥗', n:'MiniChef Chopper Pro',   cat:'Kitchen',           cost:10.90, price:36.99}
 ];
-const DS_API = 'https://chat.dropstart.app/api/express';
-const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+const DS_API = '/api/ds'; // proxied server-side
 const money = v => '$' + Number(v).toFixed(2);
 const marginPct = p => Math.round((p.price - p.cost) / p.price * 100) + '%';
 function pcard(p){
@@ -895,7 +894,7 @@ function buildTracks(list){
 buildTracks(FALLBACK);
 
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-fetch(DS_API + '/trending', { headers: { 'X-Express-Key': DS_KEY } })
+fetch(DS_API + '/trending')
   .then(r => r.ok ? r.json() : Promise.reject())
   .then(j => {
     const HIDE = /piano/i; // products that don't fit the homepage's look

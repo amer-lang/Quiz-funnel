@@ -39,8 +39,17 @@
     },
     "api/ordersheet.js": {
       "maxDuration": 60
+    },
+    "api/ds.js": {
+      "maxDuration": 30
     }
   },
+  "rewrites": [
+    {
+      "source": "/api/ds/:path*",
+      "destination": "/api/ds?p=:path*"
+    }
+  ],
   "crons": [
     {
       "path": "/api/compactcron",
