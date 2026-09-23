@@ -1300,16 +1300,34 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
   // TikTok mirror — event_id rides along so a future server-side CAPI can dedupe
   try{
-    var tmap = { Purchase: 'CompletePayment', Lead: 'CompleteRegistration', InitiateCheckout: 'InitiateCheckout' };
+    var tmap = { Purchase: 'Purchase', Lead: 'CompleteRegistration', InitiateCheckout: 'InitiateCheckout' };
     var tev = tmap[name];
     if(tev && window.ttq){
       var tp = {};
       if(params.value){ tp.value = Number(params.value); tp.currency = params.currency || 'USD'; }
+      var sku = { 20:['store_unlock20','AI Store Unlock'], 29:['seo_boost','SEO Boost'],
+                  49:['image_ads_10','10 Custom Image Ads'], 199:['video_ads_5','5 Custom Video Ads'],
+                  299:['video_ads_5','5 Custom Video Ads'] }[Number(params.value)];
+      var pp = window.__ttP || {};
+      if(name === 'Purchase' && Number(params.value) === 20 && pp.name)
+        tp.contents = ttContents(pp.id, pp.name);        // the store itself
+      else if(sku) tp.contents = ttContents(sku[0], sku[1]);
+      else if(pp.name) tp.contents = ttContents(pp.id, pp.name);
       window.ttq.track(tev, tp, { event_id: eid });
     }
   }catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
+/* TikTok helpers: SHA-256 (their spec requires client-side hashing of PII)
+   and a contents[] builder from the buyer's chosen product */
+window.__ttP = null;
+function ttSha(s){
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)))
+    .then(function(b){ return Array.from(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join(''); });
+}
+function ttContents(id, name){
+  return [{ content_id: String(id || 'store'), content_type: 'product', content_name: String(name || 'AI Store') }];
+}
 window.dsFire('PageView');
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
@@ -2714,6 +2732,10 @@ function pickChoose(e){
   if(chosen) return;
   chosen = PRODUCTS[pIdx];
   spLog('product_choose', chosen.name);
+  try{
+    window.__ttP = { id: chosen.dsId || chosen.name || 'store', name: chosen.name || 'AI Store' };
+    window.ttq && ttq.track('AddToCart', { contents: ttContents(window.__ttP.id, window.__ttP.name), value: 20, currency: 'USD' });
+  }catch(e){}
   // persist the pick — the post-payment return reloads the page and the
   // upsell's ad mockups need the product's photo, name & price back
   try{ localStorage.setItem('spai_chosen', JSON.stringify({
@@ -2834,9 +2856,18 @@ function spLead(stage, email, cs){
     if(!email || !/^https?:/.test(location.protocol)) return;
     // Whop visitor↔purchase matching — once per email per page
     try{
-      if(window.__wqIdent !== email){
-        window.__wqIdent = email;
-        if(window.ttq) window.ttq.identify({ email: email }); // SDK hashes before sending
+      if(window.ttq && window.__ttIdent !== email){
+        window.__ttIdent = email;
+        // TikTok spec: PII must be SHA-256 hashed client-side (email normalized first)
+        ttSha(email.trim().toLowerCase()).then(function(he){
+          var idp = { email: he };
+          var done = function(){ try{ window.ttq.identify(idp); }catch(e){} };
+          try{
+            var c = (typeof dsCid === 'function') ? dsCid() : '';
+            if(c) return ttSha(String(c)).then(function(hc){ idp.external_id = hc; done(); }, done);
+          }catch(e){}
+          done();
+        }).catch(function(){});
       }
     }catch(e){}
     fetch('/api/lead', {
@@ -3118,6 +3149,10 @@ function dsApplyUnlimitedUi(){
         gold dust and coins dripping out of their own store ---- */
 let resvTick = null;
 function runGlam(p){
+  try{
+    window.__ttP = { id: (p && (p.dsId || p.id || p.name)) || 'store', name: (p && p.name) || (chosen && chosen.name) || 'AI Store' };
+    window.ttq && ttq.track('ViewContent', { contents: ttContents(window.__ttP.id, window.__ttP.name), value: 20, currency: 'USD' });
+  }catch(e){}
   // store number — feels like a production line, changes daily
   const d = new Date();
   document.getElementById('buildNo').textContent = (2391 + d.getDate()*3 + d.getDay()).toLocaleString();
@@ -3511,6 +3546,10 @@ function dsPaidClaim(btn){
       }
       if(j && j.ok && j.client_secret){
         spLog('checkout_mode', j.ui || 'custom');
+        try{
+          var ttp2 = window.__ttP || {};
+          window.ttq && ttq.track('AddPaymentInfo', { contents: ttContents(ttp2.id, ttp2.name), value: 20, currency: 'USD' });
+        }catch(e){}
         if(j.custom_error) spLog('custom_mode_err', j.custom_error);
         if(j.ui === 'embedded') return dsOpenPay(j.client_secret, j.publishable_key, false);
         return dsOpenPay20(j.client_secret, j.publishable_key);
