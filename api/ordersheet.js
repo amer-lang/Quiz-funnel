@@ -25,7 +25,7 @@ const LEDGER = 'orders/videolog.json';
 const WHOP_LEDGER = 'orders/whoplog.json';
 const CFG = 'members/config/ordersheet.json';
 const WHOP_CFG = 'members/config/whop.json';
-const WHOP_ACCOUNT = 'biz_WjsFLWb5de99Ac';
+const WHOP_ACCOUNT = 'biz_FXze6GwnWnentH';
 
 function blobToken(){
   if(process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
