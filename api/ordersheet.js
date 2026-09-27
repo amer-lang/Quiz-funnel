@@ -241,6 +241,20 @@ module.exports = async (req, res) => {
         whop_sent: Object.keys(wledger.seen || {}).length,
         whop_start: wledger.start });
     }
+    /* owner: Whop-ad attribution stats — Stripe-truth count of waid-stamped orders */
+    if(q.probe === 'whopstats' && isOwner){
+      const hrs = Math.min(parseInt(q.hours, 10) || 24, 96);
+      const rows2 = await collectOrders(Math.floor(Date.now() / 1000) - hrs * 3600);
+      const hit = rows2.filter(r => r.utm && r.utm.waid);
+      return res.status(200).json({ ok:true, window_hours: hrs,
+        total_orders: rows2.length,
+        total_revenue: rows2.reduce((s2, r) => s2 + r.value, 0),
+        whop_attributed_orders: hit.length,
+        whop_attributed_revenue: hit.reduce((s2, r) => s2 + r.value, 0),
+        whop_events_sent_ledger: Object.keys(wledger.seen || {}).length,
+        sample: hit.slice(0, 5).map(r => ({ amount: r.amount, source: r.source,
+          waid_tail: '…' + String(r.utm.waid).slice(-6), created: new Date(r.created * 1000).toISOString() })) });
+    }
     /* owner diagnostic: send one TEST lead event to Whop, report raw response */
     if(q.probe === 'whoptest' && isOwner){
       if(!wkey) return res.status(200).json({ ok:false, error:'no_whop_key' });
