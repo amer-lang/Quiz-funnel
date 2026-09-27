@@ -1299,15 +1299,26 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
-  // Whop mirror — page auto-fires from its snippet; PURCHASE is deliberately
-  // NOT sent from the browser (Whop confirmed their pixel cannot observe the
-  // Stripe checkout): the server-side events sweep is the single purchase
-  // source, keyed by Stripe payment id, so double-counting is impossible.
+  // Whop mirror. Purchases fire from BOTH browser and server with the SAME
+  // event_id (the Stripe cs_/pi_ id in params.txid), exactly per Whop's
+  // dedupe contract: the browser copy carries the visitor/session linkage
+  // for ad attribution, the server copy is the never-misses backstop, and
+  // Whop counts the pair once.
   try{
     var wmap = { Lead: 'lead', InitiateCheckout: 'add_to_cart' };
     var wev = wmap[name];
     if(wev && window.whop){
       window.whop.track(wev, params.value ? { value: Number(params.value), currency: params.currency || 'USD' } : {});
+    }
+    if(name === 'Purchase' && window.whop && params.txid && Number(params.value) > 0){
+      var wpk = 'wqp_' + params.txid, wpSeen = false;
+      try{ wpSeen = localStorage.getItem(wpk) === '1'; }catch(e){}
+      if(!wpSeen){
+        try{ localStorage.setItem(wpk, '1'); }catch(e){}
+        var wpp = { value: Number(params.value), currency: params.currency || 'USD', event_id: String(params.txid) };
+        try{ var wl = JSON.parse(localStorage.getItem('spai_lead') || '{}'); if(wl.email) wpp.email = wl.email; }catch(e){}
+        window.whop.track('purchase', wpp);
+      }
     }
   }catch(e){}
   // TikTok mirror — event_id rides along so a future server-side CAPI can dedupe
@@ -3770,7 +3781,7 @@ function upsellYes(){
         // Charged in one click — celebrate and settle, no checkout UI at all.
         playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 120);
         showToast('🎉','You got the 10-ad pack!');
-        window.dsFire && window.dsFire('Purchase', { value: 49, currency: 'USD' },
+        window.dsFire && window.dsFire('Purchase', { value: 49, currency: 'USD', txid: j.pi },
           'upsell49_' + ((dsBuild && dsBuild.project_id) || j.pi));
         spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
         spLead('videoads', j.email || userEmail || null, j.pi); // → AC list 7 (bridge verifies via Stripe)
@@ -3811,7 +3822,7 @@ function upsellYes(){
       // Charged in one click — celebrate and settle, no checkout UI at all.
       playTada(); confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 120);
       showToast('🎉','5 custom video ads are being made for you!');
-      window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD' },
+      window.dsFire && window.dsFire('Purchase', { value: 299, currency: 'USD', txid: j.pi },
         'upsell299_' + ((dsBuild && dsBuild.project_id) || j.pi));
       spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
       spLead('videopack', j.email || userEmail || null, j.pi); // → "SPAI Video Pack" list (five-video buyers)
@@ -3954,7 +3965,7 @@ function lsSeoBuy(btn){
       confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 90);
       showToast('🔎','SEO Boost added to your store!');
       if(j.charged){
-        window.dsFire && window.dsFire('Purchase', { value: 29, currency: 'USD' }, 'seo_' + (dsPaidCs || ''));
+        window.dsFire && window.dsFire('Purchase', { value: 29, currency: 'USD', txid: j.pi }, 'seo_' + (dsPaidCs || ''));
         spLog('paid_seo', (dsBuild && dsBuild.project_id) || '');
       }
       setTimeout(()=>go('s-vsl199'), 900);
@@ -4044,7 +4055,7 @@ function ls199Buy(btn){
       playTada(); flashPulse();
       confettiBurst(window.innerWidth/2, window.innerHeight*0.4, 120);
       showToast('🎬','5 custom video ads are being made for you!');
-      window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD' },
+      window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD', txid: j.pi },
         'upsell199_' + ((dsBuild && dsBuild.project_id) || j.pi));
       spLog('paid_upsell', 'vsl199');
       spLead('videopack', j.email || userEmail || null, j.pi); // → "SPAI Video Pack" list (NOT list 7 — that's the $49 image pack)
@@ -4120,7 +4131,7 @@ function lsAddonsGo(){
       confettiBurst(window.innerWidth/2, window.innerHeight*0.35, 110);
       showToast('🎉', items.length + ' add-on' + (items.length>1?'s':'') + ' added!');
       if(j.charged){
-        window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount/100 : sum), currency: 'USD' }, 'addons_' + (dsPaidCs || ''));
+        window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount/100 : sum), currency: 'USD', txid: j.pi }, 'addons_' + (dsPaidCs || ''));
         spLog('paid_addons', items.join(','));
       }
       if(items.includes('unlimited_stores')){
@@ -4214,7 +4225,7 @@ function dsResumeAfterPayment20(){
     function(){ return fetch('/api/unlock20?verify=' + encodeURIComponent(cs)).then(r=>r.json()); },
     function(j){ return !!(j && j.paid); },
     function(j){
-      window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD' },
+      window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs },
         'purchase_' + (j.project_id || cs));
       spLog('paid_20', j.project_id || '');
       spLead('unlocked', j.email || null, cs); // → AC list 6 + SPAI Subscribers (bridge verifies via Stripe)
@@ -4261,7 +4272,7 @@ function dsResumeAfterPayment(){
       // Meta Purchase for the $1 unlock — SAME onceKey as the /store page fires, so
       // whichever the buyer reaches, Meta counts it once. Fired here off the
       // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
-      window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD' }, 'purchase_' + j.project_id);
+      window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD', txid: cs }, 'purchase_' + j.project_id);
       spLog('paid_1dollar', j.project_id);
       spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
       if(j.unlocked){ /* already fully done — nothing to upsell */ }
@@ -4293,7 +4304,7 @@ function dsResumeAfterUpsell(){
   dsPaidCs = cs;
   // Meta Purchase for the $299 upsell — same onceKey as the /store page, deduped.
   if(dsBuild && dsBuild.project_id && q.get('upsell_cs')){
-    window.dsFire && window.dsFire('Purchase', { value: UPSELL_ADS ? UPSELL_ADS_PRICE : 299, currency: 'USD' }, 'upsell_purchase_' + dsBuild.project_id);
+    window.dsFire && window.dsFire('Purchase', { value: UPSELL_ADS ? UPSELL_ADS_PRICE : 299, currency: 'USD', txid: q.get('upsell_cs') }, 'upsell_purchase_' + dsBuild.project_id);
     spLog('paid_upsell', dsBuild.project_id);
     spLead('videoads', null, q.get('upsell_cs')); // → AC list 7 only if the $299 session verifies as PAID
   }
@@ -4318,7 +4329,7 @@ function dsResumeAfterUpsell49(){
       .then(r=>r.json())
       .then(j=>{
         if(!(j && j.paid)) return; // unpaid bounce-back → just settle the store below
-        window.dsFire && window.dsFire('Purchase', { value: 49, currency: 'USD' },
+        window.dsFire && window.dsFire('Purchase', { value: 49, currency: 'USD', txid: ucs },
           'upsell49_' + ((dsBuild && dsBuild.project_id) || ucs));
         spLog('paid_upsell', (dsBuild && dsBuild.project_id) || '');
         spLead('videoads', j.email || null, ucs); // → AC list 7 (bridge verifies via Stripe)
@@ -4351,7 +4362,7 @@ function dsResumeAfterUpsell199(){
       .then(r=>r.json())
       .then(j=>{
         if(!(j && j.paid)) return; // unpaid bounce-back → just continue the sequence
-        window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD' },
+        window.dsFire && window.dsFire('Purchase', { value: 199, currency: 'USD', txid: ucs },
           'upsell199_' + ((dsBuild && dsBuild.project_id) || ucs));
         spLog('paid_upsell', 'vsl199');
         spLead('videopack', j.email || null, ucs); // → "SPAI Video Pack" list (NOT list 7 — that's the $49 image pack)
