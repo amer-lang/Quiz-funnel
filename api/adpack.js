@@ -21,7 +21,11 @@
 
 const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const DS_API = 'https://chat.dropstart.app/api/express';
-const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+/* DropStart API key — ROTATED 2026-09-27: the previous key sat in the public page
+   source Jul 22–Sep 23, so it was replaced and no longer works. Do NOT paste an
+   older key back. Keep this identical in api/ds.js, api/lead.js, api/adpack.js and
+   api/adsorder.js. Key changes → coordinate with DropStart (Leighton). */
+const DS_KEY = 'ek_c70_982dd6374dd3c7bebcd1ff89bf1c7f3091c8b6b413114652';
 const PENDING_TTL = 180000; // ms — ignore generating-markers older than this
 
 const slugOf = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);

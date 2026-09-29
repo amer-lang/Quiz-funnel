@@ -16,7 +16,11 @@ const TEST_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e9536
 
 // Payment verification (same backend the funnel itself uses)
 const DS_API = 'https://chat.dropstart.app/api/express';
-const DS_KEY = 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+/* DropStart API key — ROTATED 2026-09-27: the previous key sat in the public page
+   source Jul 22–Sep 23, so it was replaced and no longer works. Do NOT paste an
+   older key back. Keep this identical in api/ds.js, api/lead.js, api/adpack.js and
+   api/adsorder.js. Key changes → coordinate with DropStart (Leighton). */
+const DS_KEY = 'ek_c70_982dd6374dd3c7bebcd1ff89bf1c7f3091c8b6b413114652';
 
 const STAGE_LIST = { optin: 5, unlocked: 6, videoads: 7 };
 const ACTIVATION_FIELD_ID = 2; // AC custom field %ACTIVATION_LINK% ("Activation link")

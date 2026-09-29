@@ -8,10 +8,26 @@
    vercel.json rewrites /api/ds/:path* → /api/ds?p=:path* */
 
 const DS_API = 'https://chat.dropstart.app/api/express';
-const DS_KEY = process.env.DS_EXPRESS_KEY || 'ek_c70_42ceb3e0322b33b8fe9f339ded261337f584ed8a75f2918b';
+/* DropStart API key — ROTATED 2026-09-27: the previous key sat in the public page
+   source Jul 22–Sep 23, so it was replaced and no longer works. Do NOT paste an
+   older key back. Keep this identical in api/ds.js, api/lead.js, api/adpack.js and
+   api/adsorder.js. Key changes → coordinate with DropStart (Leighton). */
+const DS_KEY = 'ek_c70_982dd6374dd3c7bebcd1ff89bf1c7f3091c8b6b413114652'; // not read from Vercel env on purpose — an old env value would override it
 
 /* only the endpoints the funnel actually uses — never an open proxy */
 const ALLOWED = /^(trending|track|build|unlimited-claim|checkout|finalize|verify-checkout|status\/[A-Za-z0-9_\-]{1,80})$/;
+
+/* Every visitor reaches DropStart through this proxy, so DropStart sees a
+   Vercel server IP for all of them — and its "5 builds per visitor per hour"
+   limit lumped every customer behind a few Vercel IPs together, turning real
+   first-time buyers away with a 429. Pass the real visitor IP on /build as
+   client_ip (DropStart keys the limit on it). Always overwritten here, so a
+   browser can't supply its own. */
+function visitorIp(req){
+  const h = req.headers || {};
+  const ip = String(h['x-real-ip'] || String(h['x-forwarded-for'] || '').split(',')[0] || '').trim();
+  return /^[0-9a-fA-F:.]{3,45}$/.test(ip) ? ip : '';
+}
 
 function readBody(req){
   if(req.body && typeof req.body === 'object') return Promise.resolve(JSON.stringify(req.body));
@@ -39,6 +55,16 @@ module.exports = async (req, res) => {
     if(req.method === 'POST'){
       opts.headers['Content-Type'] = 'application/json';
       opts.body = await readBody(req);
+      const ip = p === 'build' ? visitorIp(req) : '';
+      if(ip){
+        try{
+          const b = JSON.parse(opts.body || '{}');
+          if(b && typeof b === 'object' && !Array.isArray(b)){
+            b.client_ip = ip;
+            opts.body = JSON.stringify(b);
+          }
+        }catch(e){ /* not JSON — forward untouched */ }
+      }
     }
     const r = await fetch(DS_API + '/' + p, opts);
     const text = await r.text();
