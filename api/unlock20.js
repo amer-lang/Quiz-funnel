@@ -96,10 +96,6 @@ function sessionParams(projectId, email, product, uiMode, utm){
   };
   if(utm) Object.assign(params, utm);
   if(email) params['customer_email'] = String(email).slice(0, 120);
-  // embedded = Stripe-hosted form; it renders the phone field itself. The
-  // custom/elements UI must NOT set this (confirm() would then demand a phone
-  // our own form never passes) — there the funnel collects it in the modal.
-  if(uiMode === 'embedded') params['phone_number_collection[enabled]'] = 'true';
   return params;
 }
 
@@ -205,33 +201,6 @@ module.exports = async (req, res) => {
     if(req.method !== 'POST') return res.status(405).json({ ok:false });
     if(!sk || !pk) return res.status(200).json({ ok:false, status:'no_keys' });
     const body = await readBody(req);
-
-    /* ---- SMS opt-in: store the buyer's number against their PAID session.
-       Written by the funnel right after the $20 verify leg; read by the
-       ordersheet cron's SMS sink. Only verified-paid sessions accepted, so
-       this can't be used to spray blobs. ---- */
-    if(body.phone_save){
-      const cs = String(body.cs || '').slice(0, 300);
-      const digits = String(body.phone || '').replace(/\D/g, '').slice(0, 15);
-      if(!/^cs_[A-Za-z0-9_]+$/.test(cs) || digits.length < 10)
-        return res.status(200).json({ ok:false, status:'bad_phone_or_cs' });
-      const s2 = await stripe('checkout/sessions/' + encodeURIComponent(cs));
-      if(s2.payment_status !== 'paid' || (s2.metadata && s2.metadata.type) !== 'store_unlock20')
-        return res.status(200).json({ ok:false, status:'not_paid' });
-      const { put } = await import('@vercel/blob');
-      const tok = process.env.BLOB_READ_WRITE_TOKEN ||
-        (Object.keys(process.env).find(k => /READ_WRITE_TOKEN/i.test(k) &&
-          String(process.env[k]).startsWith('vercel_blob_rw')) ?
-          process.env[Object.keys(process.env).find(k => /READ_WRITE_TOKEN/i.test(k) &&
-          String(process.env[k]).startsWith('vercel_blob_rw'))] : '');
-      await put('orders/phone/' + cs + '.json', JSON.stringify({
-        phone: digits.length === 10 ? '1' + digits : digits,
-        email: (s2.customer_details && s2.customer_details.email) || '',
-        at: Date.now(), consent: 'checkout_phone_field'
-      }), Object.assign({ access:'private', addRandomSuffix:false, allowOverwrite:true,
-        contentType:'application/json' }, tok ? { token: tok } : {}));
-      return res.status(200).json({ ok:true, stored:true });
-    }
 
     /* ---- order bump: one-click $39 on the card just saved by the $20 ---- */
     if(body.bump_charge){

@@ -186,7 +186,3 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok:false, error: String(e && e.message || e).slice(0, 200) });
   }
 };
-
-// shared with the ordersheet SMS sink — single home for the AC credential
-// (set AFTER the handler assignment above, which replaces module.exports)
-module.exports.AC = { url: AC_URL, key: AC_KEY, activationField: ACTIVATION_FIELD_ID };
