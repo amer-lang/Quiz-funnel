@@ -7,12 +7,22 @@
       a server-side `purchase` event with the Stripe payment id as event_id
       (globally unique, so Whop can never double-count; the browser pixel
       deliberately does NOT send purchase — this is the single source).
+   3. SIMPLETEXTING SMS — store buyers ($20 unlock) get their activation link
+      texted right after purchase. Phone comes from the checkout (embedded
+      sessions collect it natively; the custom-UI modal's own field is saved
+      to orders/phone/<cs>.json by /api/unlock20 phone_save). Activation link
+      is the buyer's ActiveCampaign %ACTIVATION_LINK% field (AC credential
+      imported from members.js — never duplicated), members-area fallback.
+      Needs env SIMPLETEXTING_API_KEY. Per-order ledger means nobody is ever
+      double-texted; orders predating the integration are never texted.
 
    GET  (cron or ?key=READ_KEY)                → sweep the last 48h
    GET  ?key=READ_KEY&backfill=30              → sheet-sink seed run (N days)
    GET  ?probe=seturl&key=READ_KEY&url=...     → store the Apps Script URL
    GET  ?probe=setwhop&key=READ_KEY&wk=...     → store the Whop API key
    GET  ?ping=1&key=READ_KEY                   → config + ledger sanity
+   GET  ?probe=smstest&key=READ_KEY&to=1XXXXXXXXXX → send one test SMS
+   GET  ?probe=phonecheck&key=READ_KEY&hours=N → phone capture on recent orders
 
    Sheet columns (row 1 headers, set by hand):
    Date (PT) | Email | Product | Amount | Source | Order ID */
@@ -23,6 +33,11 @@ const TYPES = new Set(['video_ads_5']); // sheet sink
 const ALL_TYPES = new Set(['store_unlock20', 'store_unlock', 'video_ads_5', 'image_ads_10', 'store_addons']); // whop sink
 const LEDGER = 'orders/videolog.json';
 const WHOP_LEDGER = 'orders/whoplog.json';
+const SMS_LEDGER = 'orders/smslog.json';
+const SMS_TYPES = new Set(['store_unlock20', 'store_unlock']); // store buyers only — activation is their journey
+const ST_API = 'https://api.simpletexting.com/v2/api/messages';
+const AC = require('./members.js').AC; // ActiveCampaign creds live in members.js only
+const MEMBERS_LINK = 'https://www.sellproducts.ai/members';
 const CFG = 'members/config/ordersheet.json';
 const WHOP_CFG = 'members/config/whop.json';
 const WHOP_ACCOUNT = 'biz_FXze6GwnWnentH';
@@ -141,6 +156,7 @@ async function collectOrders(gteSec){
     rows.push({
       id: s.id, created: s.created, type: ty,
       email: email,
+      phone: (s.customer_details && s.customer_details.phone) || '',
       utm: utm,
       product: (s.metadata && s.metadata.product) || '',
       value: (s.amount_total || 0) / 100,
@@ -205,6 +221,47 @@ async function pushWhop(key, row, diag){
   return r.status >= 200 && r.status < 300;
 }
 
+/* ---- SimpleTexting SMS ---- */
+function smsKey(){ return process.env.SIMPLETEXTING_API_KEY || ''; }
+function normPhone(p){
+  const d = String(p || '').replace(/\D/g, '');
+  if(d.length === 10) return '1' + d;
+  if(d.length >= 11 && d.length <= 15) return d;
+  return '';
+}
+async function pushSms(key, phone, text, diag){
+  const r = await fetch(ST_API, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contactPhone: phone, mode: 'AUTO', text })
+  });
+  if(diag){
+    diag.status = r.status;
+    diag.body = String(await r.text().catch(() => '')).slice(0, 300);
+  }
+  return r.status >= 200 && r.status < 300;
+}
+async function acActivationLink(email){
+  if(!email) return '';
+  try{
+    const h = { 'Api-Token': AC.key };
+    const f = await fetch(AC.url + '/api/3/contacts?email=' + encodeURIComponent(email), { headers: h })
+      .then(r => r.json());
+    const c = f && f.contacts && f.contacts[0];
+    if(!c) return '';
+    const fv = await fetch(AC.url + '/api/3/contacts/' + c.id + '/fieldValues', { headers: h })
+      .then(r => r.json());
+    const hit = ((fv && fv.fieldValues) || []).find(v =>
+      String(v.field) === String(AC.activationField) && v.value);
+    return hit ? String(hit.value) : '';
+  }catch(e){ return ''; }
+}
+function smsText(product, link){
+  return 'Sell Products AI: Your store' + (product ? ' \u201C' + String(product).slice(0, 60) + '\u201D' : '') +
+    ' is built & waiting! Finish setup here (takes ~10 min): ' + link +
+    ' Reply STOP to opt out.';
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const q = req.query || {};
@@ -235,11 +292,15 @@ module.exports = async (req, res) => {
     const wkey = await whopKey();
 
     if(q.ping === '1' && isOwner){
+      const sled = (await bread(SMS_LEDGER)) || {};
       return res.status(200).json({ ok:true, has_sheet_url: !!(cfg && cfg.url),
         has_whop_key: !!wkey,
+        has_sms_key: !!smsKey(),
         logged_orders: Object.keys(ledger.seen || {}).length,
         whop_sent: Object.keys(wledger.seen || {}).length,
-        whop_start: wledger.start });
+        whop_start: wledger.start,
+        sms_sent: Object.keys(sled.seen || {}).length,
+        sms_start: sled.start || 0 });
     }
     /* owner: Whop-ad attribution stats — Stripe-truth count of waid-stamped orders */
     if(q.probe === 'whopstats' && isOwner){
@@ -268,6 +329,33 @@ module.exports = async (req, res) => {
       });
       return res.status(200).json({ ok: r.status >= 200 && r.status < 300,
         whop_status: r.status, whop_body: String(await r.text().catch(() => '')).slice(0, 300) });
+    }
+    /* owner diagnostic: send one TEST SMS via SimpleTexting, report raw response */
+    if(q.probe === 'smstest' && isOwner){
+      const key = smsKey();
+      if(!key) return res.status(200).json({ ok:false, error:'no_sms_key',
+        hint:'set SIMPLETEXTING_API_KEY in Vercel env + redeploy' });
+      const to = normPhone(q.to);
+      if(!to) return res.status(200).json({ ok:false, error:'bad_to', hint:'?to=1XXXXXXXXXX' });
+      const diag = {};
+      const ok = await pushSms(key, to,
+        'Sell Products AI: test message — your SMS activation pipeline is live. Reply STOP to opt out.', diag);
+      return res.status(200).json({ ok, st_status: diag.status, st_body: diag.body });
+    }
+    /* owner diagnostic: phone capture rate on recent store orders */
+    if(q.probe === 'phonecheck' && isOwner){
+      const hrs = Math.min(parseInt(q.hours, 10) || 24, 96);
+      const rows3 = (await collectOrders(Math.floor(Date.now() / 1000) - hrs * 3600))
+        .filter(r => SMS_TYPES.has(r.type));
+      let withPhone = 0, viaBlob = 0;
+      for(const r of rows3){
+        if(r.phone){ withPhone++; continue; }
+        const pb = await bread('orders/phone/' + r.id + '.json');
+        if(pb && pb.phone){ withPhone++; viaBlob++; }
+      }
+      return res.status(200).json({ ok:true, window_hours: hrs,
+        store_orders: rows3.length, with_phone: withPhone, via_modal_field: viaBlob,
+        capture_rate: rows3.length ? Math.round(withPhone / rows3.length * 100) + '%' : 'n/a' });
     }
     /* owner diagnostic: plain GET to the script URL — distinguishes an access
        wall (Workspace restriction) from a POST/redirect problem */
@@ -325,8 +413,48 @@ module.exports = async (req, res) => {
       if(wsent || !wledger.written){ wledger.written = 1; await bwrite(WHOP_LEDGER, wledger); }
     }
 
+    // sink 3: SMS — text store buyers their activation link
+    let ssent = 0, sfailed = 0, snophone = 0;
+    const skey = smsKey();
+    if(skey){
+      const sledger = (await bread(SMS_LEDGER)) ||
+        { seen: {}, start: Math.floor(Date.now() / 1000) - 1800 };
+      let dirty = !sledger.written;
+      const nowSec = Math.floor(Date.now() / 1000);
+      for(const row of rows){
+        if(!SMS_TYPES.has(row.type)) continue;
+        if(row.created < (sledger.start || 0)) continue; // never text pre-integration buyers
+        if(sledger.seen[row.id]) continue;
+        let phone = normPhone(row.phone);
+        if(!phone){
+          const pb = await bread('orders/phone/' + row.id + '.json');
+          phone = normPhone(pb && pb.phone);
+        }
+        if(!phone){
+          // the modal's phone_save can land a beat after the order; retry for
+          // 2h, then mark done so old no-phone orders stop costing blob reads
+          if(nowSec - row.created > 7200){ sledger.seen[row.id] = { c: row.created, no_phone: 1 }; dirty = true; }
+          snophone++;
+          continue;
+        }
+        let link = await acActivationLink(row.email);
+        if(!link) link = MEMBERS_LINK;
+        const ok = await pushSms(skey, phone, smsText(row.product, link));
+        if(ok){
+          sledger.seen[row.id] = { c: row.created, p: phone, l: link, s0: nowSec };
+          dirty = true; ssent++;
+        }
+        else sfailed++; // retried next sweep
+      }
+      const scut = nowSec - 14 * 86400; // dedupe horizon ≫ 48h scan window
+      for(const id of Object.keys(sledger.seen))
+        if((sledger.seen[id].c || 0) < scut){ delete sledger.seen[id]; dirty = true; }
+      if(dirty){ sledger.written = 1; await bwrite(SMS_LEDGER, sledger); }
+    }
+
     return res.status(200).json({ ok:true, scanned: rows.length,
-      sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey } });
+      sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey },
+      sms: { sent: ssent, failed: sfailed, no_phone: snophone, enabled: !!skey } });
   }catch(e){
     return res.status(200).json({ ok:false, error: String(e && e.message || e).slice(0, 200) });
   }
