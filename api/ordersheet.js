@@ -241,6 +241,18 @@ async function pushSms(key, phone, text, diag){
   }
   return r.status >= 200 && r.status < 300;
 }
+/* phone typed into the payment element lands on the charge's billing details */
+async function chargePhone(csId){
+  try{
+    const s2 = await sget('checkout/sessions/' + encodeURIComponent(csId) +
+      '?expand[]=payment_intent.latest_charge');
+    const pi = s2.payment_intent;
+    const ch = pi && typeof pi === 'object' ? pi.latest_charge : null;
+    const bd = ch && typeof ch === 'object' ? ch.billing_details : null;
+    return (bd && bd.phone) || '';
+  }catch(e){ return ''; }
+}
+
 async function acActivationLink(email){
   if(!email) return '';
   try{
@@ -348,13 +360,16 @@ module.exports = async (req, res) => {
       const rows3 = (await collectOrders(Math.floor(Date.now() / 1000) - hrs * 3600))
         .filter(r => SMS_TYPES.has(r.type));
       let withPhone = 0, viaBlob = 0;
+      let viaCharge = 0;
       for(const r of rows3){
         if(r.phone){ withPhone++; continue; }
+        if(/^cs_/.test(r.id) && await chargePhone(r.id)){ withPhone++; viaCharge++; continue; }
         const pb = await bread('orders/phone/' + r.id + '.json');
         if(pb && pb.phone){ withPhone++; viaBlob++; }
       }
       return res.status(200).json({ ok:true, window_hours: hrs,
-        store_orders: rows3.length, with_phone: withPhone, via_modal_field: viaBlob,
+        store_orders: rows3.length, with_phone: withPhone,
+        via_billing_details: viaCharge, via_modal_field: viaBlob,
         capture_rate: rows3.length ? Math.round(withPhone / rows3.length * 100) + '%' : 'n/a' });
     }
     /* owner diagnostic: plain GET to the script URL — distinguishes an access
@@ -426,6 +441,7 @@ module.exports = async (req, res) => {
         if(row.created < (sledger.start || 0)) continue; // never text pre-integration buyers
         if(sledger.seen[row.id]) continue;
         let phone = normPhone(row.phone);
+        if(!phone && /^cs_/.test(row.id)) phone = normPhone(await chargePhone(row.id));
         if(!phone){
           const pb = await bread('orders/phone/' + row.id + '.json');
           phone = normPhone(pb && pb.phone);
