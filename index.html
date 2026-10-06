@@ -768,6 +768,20 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   display:flex;align-items:center;justify-content:center;gap:6px;
   font-size:.72rem;color:var(--muted);margin-top:12px;
 }
+/* SMS opt-in on the email step — unchecked by default (TCPA), reveals phone */
+.sms-opt{
+  display:flex;align-items:flex-start;gap:10px;text-align:left;cursor:pointer;
+  font-size:.82rem;line-height:1.4;color:var(--text);margin:-2px 0 12px;padding:0 2px;
+}
+.sms-opt input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:19px;height:19px;margin-top:1px;border-radius:6px;
+  border:2px solid var(--line-strong);background:var(--card-2);cursor:pointer;position:relative;transition:.15s}
+.sms-opt input:checked{background:var(--gold);border-color:var(--gold)}
+.sms-opt input:checked::after{content:'';position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #241500;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.sms-opt input:focus-visible{box-shadow:0 0 0 4px rgba(255,201,60,.25)}
+.sms-wrap{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .25s ease}
+.sms-wrap.open{max-height:320px;opacity:1}
+.sms-legal{font-size:.62rem;line-height:1.5;color:var(--muted);text-align:center;margin:-4px 0 14px;padding:0 4px}
+.sms-legal a{color:inherit;text-decoration:underline}
 
 /* ============================================================
    STORE PREVIEW + $1 CLAIM
@@ -1846,6 +1860,14 @@ window.dsFire('PageView');
       </div>
 
       <input type="email" class="email-input" id="emailInput" placeholder="you@email.com" autocomplete="email" inputmode="email" oninput="emailCheck()">
+      <label class="sms-opt" for="smsOpt">
+        <input type="checkbox" id="smsOpt" onchange="smsToggle()">
+        <span>📲 Yes — text me exclusive offers, reminders &amp; alerts about my store</span>
+      </label>
+      <div class="sms-wrap" id="smsWrap">
+        <input type="tel" class="email-input" id="phoneInput" placeholder="(201) 555-0123" autocomplete="tel" inputmode="tel" oninput="emailCheck()">
+        <p class="sms-legal">By checking the box and entering your number, you agree to receive recurring automated marketing and store-alert text messages from Sell Products AI at the number provided. Consent is not a condition of any purchase. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help. <a href="/privacy" target="_blank">Privacy Policy</a> · <a href="/terms" target="_blank">Terms</a></p>
+      </div>
       <button class="cta gold" id="emailBtn" disabled onclick="startBuild(event)">Build My Store 🔨</button>
       <p class="privacy-note">🛡️ We'll send your store link plus launch tips and offers — unsubscribe anytime. <a href="/privacy" target="_blank" style="color:inherit;text-decoration:underline">Privacy Policy</a></p>
     </section>
@@ -2908,7 +2930,7 @@ addEventListener('pagehide', spFlush);
 
 /* ActiveCampaign bridge — server-side at /api/lead (the key never ships here).
    optin → list 5 · unlocked ($1 paid) → list 6 · videoads ($299 paid) → list 7 */
-function spLead(stage, email, cs){
+function spLead(stage, email, cs, extra){
   try{
     if(!email){
       try{ email = (JSON.parse(localStorage.getItem('spai_lead') || '{}').email) || ''; }catch(e){ email = ''; }
@@ -2936,7 +2958,7 @@ function spLead(stage, email, cs){
     }catch(e){}
     fetch('/api/lead', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email: email, stage: stage, cs: cs || null }), keepalive: true
+      body: JSON.stringify(Object.assign({ email: email, stage: stage, cs: cs || null }, extra || {})), keepalive: true
     }).catch(()=>{});
   }catch(err){}
 }
@@ -2950,9 +2972,24 @@ function dsTrack(id){
   }).catch(()=>{});
 }
 
+/* SMS consent — disclosure version recorded server-side with every opt-in */
+const SMS_CONSENT_VERSION = 'sms-v1-2026-10';
+function smsOpted(){ const c = document.getElementById('smsOpt'); return !!(c && c.checked); }
+function smsPhone(){
+  const el = document.getElementById('phoneInput');
+  const d = ((el && el.value) || '').replace(/\D/g, '');
+  return (d.length === 10) ? '1' + d : (d.length >= 11 && d.length <= 15 ? d : '');
+}
+function smsToggle(){
+  const w = document.getElementById('smsWrap');
+  const on = smsOpted();
+  w.classList.toggle('open', on);
+  if(on) setTimeout(()=>{ try{ document.getElementById('phoneInput').focus(); }catch(e){} }, 120);
+  emailCheck();
+}
 function emailCheck(){
   const v = document.getElementById('emailInput').value.trim();
-  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) && (!smsOpted() || !!smsPhone());
   document.getElementById('emailBtn').disabled = !ok;
   if(ok) document.getElementById('emailBtn').classList.add('pulse');
   else document.getElementById('emailBtn').classList.remove('pulse');
@@ -2966,6 +3003,8 @@ function startBuild(e){
   vibrate(15);
 
   // save + optionally send the lead
+  const smsExtra = (smsOpted() && smsPhone())
+    ? { phone: smsPhone(), sms_consent: 1, sms_consent_version: SMS_CONSENT_VERSION } : null;
   const lead = {
     email: userEmail,
     product: chosen ? chosen.name : null,
@@ -2974,9 +3013,11 @@ function startBuild(e){
     answers,
     at: new Date().toISOString()
   };
+  if(smsExtra) Object.assign(lead, smsExtra);
   try{ localStorage.setItem('spai_lead', JSON.stringify(lead)); }catch(err){}
   window.dsFire && window.dsFire('Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured
-  spLead('optin', userEmail); // → ActiveCampaign list 5
+  spLead('optin', userEmail, null, smsExtra); // → ActiveCampaign list 5 (+ SMS consent record)
+  if(smsExtra) spLog('sms_optin');
   if(EMAIL_ENDPOINT){
     fetch(EMAIL_ENDPOINT, {
       method:'POST',

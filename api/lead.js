@@ -2,6 +2,11 @@
    Runs server-side so the AC API key never reaches the browser.
 
    POST {email, stage, cs?}  stage: optin → list 5 · unlocked → list 6 · videoads → list 7
+        + optional {phone, sms_consent:1, sms_consent_version} on optin: the
+          funnel's unchecked-by-default SMS box. Phone is written to the AC
+          contact, a consent record (UTC time · IP · source · disclosure
+          version) to %SMS_CONSENT%, and the "SMS Opt-In" tag applied — the
+          provable-consent segment to sync into SimpleTexting.
                              videopack → "SPAI Video Pack" (five-video buyers, own list)
      Syncs the contact into ActiveCampaign and subscribes it to the mapped list.
      Paid stages (unlocked/videoads) require `cs` (a verified PAID session); the
@@ -38,6 +43,33 @@ async function adsField(){
     if(c.ok && c.j.field) adsFieldId = Number(c.j.field.id);
   }catch(e){}
   return adsFieldId;
+}
+/* AC custom field %SMS_CONSENT% — TCPA consent record for the funnel's SMS
+   opt-in. Auto-created on first use by perstag. */
+let smsFieldId = null;
+async function smsField(){
+  if(smsFieldId) return smsFieldId;
+  try{
+    const r = await ac('/api/3/fields?limit=100');
+    const f = ((r.j && r.j.fields) || []).find(x => x.perstag === 'SMS_CONSENT');
+    if(f){ smsFieldId = Number(f.id); return smsFieldId; }
+    const c = await ac('/api/3/fields', 'POST', { field: { type: 'text', title: 'SMS consent', perstag: 'SMS_CONSENT', visible: 1 } });
+    if(c.ok && c.j.field) smsFieldId = Number(c.j.field.id);
+  }catch(e){}
+  return smsFieldId;
+}
+/* AC tag "SMS Opt-In" — resolved/created once per lambda */
+let smsTagId = null;
+async function smsTag(){
+  if(smsTagId) return smsTagId;
+  try{
+    const r = await ac('/api/3/tags?search=' + encodeURIComponent('SMS Opt-In'));
+    const t = ((r.j && r.j.tags) || []).find(x => x.tag === 'SMS Opt-In');
+    if(t){ smsTagId = Number(t.id); return smsTagId; }
+    const c = await ac('/api/3/tags', 'POST', { tag: { tag: 'SMS Opt-In', tagType: 'contact', description: 'Funnel SMS consent (see %SMS_CONSENT%)' } });
+    if(c.ok && c.j.tag) smsTagId = Number(c.j.tag.id);
+  }catch(e){}
+  return smsTagId;
 }
 /* AC custom field %EMAILS_LINK% — the email-pack buyer's durable
    /emails?cs=<order> delivery page. Auto-created on first use by perstag. */
@@ -500,6 +532,24 @@ module.exports = async (req, res) => {
       const contact = { email };
       if(activationLink) contact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: activationLink }];
 
+      // SMS opt-in (optin stage only): phone onto the contact + a consent
+      // record. Only when the box was ticked AND a plausible number came
+      // with it — never inferred.
+      let smsOpt = false;
+      if(stage === 'optin' && body.sms_consent){
+        const d = String(body.phone || '').replace(/\D/g, '');
+        const num = d.length === 10 ? '1' + d : (d.length >= 11 && d.length <= 15 ? d : '');
+        if(num){
+          smsOpt = true;
+          contact.phone = '+' + num;
+          const ip = String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '').split(',')[0].trim().slice(0, 64);
+          const ver = String(body.sms_consent_version || '').replace(/[^\w.-]/g, '').slice(0, 40) || 'unknown';
+          const sfid = await smsField();
+          if(sfid) contact.fieldValues = (contact.fieldValues || []).concat([{ field: sfid,
+            value: new Date().toISOString() + ' | ip ' + (ip || 'n/a') + ' | funnel email step checkbox | ' + ver }]);
+        }
+      }
+
       // $20 store buyers: write their personal First Sale Roadmap into
       // %MEMBERS_LINK% so emails can link the members area (email is the ONLY
       // door to /members — nothing on the funnel's confirmation page).
@@ -526,6 +576,14 @@ module.exports = async (req, res) => {
         contactList: { list: listId, contact: contactId, status: 1 }
       });
       if(!sub.ok) return res.status(502).json({ error: 'ac list subscribe failed' });
+
+      // SMS opt-in tag — best-effort, the consent field above is the record of truth
+      if(smsOpt){
+        try{
+          const tid = await smsTag();
+          if(tid) await ac('/api/3/contactTags', 'POST', { contactTag: { contact: contactId, tag: tid } });
+        }catch(e){}
+      }
 
       // $20 buyers also join the master "SPAI Subscribers" list. Best-effort:
       // a hiccup here never fails the request (the stage list already took).
