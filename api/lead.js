@@ -5,8 +5,13 @@
         + optional {phone, sms_consent:1, sms_consent_version} on optin: the
           funnel's unchecked-by-default SMS box. Phone is written to the AC
           contact, a consent record (UTC time · IP · source · disclosure
-          version) to %SMS_CONSENT%, and the "SMS Opt-In" tag applied — the
-          provable-consent segment to sync into SimpleTexting.
+          version) to %SMS_CONSENT%, and the "SMS Opt-In" tag applied (the
+          provable-consent record). The number is ALSO pushed straight into
+          SimpleTexting: optin → list "SPAI Checkout"; a verified $20 purchase
+          (stage unlocked) → list "SPAI Store Buyer" with list replacement, so
+          buyers leave "SPAI Checkout". Needs env SIMPLETEXTING_API_KEY; every
+          SimpleTexting call is best-effort and never fails the lead.
+   GET  ?stlists=<KEY>    Shows how the two SimpleTexting lists resolve.
                              videopack → "SPAI Video Pack" (five-video buyers, own list)
      Syncs the contact into ActiveCampaign and subscribes it to the mapped list.
      Paid stages (unlocked/videoads) require `cs` (a verified PAID session); the
@@ -28,6 +33,49 @@ const DS_API = 'https://chat.dropstart.app/api/express';
 const DS_KEY = 'ek_c70_982dd6374dd3c7bebcd1ff89bf1c7f3091c8b6b413114652';
 
 const STAGE_LIST = { optin: 5, unlocked: 6, videoads: 7 };
+
+/* ---- SimpleTexting (direct push of consented numbers) ---- */
+const ST_API = 'https://api-app2.simpletexting.com/v2/api';
+const ST_LIST_CHECKOUT = 'SPAI Checkout';   // opted in, has not bought
+const ST_LIST_BUYER = 'SPAI Store Buyer';   // bought the $20 store
+function stKey(){ return process.env.SIMPLETEXTING_API_KEY || ''; }
+async function st(path, method, body){
+  const r = await fetch(ST_API + path, {
+    method: method || 'GET',
+    headers: { Authorization: 'Bearer ' + stKey(), 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const j = await r.json().catch(() => ({}));
+  return { status: r.status, ok: r.status >= 200 && r.status < 300, j };
+}
+/* list ids by name, cached per lambda; tolerant of paged ({content}) or flat replies */
+let stListCache = null;
+async function stLists(){
+  if(stListCache) return stListCache;
+  const out = { checkout: 0, buyer: 0, seen: [] };
+  try{
+    const r = await st('/contact-lists?size=200');
+    const arr = Array.isArray(r.j) ? r.j : ((r.j && (r.j.content || r.j.lists || r.j.data)) || []);
+    for(const l of arr){
+      const name = String(l.name || l.listName || '').trim();
+      out.seen.push(name);
+      const id = l.id || l.listId;
+      if(name.toLowerCase() === ST_LIST_CHECKOUT.toLowerCase()) out.checkout = id;
+      if(name.toLowerCase() === ST_LIST_BUYER.toLowerCase()) out.buyer = id;
+    }
+    out.status = r.status;
+  }catch(e){ out.error = String(e && e.message || e).slice(0, 120); }
+  if(out.checkout && out.buyer) stListCache = out;
+  return out;
+}
+/* upsert the contact onto ONE list. replace=true drops every other list
+   membership (that is how a buyer leaves "SPAI Checkout"). */
+async function stPush(phone, email, listId, replace){
+  if(!stKey() || !phone || !listId) return { ok: false, skipped: true };
+  const body = { contactPhone: phone, listIds: [listId] };
+  if(email) body.email = email;
+  return st('/contacts?upsert=true&listsReplacement=' + (replace ? 'true' : 'false'), 'POST', body);
+}
 const ACTIVATION_FIELD_ID = 2; // AC custom field %ACTIVATION_LINK% ("Activation link")
 
 /* AC custom field %ADS_LINK% — the $49 buyer's durable /ads?cs=<order> page.
@@ -221,6 +269,14 @@ module.exports = async (req, res) => {
   if(req.method === 'OPTIONS') return res.status(204).end();
 
   try{
+    if(req.method === 'GET' && (req.query || {}).stlists){
+      if(req.query.stlists !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+      const L = await stLists();
+      return res.status(200).json({ ok: !!(L.checkout && L.buyer), has_key: !!stKey(),
+        checkout_list: { name: ST_LIST_CHECKOUT, id: L.checkout || null },
+        buyer_list: { name: ST_LIST_BUYER, id: L.buyer || null },
+        lists_seen: L.seen, st_status: L.status || null, error: L.error || null });
+    }
     if(req.method === 'GET'){
       if((req.query || {}).actest !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
       const out = {};
@@ -582,6 +638,24 @@ module.exports = async (req, res) => {
         try{
           const tid = await smsTag();
           if(tid) await ac('/api/3/contactTags', 'POST', { contactTag: { contact: contactId, tag: tid } });
+        }catch(e){}
+        // → SimpleTexting "SPAI Checkout" (keeps any other list membership)
+        try{
+          const L = await stLists();
+          if(L.checkout) await stPush(String(contact.phone).replace(/\D/g, ''), email, L.checkout, false);
+        }catch(e){}
+      }
+
+      // Verified $20 buyer who had opted in: the AC contact carries the
+      // consented phone → SimpleTexting "SPAI Store Buyer", REPLACING lists
+      // so they leave "SPAI Checkout". No consented phone on file → nothing.
+      if(stage === 'unlocked'){
+        try{
+          const ph = String((sync.j.contact && sync.j.contact.phone) || '').replace(/\D/g, '');
+          if(ph.length >= 10){
+            const L = await stLists();
+            if(L.buyer) await stPush(ph.length === 10 ? '1' + ph : ph, email, L.buyer, true);
+          }
         }catch(e){}
       }
 
