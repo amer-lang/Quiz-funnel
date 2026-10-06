@@ -2,6 +2,7 @@
    Runs server-side so the AC API key never reaches the browser.
 
    POST {email, stage, cs?}  stage: optin → list 5 · unlocked → list 6 · videoads → list 7
+        + optional {first_name} on optin → AC contact firstName + SimpleTexting firstName
         + optional {phone, sms_consent:1, sms_consent_version} on optin: the
           funnel's unchecked-by-default SMS box. Phone is written to the AC
           contact, a consent record (UTC time · IP · source · disclosure
@@ -70,10 +71,11 @@ async function stLists(){
 }
 /* upsert the contact onto ONE list. replace=true drops every other list
    membership (that is how a buyer leaves "SPAI Checkout"). */
-async function stPush(phone, email, listId, replace){
+async function stPush(phone, email, listId, replace, firstName){
   if(!stKey() || !phone || !listId) return { ok: false, skipped: true };
   const body = { contactPhone: phone, listIds: [listId] };
   if(email) body.email = email;
+  if(firstName) body.firstName = firstName;
   return st('/contacts?upsert=true&listsReplacement=' + (replace ? 'true' : 'false'), 'POST', body);
 }
 const ACTIVATION_FIELD_ID = 2; // AC custom field %ACTIVATION_LINK% ("Activation link")
@@ -588,6 +590,12 @@ module.exports = async (req, res) => {
       const contact = { email };
       if(activationLink) contact.fieldValues = [{ field: ACTIVATION_FIELD_ID, value: activationLink }];
 
+      // first name from the email step (letters, marks, space, ' . - only)
+      const firstName = stage === 'optin'
+        ? String(body.first_name || '').normalize('NFC').replace(/[^\p{L}\p{M}' .-]/gu, '').trim().replace(/\s+/g, ' ').slice(0, 40)
+        : '';
+      if(firstName) contact.firstName = firstName;
+
       // SMS opt-in (optin stage only): phone onto the contact + a consent
       // record. Only when the box was ticked AND a plausible number came
       // with it — never inferred.
@@ -642,7 +650,7 @@ module.exports = async (req, res) => {
         // → SimpleTexting "SPAI Checkout" (keeps any other list membership)
         try{
           const L = await stLists();
-          if(L.checkout) await stPush(String(contact.phone).replace(/\D/g, ''), email, L.checkout, false);
+          if(L.checkout) await stPush(String(contact.phone).replace(/\D/g, ''), email, L.checkout, false, firstName);
         }catch(e){}
       }
 
@@ -654,7 +662,8 @@ module.exports = async (req, res) => {
           const ph = String((sync.j.contact && sync.j.contact.phone) || '').replace(/\D/g, '');
           if(ph.length >= 10){
             const L = await stLists();
-            if(L.buyer) await stPush(ph.length === 10 ? '1' + ph : ph, email, L.buyer, true);
+            if(L.buyer) await stPush(ph.length === 10 ? '1' + ph : ph, email, L.buyer, true,
+              String((sync.j.contact && sync.j.contact.firstName) || '').slice(0, 40));
           }
         }catch(e){}
       }

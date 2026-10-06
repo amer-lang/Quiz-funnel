@@ -1859,6 +1859,7 @@ window.dsFire('PageView');
         <span class="claim-lock">🔒</span>
       </div>
 
+      <input type="text" class="email-input" id="nameInput" placeholder="First name" autocomplete="given-name" autocapitalize="words" maxlength="40" oninput="emailCheck()">
       <input type="email" class="email-input" id="emailInput" placeholder="you@email.com" autocomplete="email" inputmode="email" oninput="emailCheck()">
       <label class="sms-opt" for="smsOpt">
         <input type="checkbox" id="smsOpt" onchange="smsToggle()">
@@ -2987,9 +2988,13 @@ function smsToggle(){
   if(on) setTimeout(()=>{ try{ document.getElementById('phoneInput').focus(); }catch(e){} }, 120);
   emailCheck();
 }
+function firstName(){
+  const el = document.getElementById('nameInput');
+  return ((el && el.value) || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+}
 function emailCheck(){
   const v = document.getElementById('emailInput').value.trim();
-  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) && (!smsOpted() || !!smsPhone());
+  const ok = firstName().length >= 2 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) && (!smsOpted() || !!smsPhone());
   document.getElementById('emailBtn').disabled = !ok;
   if(ok) document.getElementById('emailBtn').classList.add('pulse');
   else document.getElementById('emailBtn').classList.remove('pulse');
@@ -3005,8 +3010,10 @@ function startBuild(e){
   // save + optionally send the lead
   const smsExtra = (smsOpted() && smsPhone())
     ? { phone: smsPhone(), sms_consent: 1, sms_consent_version: SMS_CONSENT_VERSION } : null;
+  const leadExtra = Object.assign({ first_name: firstName() }, smsExtra || {});
   const lead = {
     email: userEmail,
+    first_name: firstName(),
     product: chosen ? chosen.name : null,
     cost: chosen ? chosen.cost : null,
     price: chosen ? chosen.price : null,
@@ -3016,7 +3023,7 @@ function startBuild(e){
   if(smsExtra) Object.assign(lead, smsExtra);
   try{ localStorage.setItem('spai_lead', JSON.stringify(lead)); }catch(err){}
   window.dsFire && window.dsFire('Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured
-  spLead('optin', userEmail, null, smsExtra); // → ActiveCampaign list 5 (+ SMS consent record)
+  spLead('optin', userEmail, null, leadExtra); // → ActiveCampaign list 5 (+ first name, SMS consent record)
   if(smsExtra) spLog('sms_optin');
   if(EMAIL_ENDPOINT){
     fetch(EMAIL_ENDPOINT, {
