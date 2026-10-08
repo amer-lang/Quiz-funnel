@@ -425,7 +425,7 @@ module.exports = async (req, res) => {
         messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
         send_mode: ST_MODE, send_window_open_now: inSendWindow(Date.now()),
         recent: B.slice(-5).map(b => ({ cs_tail: '…' + String(b.cs || '').slice(-6), name: b.n || '', pid: b.pid || '',
-          sent_steps: b.sent || [], fails: b.fail || 0, last_error: b.err || null, stop: b.stop || null,
+          link: b.l || null, sent_steps: b.sent || [], fails: b.fail || 0, last_error: b.err || null, stop: b.stop || null,
           enrolled_at: b.at ? new Date(b.at * 1000).toISOString() : null })) });
     }
     /* owner: send the step-0 copy to a number — proves key, host and copy */
