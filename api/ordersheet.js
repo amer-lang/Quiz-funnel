@@ -54,6 +54,7 @@ function dripPlan(b, now){
   return { due, step: (due >= 0 && b.sent.length === 0) ? 0 : due };
 }
 function dripMarkSent(b, due){ for(let i = 0; i <= due; i++) if(!b.sent.includes(i)) b.sent.push(i); }
+const DRIP_ENABLED = false; // KILL SWITCH - incident 2026-10-08: repeat sends; stays off until the ledger is reconciled
 const DRIP_FAIL_MAX = 48; // ~4h of consecutive failures before a buyer is parked
 /* sweep safety: the function has a hard runtime limit. Work is capped per
    sweep and the ledger is SAVED AFTER EVERY SEND, so a timeout can never lose
@@ -576,8 +577,8 @@ module.exports = async (req, res) => {
     }
 
     // sink 3: SMS activation drip — enroll new opted-in store buyers, send due steps
-    let dEnrolled = 0, dSent = 0, dStopped = 0;
-    if(smsKey()){
+    let dEnrolled = 0, dSent = 0, dStopped = 0, dSkippedBudget = 0;
+    if(smsKey() && DRIP_ENABLED){
       const now = Math.floor(Date.now() / 1000);
       const d = (await bread(DRIP_LEDGER)) || { start: now - 600, buyers: {} };
       let dirty = !d.written;
@@ -603,7 +604,6 @@ module.exports = async (req, res) => {
       // burst); skipped earlier steps are marked done so they never go out of
       // order; nothing leaves outside the quiet-hours window
       const windowOpen = inSendWindow(Date.now());
-      let dSkippedBudget = 0;
       for(const cs of Object.keys(d.buyers)){
         const b = d.buyers[cs];
         if(b.stop) continue;
@@ -631,7 +631,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({ ok:true, scanned: rows.length,
       sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey },
-      drip: { enrolled: dEnrolled, sent: dSent, stopped: dStopped, deferred: dSkippedBudget, enabled: !!smsKey(),
+      drip: { enrolled: dEnrolled, sent: dSent, stopped: dStopped, deferred: dSkippedBudget, enabled: !!smsKey() && DRIP_ENABLED,
         sweep_ms: Date.now() - T0 } });
   }catch(e){
     return res.status(200).json({ ok:false, error: String(e && e.message || e).slice(0, 200) });
