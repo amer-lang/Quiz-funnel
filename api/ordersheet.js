@@ -38,6 +38,23 @@ const DRIP_LEDGER = 'orders/smsdrip.json';
 const DRIP_TYPES = new Set(['store_unlock20']);
 const AC_COMPLETED_LIST = 'Store Launched'; // AC list = stop signal for the drip
 const AC_COMPLETED_LIST_ID = 9;               // pinned by the owner; name lookup is the fallback
+const SMS_CONSENT_PERSTAG = 'SMS_CONSENT';    // AC field written by /api/lead at opt-in = proof of consent
+/* quiet hours: send only 11:00-19:59 America/New_York = 08:00-16:59 Pacific,
+   inside the 8am-8pm local window of every mainland US zone */
+function inSendWindow(ms){
+  const h = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', hourCycle: 'h23' })
+    .format(new Date(ms)), 10);
+  return h >= 11 && h < 20;
+}
+/* which step to send now: the LATEST due unsent step (never a burst); the
+   very first message a buyer gets always uses the intro copy */
+function dripPlan(b, now){
+  let due = -1;
+  for(let i = 0; i < DRIP_AT.length; i++) if(now >= b.c + DRIP_AT[i] && !b.sent.includes(i)) due = i;
+  return { due, step: (due >= 0 && b.sent.length === 0) ? 0 : due };
+}
+function dripMarkSent(b, due){ for(let i = 0; i <= due; i++) if(!b.sent.includes(i)) b.sent.push(i); }
+const DRIP_FAIL_MAX = 48; // ~4h of consecutive failures before a buyer is parked
 const ST_API = 'https://api-app2.simpletexting.com/v2/api/messages';
 const AC = require('./members.js').AC; // ActiveCampaign creds live in members.js only
 /* DropStart status via OUR proxy (/api/ds holds the express key server-side —
@@ -316,9 +333,22 @@ async function acCompleted(b){
     return ((m && m.contactLists) || []).some(x => String(x.list) === String(lid) && String(x.status) === '1');
   }catch(e){ return false; }
 }
-/* the buyer's consented phone + first name + activation link, from the AC contact */
+/* %SMS_CONSENT% field id, by perstag, cached per lambda */
+let AC_CONSENT_FIELD = null;
+async function acConsentField(){
+  if(AC_CONSENT_FIELD) return AC_CONSENT_FIELD;
+  try{
+    const r = await fetch(AC.url + '/api/3/fields?limit=100', { headers: { 'Api-Token': AC.key } }).then(x => x.json());
+    const f = ((r && r.fields) || []).find(x => x.perstag === SMS_CONSENT_PERSTAG);
+    if(f) AC_CONSENT_FIELD = Number(f.id);
+  }catch(e){}
+  return AC_CONSENT_FIELD;
+}
+/* the buyer's phone + first name from the AC contact - returned ONLY when the
+   contact carries an SMS consent record. A phone from any other source is
+   not consent, so it is treated as no phone. */
 async function acBuyer(email){
-  const out = { phone: '', name: '', link: '', id: '' };
+  const out = { phone: '', name: '', id: '', consent: false };
   if(!email) return out;
   try{
     const h = { 'Api-Token': AC.key };
@@ -326,11 +356,11 @@ async function acBuyer(email){
     const c = f && f.contacts && f.contacts[0];
     if(!c) return out;
     out.id = c.id;
-    out.phone = normPhone(c.phone);
     out.name = String(c.firstName || '').trim().slice(0, 40);
+    const cf = await acConsentField();
     const fv = await fetch(AC.url + '/api/3/contacts/' + c.id + '/fieldValues', { headers: h }).then(r => r.json());
-    const hit = ((fv && fv.fieldValues) || []).find(v => String(v.field) === String(AC.activationField) && v.value);
-    if(hit) out.link = String(hit.value);
+    out.consent = !!(cf && ((fv && fv.fieldValues) || []).some(v => String(v.field) === String(cf) && v.value));
+    if(out.consent) out.phone = normPhone(c.phone);
   }catch(e){}
   return out;
 }
@@ -391,7 +421,7 @@ module.exports = async (req, res) => {
         recent_pids: recentPids,
         enrolled: B.length, active: B.filter(b => !b.stop).length, stopped: stops,
         messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
-        send_mode: ST_MODE,
+        send_mode: ST_MODE, send_window_open_now: inSendWindow(Date.now()),
         recent: B.slice(-5).map(b => ({ cs_tail: '…' + String(b.cs || '').slice(-6), name: b.n || '', pid: b.pid || '',
           sent_steps: b.sent || [], fails: b.fail || 0, last_error: b.err || null, stop: b.stop || null,
           enrolled_at: b.at ? new Date(b.at * 1000).toISOString() : null })) });
@@ -517,22 +547,25 @@ module.exports = async (req, res) => {
         }
         d.buyers[row.id] = rec; dirty = true; dEnrolled++;
       }
-      // send: one due step per active buyer per sweep (the latest due, never a burst)
+      // send: one due step per active buyer per sweep (the latest due, never a
+      // burst); skipped earlier steps are marked done so they never go out of
+      // order; nothing leaves outside the quiet-hours window
+      const windowOpen = inSendWindow(Date.now());
       for(const cs of Object.keys(d.buyers)){
         const b = d.buyers[cs];
         if(b.stop) continue;
-        let due = -1;
-        for(let i = 0; i < DRIP_AT.length; i++) if(now >= b.c + DRIP_AT[i] && !b.sent.includes(i)) due = i;
-        if(due < 0){
+        const plan = dripPlan(b, now);
+        if(plan.due < 0){
           if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dirty = true; dStopped++; }
           continue;
         }
+        if(!windowOpen) continue; // waits for 11:00 ET; the latest due step goes then
         if(await acCompleted(b)){ b.stop = 'store_completed'; dirty = true; dStopped++; continue; }
-        const r = await pushSms(b.p, dripText(due, b.n, b.l));
-        if(r.ok){ b.sent.push(due); b.last = now; b.err = null; dirty = true; dSent++; }
+        const r = await pushSms(b.p, dripText(plan.step, b.n, b.l));
+        if(r.ok){ dripMarkSent(b, plan.due); b.last = now; b.err = null; b.fail = 0; dirty = true; dSent++; }
         else if(r.optedOut){ b.stop = 'opted_out'; b.err = r.status + ' ' + r.body; dirty = true; dStopped++; }
         else { b.fail = (b.fail || 0) + 1; b.err = r.status + ' ' + String(r.body || '').slice(0, 160); dirty = true;
-          if(b.fail >= 12){ b.stop = 'send_failed'; dStopped++; } }
+          if(b.fail >= DRIP_FAIL_MAX){ b.stop = 'send_failed'; dStopped++; } }
         if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dStopped++; }
       }
       // prune buyers older than the schedule + a margin

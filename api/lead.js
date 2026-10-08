@@ -660,7 +660,15 @@ module.exports = async (req, res) => {
       if(stage === 'unlocked'){
         try{
           const ph = String((sync.j.contact && sync.j.contact.phone) || '').replace(/\D/g, '');
+          // a phone on the contact is NOT consent - require the %SMS_CONSENT%
+          // record written at the funnel's checkbox, else no SimpleTexting at all
+          let consented = false;
           if(ph.length >= 10){
+            const sfid = await smsField();
+            const fv = await ac('/api/3/contacts/' + contactId + '/fieldValues');
+            consented = !!(sfid && fv.ok && (fv.j.fieldValues || []).some(v => String(v.field) === String(sfid) && v.value));
+          }
+          if(consented){
             const L = await stLists();
             if(L.buyer) await stPush(ph.length === 10 ? '1' + ph : ph, email, L.buyer, true,
               String((sync.j.contact && sync.j.contact.firstName) || '').slice(0, 40));
