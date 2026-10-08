@@ -45,20 +45,23 @@ const DS_STATUS = 'https://www.sellproducts.ai/api/ds/status/';
 /* seconds after purchase for each step */
 const DRIP_AT = [10*60, 3600, 24*3600, 48*3600, 72*3600, 6*86400, 9*86400, 12*86400, 15*86400];
 function dripText(i, name, link){
+  // plain-ASCII only: any emoji / smart quote / em dash lets SimpleTexting
+  // upgrade the send to MMS, which carriers turn into a "rich media" link page
   const n = name ? name : 'Hey';
-  const nm = name ? name + ',' : 'Hey —';
+  const nm = name ? name + ',' : 'Hey -';
   const T = [
-    nm + ' your store is built and waiting 🎉 Activate it here (takes ~10 min): ' + link + ' — Sell Products AI. Reply STOP to opt out.',
-    'Quick one, ' + n + ': your store can\'t make a single sale until it\'s live. Your activation link: ' + link + ' Txt STOP to end',
+    nm + ' your store is built and waiting! Activate it here (takes about 10 min): ' + link + ' - Sell Products AI. Reply STOP to opt out.',
+    'Quick one, ' + n + ': your store cannot make a single sale until it is live. Your activation link: ' + link + ' Txt STOP to end',
     nm + ' 24 hours in and your store is still offline. Most people finish activation in 10 minutes: ' + link + ' Txt STOP to end',
     'Day 2: your trending product is still reserved for you, ' + n + '. Take the store live: ' + link + ' Txt STOP to end',
-    nm + ' this is the step most people never do — and the only one that matters. Activate your store: ' + link + ' Txt STOP to end',
+    nm + ' this is the step most people never do, and the only one that matters. Activate your store: ' + link + ' Txt STOP to end',
     'Still here for you, ' + n + '. Your store, your product, your activation link: ' + link + ' Txt STOP to end',
-    n + ' — quick reminder that your store is built and paid for. Go live whenever you\'re ready: ' + link + ' Txt STOP to end',
+    n + ', quick reminder that your store is built and paid for. Go live whenever you are ready: ' + link + ' Txt STOP to end',
     'Two weeks ago you bought a store, ' + n + '. It takes 10 minutes to turn on: ' + link + ' Txt STOP to end',
-    'Last reminder from us, ' + n + '. Your activation link stays valid: ' + link + ' — Sell Products AI. Reply STOP to opt out.'
+    'Last reminder from us, ' + n + '. Your activation link stays valid: ' + link + ' - Sell Products AI. Reply STOP to opt out.'
   ];
-  return T[i] || '';
+  // belt and braces: strip anything outside printable ASCII
+  return String(T[i] || '').replace(/[^\x20-\x7E]/g, '');
 }
 const CFG = 'members/config/ordersheet.json';
 const WHOP_CFG = 'members/config/whop.json';
@@ -255,7 +258,7 @@ async function pushSms(phone, text, diag){
   const r = await fetch(ST_API, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + smsKey(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contactPhone: phone, mode: 'AUTO', text })
+    body: JSON.stringify({ contactPhone: phone, mode: 'MULTI_SMS', text }) // plain SMS, never MMS
   });
   const body = String(await r.text().catch(() => '')).slice(0, 300);
   if(diag){ diag.status = r.status; diag.body = body; }
