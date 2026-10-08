@@ -447,6 +447,44 @@ module.exports = async (req, res) => {
       const r = await pushSms(to, dripText(0, String(q.name || '').slice(0, 40), 'https://sellproducts.ai/?resume=TEST'), diag);
       return res.status(200).json({ ok: r.ok, mode_used: diag.mode, st_status: diag.status, st_body: diag.body });
     }
+    /* owner: SimpleTexting's OWN record of messages sent — the ground truth for
+       "did texts go out", independent of our ledger */
+    if(q.probe === 'stsent' && isOwner){
+      if(!smsKey()) return res.status(200).json({ ok:false, error:'no_sms_key' });
+      const hrs = Math.min(parseInt(q.hours, 10) || 24, 168);
+      const sinceMs = Date.now() - hrs * 3600 * 1000;
+      const out = { ok:true, window_hours: hrs, pages: 0, raw_status: null, total_seen: 0, outbound_in_window: 0,
+        by_phone_tail: {}, sample: [] };
+      try{
+        for(let page = 0; page < 5; page++){
+          const r = await fetch(ST_API.replace(/\/messages$/, '') + '/messages?page=' + page + '&size=100',
+            { headers: { Authorization: 'Bearer ' + smsKey() } });
+          out.raw_status = r.status;
+          const j = await r.json().catch(() => ({}));
+          const arr = Array.isArray(j) ? j : ((j && (j.content || j.messages || j.data)) || []);
+          if(!arr.length){ if(page === 0) out.raw_keys = Object.keys(j || {}); break; }
+          out.pages++;
+          let older = false;
+          for(const m of arr){
+            out.total_seen++;
+            const t = Date.parse(m.timestamp || m.createdAt || m.created || m.sentAt || m.date || '') || 0;
+            const dir = String(m.direction || m.type || m.messageType || '').toUpperCase();
+            const ph = String(m.contactPhone || m.phone || m.to || '').replace(/\D/g, '');
+            if(t && t < sinceMs){ older = true; continue; }
+            if(/IN|RECEIV|MO\b/.test(dir) && !/OUT/.test(dir)) continue;
+            out.outbound_in_window++;
+            const tail = '…' + ph.slice(-4);
+            out.by_phone_tail[tail] = (out.by_phone_tail[tail] || 0) + 1;
+            if(out.sample.length < 8) out.sample.push({ at: t ? new Date(t).toISOString() : null, to: tail,
+              dir: dir || null, text: String(m.text || m.body || '').slice(0, 60) });
+          }
+          if(older) break;
+        }
+        out.max_to_one_number = Math.max(0, ...Object.values(out.by_phone_tail));
+        out.distinct_numbers = Object.keys(out.by_phone_tail).length;
+      }catch(e){ out.error = String(e && e.message || e).slice(0, 160); }
+      return res.status(200).json(out);
+    }
     /* owner: raw DropStart status for a store — to discover an activation flag */
     if(q.probe === 'dsstatus' && isOwner){
       const pid = String(q.pid || '').replace(/\D/g, '');
