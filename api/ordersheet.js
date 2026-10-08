@@ -13,6 +13,17 @@
    GET  ?probe=seturl&key=READ_KEY&url=...     → store the Apps Script URL
    GET  ?probe=setwhop&key=READ_KEY&wk=...     → store the Whop API key
    GET  ?ping=1&key=READ_KEY                   → config + ledger sanity
+   3. SMS ACTIVATION DRIP — $20 store buyers who opted in to texts (their
+      ActiveCampaign contact carries the consented phone) get their activation
+      link by SMS on a schedule: +10m, +1h, +24h, +48h, +72h, +6d, +9d, +12d,
+      +15d. Stops the moment Mission 1 "Go Live" is marked done in the
+      members area, on a STOP reply (SimpleTexting rejects the send), or when
+      the schedule ends. One message per buyer per sweep, never a burst.
+      Needs env SIMPLETEXTING_API_KEY. Buyers from before the deploy are never
+      enrolled (start watermark).
+   GET  ?probe=drip&key=READ_KEY               → drip ledger summary
+   GET  ?probe=driptest&key=READ_KEY&to=1XXX&name=Amer → send step-0 copy to a number
+   GET  ?probe=dsstatus&key=READ_KEY&pid=NNN   → raw DropStart status for a store
 
    Sheet columns (row 1 headers, set by hand):
    Date (PT) | Email | Product | Amount | Source | Order ID */
@@ -23,6 +34,31 @@ const TYPES = new Set(['video_ads_5']); // sheet sink
 const ALL_TYPES = new Set(['store_unlock20', 'store_unlock', 'video_ads_5', 'image_ads_10', 'store_addons']); // whop sink
 const LEDGER = 'orders/videolog.json';
 const WHOP_LEDGER = 'orders/whoplog.json';
+const DRIP_LEDGER = 'orders/smsdrip.json';
+const DRIP_TYPES = new Set(['store_unlock20']);
+const ST_API = 'https://api-app2.simpletexting.com/v2/api/messages';
+const AC = require('./members.js').AC; // ActiveCampaign creds live in members.js only
+/* DropStart status via OUR proxy (/api/ds holds the express key server-side —
+   it is deliberately not duplicated here) */
+const DS_STATUS = 'https://www.sellproducts.ai/api/ds/status/';
+/* seconds after purchase for each step */
+const DRIP_AT = [10*60, 3600, 24*3600, 48*3600, 72*3600, 6*86400, 9*86400, 12*86400, 15*86400];
+function dripText(i, name, link){
+  const n = name ? name : 'Hey';
+  const nm = name ? name + ',' : 'Hey —';
+  const T = [
+    nm + ' your store is built and waiting 🎉 Activate it here (takes ~10 min): ' + link + ' — Sell Products AI. Reply STOP to opt out.',
+    'Quick one, ' + n + ': your store can\'t make a single sale until it\'s live. Your activation link: ' + link + ' Txt STOP to end',
+    nm + ' 24 hours in and your store is still offline. Most people finish activation in 10 minutes: ' + link + ' Txt STOP to end',
+    'Day 2: your trending product is still reserved for you, ' + n + '. Take the store live: ' + link + ' Txt STOP to end',
+    nm + ' this is the step most people never do — and the only one that matters. Activate your store: ' + link + ' Txt STOP to end',
+    'Still here for you, ' + n + '. Your store, your product, your activation link: ' + link + ' Txt STOP to end',
+    n + ' — quick reminder that your store is built and paid for. Go live whenever you\'re ready: ' + link + ' Txt STOP to end',
+    'Two weeks ago you bought a store, ' + n + '. It takes 10 minutes to turn on: ' + link + ' Txt STOP to end',
+    'Last reminder from us, ' + n + '. Your activation link stays valid: ' + link + ' — Sell Products AI. Reply STOP to opt out.'
+  ];
+  return T[i] || '';
+}
 const CFG = 'members/config/ordersheet.json';
 const WHOP_CFG = 'members/config/whop.json';
 const WHOP_ACCOUNT = 'biz_FXze6GwnWnentH';
@@ -141,6 +177,7 @@ async function collectOrders(gteSec){
     rows.push({
       id: s.id, created: s.created, type: ty,
       email: email,
+      pid: (s.metadata && s.metadata.project_id) || '',
       utm: utm,
       product: (s.metadata && s.metadata.product) || '',
       value: (s.amount_total || 0) / 100,
@@ -205,6 +242,55 @@ async function pushWhop(key, row, diag){
   return r.status >= 200 && r.status < 300;
 }
 
+/* ---- SMS activation drip helpers ---- */
+function smsKey(){ return process.env.SIMPLETEXTING_API_KEY || ''; }
+function normPhone(p){
+  const d = String(p || '').replace(/\D/g, '');
+  if(d.length === 10) return '1' + d;
+  if(d.length >= 11 && d.length <= 15) return d;
+  return '';
+}
+async function pushSms(phone, text, diag){
+  const r = await fetch(ST_API, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + smsKey(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contactPhone: phone, mode: 'AUTO', text })
+  });
+  const body = String(await r.text().catch(() => '')).slice(0, 300);
+  if(diag){ diag.status = r.status; diag.body = body; }
+  // a STOPped / blocked number comes back 4xx with an unsubscribe-flavoured message
+  const optedOut = r.status >= 400 && r.status < 500 && /unsubscrib|opt.?out|blocked|blacklist/i.test(body);
+  return { ok: r.status >= 200 && r.status < 300, optedOut, status: r.status };
+}
+/* the buyer's consented phone + first name + activation link, from the AC contact */
+async function acBuyer(email){
+  const out = { phone: '', name: '', link: '' };
+  if(!email) return out;
+  try{
+    const h = { 'Api-Token': AC.key };
+    const f = await fetch(AC.url + '/api/3/contacts?email=' + encodeURIComponent(email), { headers: h }).then(r => r.json());
+    const c = f && f.contacts && f.contacts[0];
+    if(!c) return out;
+    out.phone = normPhone(c.phone);
+    out.name = String(c.firstName || '').trim().slice(0, 40);
+    const fv = await fetch(AC.url + '/api/3/contacts/' + c.id + '/fieldValues', { headers: h }).then(r => r.json());
+    const hit = ((fv && fv.fieldValues) || []).find(v => String(v.field) === String(AC.activationField) && v.value);
+    if(hit) out.link = String(hit.value);
+  }catch(e){}
+  return out;
+}
+/* Mission 1 "Go Live" marked done in the members area = activated */
+async function activated(cs){
+  const rec = await bread('members/' + cs + '.json');
+  return !!(rec && Array.isArray(rec.done) && rec.done.includes(1));
+}
+async function dsStatus(pid){
+  try{
+    const r = await fetch(DS_STATUS + encodeURIComponent(pid));
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  }catch(e){ return { error: String(e && e.message || e).slice(0, 120) }; }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const q = req.query || {};
@@ -240,6 +326,36 @@ module.exports = async (req, res) => {
         logged_orders: Object.keys(ledger.seen || {}).length,
         whop_sent: Object.keys(wledger.seen || {}).length,
         whop_start: wledger.start });
+    }
+    /* owner: SMS drip ledger summary */
+    if(q.probe === 'drip' && isOwner){
+      const d = (await bread(DRIP_LEDGER)) || { buyers: {} };
+      const B = Object.values(d.buyers || {});
+      const stops = {};
+      for(const b of B) if(b.stop) stops[b.stop] = (stops[b.stop] || 0) + 1;
+      const recentPids = (await collectOrders(Math.floor(Date.now() / 1000) - 48 * 3600))
+        .filter(r => DRIP_TYPES.has(r.type) && r.pid).slice(-3).map(r => r.pid);
+      return res.status(200).json({ ok:true, has_sms_key: !!smsKey(), start: d.start || null,
+        recent_pids: recentPids,
+        enrolled: B.length, active: B.filter(b => !b.stop).length, stopped: stops,
+        messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
+        recent: B.slice(-5).map(b => ({ cs_tail: '…' + String(b.cs || '').slice(-6), name: b.n || '', pid: b.pid || '',
+          sent_steps: b.sent || [], stop: b.stop || null, enrolled_at: b.at ? new Date(b.at * 1000).toISOString() : null })) });
+    }
+    /* owner: send the step-0 copy to a number — proves key, host and copy */
+    if(q.probe === 'driptest' && isOwner){
+      if(!smsKey()) return res.status(200).json({ ok:false, error:'no_sms_key' });
+      const to = normPhone(q.to);
+      if(!to) return res.status(200).json({ ok:false, error:'bad_to', hint:'?to=1XXXXXXXXXX' });
+      const diag = {};
+      const r = await pushSms(to, dripText(0, String(q.name || '').slice(0, 40), 'https://sellproducts.ai/?resume=TEST'), diag);
+      return res.status(200).json({ ok: r.ok, st_status: diag.status, st_body: diag.body });
+    }
+    /* owner: raw DropStart status for a store — to discover an activation flag */
+    if(q.probe === 'dsstatus' && isOwner){
+      const pid = String(q.pid || '').replace(/\D/g, '');
+      if(!pid) return res.status(200).json({ ok:false, error:'bad_pid' });
+      return res.status(200).json({ ok:true, pid, ds: await dsStatus(pid) });
     }
     /* owner: Whop-ad attribution stats — Stripe-truth count of waid-stamped orders */
     if(q.probe === 'whopstats' && isOwner){
@@ -325,8 +441,51 @@ module.exports = async (req, res) => {
       if(wsent || !wledger.written){ wledger.written = 1; await bwrite(WHOP_LEDGER, wledger); }
     }
 
+    // sink 3: SMS activation drip — enroll new opted-in store buyers, send due steps
+    let dEnrolled = 0, dSent = 0, dStopped = 0;
+    if(smsKey()){
+      const now = Math.floor(Date.now() / 1000);
+      const d = (await bread(DRIP_LEDGER)) || { start: now - 600, buyers: {} };
+      let dirty = !d.written;
+      // enroll: $20 store sessions since the watermark, once each
+      for(const row of rows){
+        if(!DRIP_TYPES.has(row.type) || !/^cs_/.test(row.id)) continue;
+        if(row.created < (d.start || 0) || d.buyers[row.id]) continue;
+        if(now - row.created < 120) continue; // let the lead bridge land the phone on the AC contact first
+        const b = await acBuyer(row.email);
+        const rec = { cs: row.id, at: now, c: row.created, e: row.email, pid: row.pid || '', sent: [], stop: null };
+        if(!b.phone){ rec.stop = 'no_consent'; }
+        else{
+          rec.p = b.phone; rec.n = b.name;
+          rec.l = b.link || (row.pid ? 'https://sellproducts.ai/?resume=' + encodeURIComponent(row.pid) : 'https://www.sellproducts.ai/members');
+        }
+        d.buyers[row.id] = rec; dirty = true; dEnrolled++;
+      }
+      // send: one due step per active buyer per sweep (the latest due, never a burst)
+      for(const cs of Object.keys(d.buyers)){
+        const b = d.buyers[cs];
+        if(b.stop) continue;
+        let due = -1;
+        for(let i = 0; i < DRIP_AT.length; i++) if(now >= b.c + DRIP_AT[i] && !b.sent.includes(i)) due = i;
+        if(due < 0){
+          if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dirty = true; dStopped++; }
+          continue;
+        }
+        if(await activated(cs)){ b.stop = 'activated'; dirty = true; dStopped++; continue; }
+        const r = await pushSms(b.p, dripText(due, b.n, b.l));
+        if(r.ok){ b.sent.push(due); b.last = now; dirty = true; dSent++; }
+        else if(r.optedOut){ b.stop = 'opted_out'; dirty = true; dStopped++; }
+        else { b.fail = (b.fail || 0) + 1; dirty = true; if(b.fail >= 12){ b.stop = 'send_failed'; dStopped++; } }
+        if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dStopped++; }
+      }
+      // prune buyers older than the schedule + a margin
+      for(const cs of Object.keys(d.buyers)) if(d.buyers[cs].c < now - 20 * 86400){ delete d.buyers[cs]; dirty = true; }
+      if(dirty){ d.written = 1; await bwrite(DRIP_LEDGER, d); }
+    }
+
     return res.status(200).json({ ok:true, scanned: rows.length,
-      sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey } });
+      sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey },
+      drip: { enrolled: dEnrolled, sent: dSent, stopped: dStopped, enabled: !!smsKey() } });
   }catch(e){
     return res.status(200).json({ ok:false, error: String(e && e.message || e).slice(0, 200) });
   }
