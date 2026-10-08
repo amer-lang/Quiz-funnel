@@ -264,19 +264,29 @@ function normPhone(p){
   if(d.length >= 11 && d.length <= 15) return d;
   return '';
 }
+/* Send mode: strict single SMS first (never upgrades to MMS). If SimpleTexting
+   rejects the mode name itself, fall back to AUTO - safe now that every
+   message is plain ASCII under the cap (AUTO only went MMS over an emoji). */
+let ST_MODE = 'SINGLE_SMS_STRICT';
 async function pushSms(phone, text, diag){
-  const r = await fetch(ST_API, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + smsKey(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contactPhone: phone, mode: 'MULTI_SMS', text }) // plain SMS, never MMS
-  });
-  const body = String(await r.text().catch(() => '')).slice(0, 300);
-  if(diag){ diag.status = r.status; diag.body = body; }
+  let r, body;
+  for(let attempt = 0; attempt < 2; attempt++){
+    r = await fetch(ST_API, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + smsKey(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactPhone: phone, mode: ST_MODE, text })
+    });
+    body = String(await r.text().catch(() => '')).slice(0, 300);
+    const badMode = r.status === 409 && /INVALID_INPUT_VALUE/.test(body) && new RegExp(ST_MODE).test(body);
+    if(badMode && ST_MODE !== 'AUTO'){ ST_MODE = 'AUTO'; continue; }
+    break;
+  }
+  if(diag){ diag.status = r.status; diag.body = body; diag.mode = ST_MODE; }
   // a STOPped / blocked number comes back 4xx with an unsubscribe-flavoured message
   const optedOut = r.status >= 400 && r.status < 500 && /unsubscrib|opt.?out|blocked|blacklist/i.test(body);
-  return { ok: r.status >= 200 && r.status < 300, optedOut, status: r.status };
+  return { ok: r.status >= 200 && r.status < 300, optedOut, status: r.status, body };
 }
-/* the "Store completed" list id, resolved by name once per lambda */
+/* the "Store Launched" list id (pinned), name lookup as fallback */
 let AC_COMPLETED_ID = AC_COMPLETED_LIST_ID || null, AC_LIST_NAMES = [];
 async function acCompletedList(){
   if(AC_COMPLETED_ID && AC_LIST_NAMES.length) return AC_COMPLETED_ID;
@@ -289,7 +299,7 @@ async function acCompletedList(){
   }catch(e){}
   return AC_COMPLETED_ID;
 }
-/* stop signal: the buyer's AC contact is an ACTIVE member of "Store completed" */
+/* stop signal: the buyer's AC contact is an ACTIVE member of "Store Launched" */
 async function acCompleted(b){
   try{
     const h = { 'Api-Token': AC.key };
@@ -381,8 +391,10 @@ module.exports = async (req, res) => {
         recent_pids: recentPids,
         enrolled: B.length, active: B.filter(b => !b.stop).length, stopped: stops,
         messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
+        send_mode: ST_MODE,
         recent: B.slice(-5).map(b => ({ cs_tail: '…' + String(b.cs || '').slice(-6), name: b.n || '', pid: b.pid || '',
-          sent_steps: b.sent || [], stop: b.stop || null, enrolled_at: b.at ? new Date(b.at * 1000).toISOString() : null })) });
+          sent_steps: b.sent || [], fails: b.fail || 0, last_error: b.err || null, stop: b.stop || null,
+          enrolled_at: b.at ? new Date(b.at * 1000).toISOString() : null })) });
     }
     /* owner: send the step-0 copy to a number — proves key, host and copy */
     if(q.probe === 'driptest' && isOwner){
@@ -391,7 +403,7 @@ module.exports = async (req, res) => {
       if(!to) return res.status(200).json({ ok:false, error:'bad_to', hint:'?to=1XXXXXXXXXX' });
       const diag = {};
       const r = await pushSms(to, dripText(0, String(q.name || '').slice(0, 40), 'https://sellproducts.ai/?resume=TEST'), diag);
-      return res.status(200).json({ ok: r.ok, st_status: diag.status, st_body: diag.body });
+      return res.status(200).json({ ok: r.ok, mode_used: diag.mode, st_status: diag.status, st_body: diag.body });
     }
     /* owner: raw DropStart status for a store — to discover an activation flag */
     if(q.probe === 'dsstatus' && isOwner){
@@ -517,9 +529,10 @@ module.exports = async (req, res) => {
         }
         if(await acCompleted(b)){ b.stop = 'store_completed'; dirty = true; dStopped++; continue; }
         const r = await pushSms(b.p, dripText(due, b.n, b.l));
-        if(r.ok){ b.sent.push(due); b.last = now; dirty = true; dSent++; }
-        else if(r.optedOut){ b.stop = 'opted_out'; dirty = true; dStopped++; }
-        else { b.fail = (b.fail || 0) + 1; dirty = true; if(b.fail >= 12){ b.stop = 'send_failed'; dStopped++; } }
+        if(r.ok){ b.sent.push(due); b.last = now; b.err = null; dirty = true; dSent++; }
+        else if(r.optedOut){ b.stop = 'opted_out'; b.err = r.status + ' ' + r.body; dirty = true; dStopped++; }
+        else { b.fail = (b.fail || 0) + 1; b.err = r.status + ' ' + String(r.body || '').slice(0, 160); dirty = true;
+          if(b.fail >= 12){ b.stop = 'send_failed'; dStopped++; } }
         if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dStopped++; }
       }
       // prune buyers older than the schedule + a margin
