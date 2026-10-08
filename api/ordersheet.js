@@ -281,10 +281,12 @@ function normPhone(p){
   if(d.length >= 11 && d.length <= 15) return d;
   return '';
 }
-/* Send mode: strict single SMS first (never upgrades to MMS). If SimpleTexting
-   rejects the mode name itself, fall back to AUTO - safe now that every
-   message is plain ASCII under the cap (AUTO only went MMS over an emoji). */
-let ST_MODE = 'SINGLE_SMS_STRICT';
+/* Send mode: AUTO is the only mode SimpleTexting accepted on this account
+   (MULTI_SMS and SINGLE_SMS_STRICT were both rejected with 409). AUTO stays
+   plain SMS because every message is pure ASCII under the cap - it only went
+   MMS when the copy carried an emoji. The 409 fallback below is kept so a
+   future mode change can never stall sends. */
+let ST_MODE = 'AUTO';
 async function pushSms(phone, text, diag){
   let r, body;
   for(let attempt = 0; attempt < 2; attempt++){
