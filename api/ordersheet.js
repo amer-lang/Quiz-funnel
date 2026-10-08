@@ -16,9 +16,9 @@
    3. SMS ACTIVATION DRIP — $20 store buyers who opted in to texts (their
       ActiveCampaign contact carries the consented phone) get their activation
       link by SMS on a schedule: +10m, +1h, +24h, +48h, +72h, +6d, +9d, +12d,
-      +15d. Stops the moment Mission 1 "Go Live" is marked done in the
-      members area, on a STOP reply (SimpleTexting rejects the send), or when
-      the schedule ends. One message per buyer per sweep, never a burst.
+      +15d. Stops the moment the buyer's ActiveCampaign contact is an active
+      member of the "Store completed" list, on a STOP reply (SimpleTexting
+      rejects the send), or when the schedule ends. One message per buyer per sweep, never a burst.
       Needs env SIMPLETEXTING_API_KEY. Buyers from before the deploy are never
       enrolled (start watermark).
    GET  ?probe=drip&key=READ_KEY               → drip ledger summary
@@ -36,6 +36,7 @@ const LEDGER = 'orders/videolog.json';
 const WHOP_LEDGER = 'orders/whoplog.json';
 const DRIP_LEDGER = 'orders/smsdrip.json';
 const DRIP_TYPES = new Set(['store_unlock20']);
+const AC_COMPLETED_LIST = 'Store completed'; // AC list = stop signal for the drip
 const ST_API = 'https://api-app2.simpletexting.com/v2/api/messages';
 const AC = require('./members.js').AC; // ActiveCampaign creds live in members.js only
 /* DropStart status via OUR proxy (/api/ds holds the express key server-side —
@@ -262,15 +263,44 @@ async function pushSms(phone, text, diag){
   const optedOut = r.status >= 400 && r.status < 500 && /unsubscrib|opt.?out|blocked|blacklist/i.test(body);
   return { ok: r.status >= 200 && r.status < 300, optedOut, status: r.status };
 }
+/* the "Store completed" list id, resolved by name once per lambda */
+let AC_COMPLETED_ID = null;
+async function acCompletedList(){
+  if(AC_COMPLETED_ID) return AC_COMPLETED_ID;
+  try{
+    const r = await fetch(AC.url + '/api/3/lists?limit=100', { headers: { 'Api-Token': AC.key } }).then(x => x.json());
+    const hit = ((r && r.lists) || []).find(l => String(l.name || '').trim().toLowerCase() === AC_COMPLETED_LIST.toLowerCase());
+    if(hit) AC_COMPLETED_ID = Number(hit.id);
+  }catch(e){}
+  return AC_COMPLETED_ID;
+}
+/* stop signal: the buyer's AC contact is an ACTIVE member of "Store completed" */
+async function acCompleted(b){
+  try{
+    const h = { 'Api-Token': AC.key };
+    const lid = await acCompletedList();
+    if(!lid) return false; // list missing → never stop on it (probe shows this)
+    let cid = b.ac;
+    if(!cid){
+      const f = await fetch(AC.url + '/api/3/contacts?email=' + encodeURIComponent(b.e || ''), { headers: h }).then(r => r.json());
+      cid = f && f.contacts && f.contacts[0] ? f.contacts[0].id : '';
+      if(cid) b.ac = cid;
+    }
+    if(!cid) return false;
+    const m = await fetch(AC.url + '/api/3/contacts/' + cid + '/contactLists', { headers: h }).then(r => r.json());
+    return ((m && m.contactLists) || []).some(x => String(x.list) === String(lid) && String(x.status) === '1');
+  }catch(e){ return false; }
+}
 /* the buyer's consented phone + first name + activation link, from the AC contact */
 async function acBuyer(email){
-  const out = { phone: '', name: '', link: '' };
+  const out = { phone: '', name: '', link: '', id: '' };
   if(!email) return out;
   try{
     const h = { 'Api-Token': AC.key };
     const f = await fetch(AC.url + '/api/3/contacts?email=' + encodeURIComponent(email), { headers: h }).then(r => r.json());
     const c = f && f.contacts && f.contacts[0];
     if(!c) return out;
+    out.id = c.id;
     out.phone = normPhone(c.phone);
     out.name = String(c.firstName || '').trim().slice(0, 40);
     const fv = await fetch(AC.url + '/api/3/contacts/' + c.id + '/fieldValues', { headers: h }).then(r => r.json());
@@ -278,11 +308,6 @@ async function acBuyer(email){
     if(hit) out.link = String(hit.value);
   }catch(e){}
   return out;
-}
-/* Mission 1 "Go Live" marked done in the members area = activated */
-async function activated(cs){
-  const rec = await bread('members/' + cs + '.json');
-  return !!(rec && Array.isArray(rec.done) && rec.done.includes(1));
 }
 async function dsStatus(pid){
   try{
@@ -335,7 +360,9 @@ module.exports = async (req, res) => {
       for(const b of B) if(b.stop) stops[b.stop] = (stops[b.stop] || 0) + 1;
       const recentPids = (await collectOrders(Math.floor(Date.now() / 1000) - 48 * 3600))
         .filter(r => DRIP_TYPES.has(r.type) && r.pid).slice(-3).map(r => r.pid);
+      const clid = await acCompletedList();
       return res.status(200).json({ ok:true, has_sms_key: !!smsKey(), start: d.start || null,
+        stop_list: { name: AC_COMPLETED_LIST, ac_list_id: clid || null, resolved: !!clid },
         recent_pids: recentPids,
         enrolled: B.length, active: B.filter(b => !b.stop).length, stopped: stops,
         messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
@@ -456,7 +483,7 @@ module.exports = async (req, res) => {
         const rec = { cs: row.id, at: now, c: row.created, e: row.email, pid: row.pid || '', sent: [], stop: null };
         if(!b.phone){ rec.stop = 'no_consent'; }
         else{
-          rec.p = b.phone; rec.n = b.name;
+          rec.p = b.phone; rec.n = b.name; rec.ac = b.id;
           rec.l = b.link || (row.pid ? 'https://sellproducts.ai/?resume=' + encodeURIComponent(row.pid) : 'https://www.sellproducts.ai/members');
         }
         d.buyers[row.id] = rec; dirty = true; dEnrolled++;
@@ -471,7 +498,7 @@ module.exports = async (req, res) => {
           if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dirty = true; dStopped++; }
           continue;
         }
-        if(await activated(cs)){ b.stop = 'activated'; dirty = true; dStopped++; continue; }
+        if(await acCompleted(b)){ b.stop = 'store_completed'; dirty = true; dStopped++; continue; }
         const r = await pushSms(b.p, dripText(due, b.n, b.l));
         if(r.ok){ b.sent.push(due); b.last = now; dirty = true; dSent++; }
         else if(r.optedOut){ b.stop = 'opted_out'; dirty = true; dStopped++; }
