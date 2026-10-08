@@ -17,7 +17,7 @@
       ActiveCampaign contact carries the consented phone) get their activation
       link by SMS on a schedule: +10m, +1h, +24h, +48h, +72h, +6d, +9d, +12d,
       +15d. Stops the moment the buyer's ActiveCampaign contact is an active
-      member of the "Store completed" list, on a STOP reply (SimpleTexting
+      member of the "Store Launched" list (id 9), on a STOP reply (SimpleTexting
       rejects the send), or when the schedule ends. One message per buyer per sweep, never a burst.
       Needs env SIMPLETEXTING_API_KEY. Buyers from before the deploy are never
       enrolled (start watermark).
@@ -36,7 +36,8 @@ const LEDGER = 'orders/videolog.json';
 const WHOP_LEDGER = 'orders/whoplog.json';
 const DRIP_LEDGER = 'orders/smsdrip.json';
 const DRIP_TYPES = new Set(['store_unlock20']);
-const AC_COMPLETED_LIST = 'Store completed'; // AC list = stop signal for the drip
+const AC_COMPLETED_LIST = 'Store Launched'; // AC list = stop signal for the drip
+const AC_COMPLETED_LIST_ID = 9;               // pinned by the owner; name lookup is the fallback
 const ST_API = 'https://api-app2.simpletexting.com/v2/api/messages';
 const AC = require('./members.js').AC; // ActiveCampaign creds live in members.js only
 /* DropStart status via OUR proxy (/api/ds holds the express key server-side —
@@ -276,9 +277,9 @@ async function pushSms(phone, text, diag){
   return { ok: r.status >= 200 && r.status < 300, optedOut, status: r.status };
 }
 /* the "Store completed" list id, resolved by name once per lambda */
-let AC_COMPLETED_ID = null, AC_LIST_NAMES = [];
+let AC_COMPLETED_ID = AC_COMPLETED_LIST_ID || null, AC_LIST_NAMES = [];
 async function acCompletedList(){
-  if(AC_COMPLETED_ID) return AC_COMPLETED_ID;
+  if(AC_COMPLETED_ID && AC_LIST_NAMES.length) return AC_COMPLETED_ID;
   try{
     const r = await fetch(AC.url + '/api/3/lists?limit=100', { headers: { 'Api-Token': AC.key } }).then(x => x.json());
     const lists = (r && r.lists) || [];
