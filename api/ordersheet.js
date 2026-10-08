@@ -448,43 +448,86 @@ module.exports = async (req, res) => {
       const r = await pushSms(to, dripText(0, String(q.name || '').slice(0, 40), 'https://sellproducts.ai/?resume=TEST'), diag);
       return res.status(200).json({ ok: r.ok, mode_used: diag.mode, st_status: diag.status, st_body: diag.body });
     }
-    /* owner: SimpleTexting's OWN record of messages sent — the ground truth for
-       "did texts go out", independent of our ledger */
+    /* owner: SimpleTexting's OWN record of OUR outbound drip texts - the ground
+       truth. Rate-limit aware (429 -> wait -> retry), paged, aggregated per
+       number, saved to orders/sms-incident.json for the record. */
     if(q.probe === 'stsent' && isOwner){
       if(!smsKey()) return res.status(200).json({ ok:false, error:'no_sms_key' });
       const hrs = Math.min(parseInt(q.hours, 10) || 24, 168);
       const sinceMs = Date.now() - hrs * 3600 * 1000;
-      const out = { ok:true, window_hours: hrs, pages: 0, raw_status: null, total_seen: 0, outbound_in_window: 0,
-        by_phone_tail: {}, sample: [] };
+      const per = {}; // phone -> { n, first, last, name }
+      const out = { ok:true, window_hours: hrs, pages: 0, total_seen: 0, ours_in_window: 0, inbound_replies: [] };
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
       try{
-        for(let page = 0; page < 5; page++){
-          const r = await fetch(ST_API.replace(/\/messages$/, '') + '/messages?page=' + page + '&size=100',
-            { headers: { Authorization: 'Bearer ' + smsKey() } });
-          out.raw_status = r.status;
-          const j = await r.json().catch(() => ({}));
+        let older = false;
+        for(let page = 0; page < 40 && !older; page++){
+          let r, j, tries = 0;
+          do{
+            r = await fetch(ST_API.replace(/\/messages$/, '') + '/messages?page=' + page + '&size=100',
+              { headers: { Authorization: 'Bearer ' + smsKey() } });
+            if(r.status === 429){ tries++; await sleep(2500 * tries); continue; }
+            break;
+          }while(tries < 4);
+          out.last_status = r.status;
+          if(r.status === 429){ out.rate_limited_at_page = page; break; }
+          j = await r.json().catch(() => ({}));
           const arr = Array.isArray(j) ? j : ((j && (j.content || j.messages || j.data)) || []);
-          if(!arr.length){ if(page === 0) out.raw_keys = Object.keys(j || {}); break; }
+          if(!arr.length) break;
           out.pages++;
-          let older = false;
           for(const m of arr){
             out.total_seen++;
             const t = Date.parse(m.timestamp || m.createdAt || m.created || m.sentAt || m.date || '') || 0;
-            const dir = String(m.direction || m.type || m.messageType || '').toUpperCase();
-            const ph = String(m.contactPhone || m.phone || m.to || '').replace(/\D/g, '');
             if(t && t < sinceMs){ older = true; continue; }
-            if(/IN|RECEIV|MO\b/.test(dir) && !/OUT/.test(dir)) continue;
-            out.outbound_in_window++;
-            const tail = '…' + ph.slice(-4);
-            out.by_phone_tail[tail] = (out.by_phone_tail[tail] || 0) + 1;
-            if(out.sample.length < 8) out.sample.push({ at: t ? new Date(t).toISOString() : null, to: tail,
-              dir: dir || null, text: String(m.text || m.body || '').slice(0, 60) });
+            const ph = String(m.contactPhone || m.phone || m.to || '').replace(/\D/g, '');
+            const text = String(m.text || m.body || '');
+            const ours = /sellproducts\.ai\/\?resume=|Sell Products AI|Txt STOP to end/.test(text);
+            if(!ours){
+              if(out.inbound_replies.length < 40 && text.trim())
+                out.inbound_replies.push({ at: t ? new Date(t).toISOString() : null, from: '…' + ph.slice(-4), text: text.slice(0, 120) });
+              continue;
+            }
+            out.ours_in_window++;
+            const rec = per[ph] || (per[ph] = { n: 0, first: t, last: t, name: (text.match(/^([^,]{1,40}),/) || [])[1] || '' });
+            rec.n++; if(t < rec.first) rec.first = t; if(t > rec.last) rec.last = t;
           }
-          if(older) break;
         }
-        out.max_to_one_number = Math.max(0, ...Object.values(out.by_phone_tail));
-        out.distinct_numbers = Object.keys(out.by_phone_tail).length;
       }catch(e){ out.error = String(e && e.message || e).slice(0, 160); }
+      const list = Object.entries(per).map(([ph, r]) => ({ phone_tail: '…' + ph.slice(-4), phone: ph, n: r.n, name: r.name,
+        first: new Date(r.first).toISOString(), last: new Date(r.last).toISOString() })).sort((a, b) => b.n - a.n);
+      out.distinct_numbers = list.length;
+      out.got_more_than_one = list.filter(x => x.n > 1).length;
+      out.max_to_one_number = list.length ? list[0].n : 0;
+      out.by_count = {};
+      for(const x of list) out.by_count[x.n] = (out.by_count[x.n] || 0) + 1;
+      out.top = list.slice(0, 15).map(x => ({ to: x.phone_tail, name: x.name, n: x.n, first: x.first, last: x.last }));
+      try{ await bwrite('orders/sms-incident.json', { scanned_at: new Date().toISOString(), window_hours: hrs, numbers: list,
+        inbound_replies: out.inbound_replies, summary: { distinct: out.distinct_numbers, messages: out.ours_in_window, max: out.max_to_one_number } }); out.saved = true; }catch(e){ out.saved = false; }
       return res.status(200).json(out);
+    }
+    /* owner: reconcile the drip ledger against the incident record - every
+       buyer whose number appears in SimpleTexting's sent log is stamped as
+       having received the intro (steps 0+1 done) with `last` = their latest
+       real send, so the 45-min guard and the schedule both see the truth. */
+    if(q.probe === 'dripreconcile' && isOwner){
+      const inc = await bread('orders/sms-incident.json');
+      if(!inc || !Array.isArray(inc.numbers)) return res.status(200).json({ ok:false, error:'run ?probe=stsent first' });
+      const d = (await bread(DRIP_LEDGER)) || { buyers: {} };
+      const byPhone = {};
+      for(const x of inc.numbers) byPhone[x.phone] = x;
+      let stamped = 0, untouched = 0;
+      for(const cs of Object.keys(d.buyers)){
+        const b = d.buyers[cs];
+        if(b.stop || !b.p) continue;
+        const hit = byPhone[b.p] || byPhone[b.p.replace(/^1/, '')];
+        if(!hit){ untouched++; continue; }
+        b.incident = { n: hit.n, first: hit.first, last: hit.last };
+        for(const k of [0, 1]) if(!b.sent.includes(k)) b.sent.push(k);
+        b.last = Math.max(b.last || 0, Math.floor(Date.parse(hit.last) / 1000));
+        stamped++;
+      }
+      d.written = 1; d.reconciled_at = new Date().toISOString();
+      await bwrite(DRIP_LEDGER, d);
+      return res.status(200).json({ ok:true, stamped, untouched, drip_enabled: DRIP_ENABLED });
     }
     /* owner: raw DropStart status for a store — to discover an activation flag */
     if(q.probe === 'dsstatus' && isOwner){
