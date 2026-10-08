@@ -44,24 +44,33 @@ const AC = require('./members.js').AC; // ActiveCampaign creds live in members.j
 const DS_STATUS = 'https://www.sellproducts.ai/api/ds/status/';
 /* seconds after purchase for each step */
 const DRIP_AT = [10*60, 3600, 24*3600, 48*3600, 72*3600, 6*86400, 9*86400, 12*86400, 15*86400];
+const SMS_MAX = 142; // SimpleTexting per-message cap on this account
 function dripText(i, name, link){
   // plain-ASCII only: any emoji / smart quote / em dash lets SimpleTexting
   // upgrade the send to MMS, which carriers turn into a "rich media" link page
-  const n = name ? name : 'Hey';
-  const nm = name ? name + ',' : 'Hey -';
-  const T = [
-    nm + ' your store is built and waiting! Activate it here (takes about 10 min): ' + link + ' - Sell Products AI. Reply STOP to opt out.',
-    'Quick one, ' + n + ': your store cannot make a single sale until it is live. Your activation link: ' + link + ' Txt STOP to end',
-    nm + ' 24 hours in and your store is still offline. Most people finish activation in 10 minutes: ' + link + ' Txt STOP to end',
-    'Day 2: your trending product is still reserved for you, ' + n + '. Take the store live: ' + link + ' Txt STOP to end',
-    nm + ' this is the step most people never do, and the only one that matters. Activate your store: ' + link + ' Txt STOP to end',
-    'Still here for you, ' + n + '. Your store, your product, your activation link: ' + link + ' Txt STOP to end',
-    n + ', quick reminder that your store is built and paid for. Go live whenever you are ready: ' + link + ' Txt STOP to end',
-    'Two weeks ago you bought a store, ' + n + '. It takes 10 minutes to turn on: ' + link + ' Txt STOP to end',
-    'Last reminder from us, ' + n + '. Your activation link stays valid: ' + link + ' - Sell Products AI. Reply STOP to opt out.'
-  ];
-  // belt and braces: strip anything outside printable ASCII
-  return String(T[i] || '').replace(/[^\x20-\x7E]/g, '');
+  const build = (nm) => {
+    const n = nm || 'Hey';                 // "Still here for you, Hey." reads fine enough
+    const T = [
+      (nm ? nm + ', your' : 'Your') + ' store is built! Activate it here (10 min): ' + link + ' - Sell Products AI. Txt STOP to end',
+      'Quick one' + (nm ? ', ' + nm : '') + ': no sales until your store is live. Activate: ' + link + ' Txt STOP to end',
+      (nm ? nm + ', 24' : '24') + ' hrs in and your store is still offline. 10 min to activate: ' + link + ' Txt STOP to end',
+      'Day 2' + (nm ? ', ' + nm : '') + ': your product is still reserved for you. Go live: ' + link + ' Txt STOP to end',
+      (nm ? nm + ', this' : 'This') + ' is the one step that matters. Activate your store: ' + link + ' Txt STOP to end',
+      'Still here for you' + (nm ? ', ' + nm : '') + '. Your activation link: ' + link + ' Txt STOP to end',
+      (nm ? nm + ', your' : 'Your') + ' store is built and paid for. Go live anytime: ' + link + ' Txt STOP to end',
+      (nm ? nm + ', 2' : '2') + ' weeks ago you bought a store. 10 min to turn it on: ' + link + ' Txt STOP to end',
+      'Last reminder' + (nm ? ', ' + nm : '') + '. Your link stays valid: ' + link + ' - Sell Products AI. Txt STOP to end'
+    ];
+    return String(T[i] || '').replace(/[^\x20-\x7E]/g, '');
+  };
+  const nm = String(name || '').replace(/[^\x20-\x7E]/g, '').trim().slice(0, 12);
+  let t = build(nm);
+  if(t.length > SMS_MAX) t = build('');   // long name: drop it before touching the link
+  if(t.length > SMS_MAX){                 // still over (very long link): keep link + opt-out, trim the body
+    const tail = t.slice(t.indexOf(link));
+    t = t.slice(0, Math.max(0, SMS_MAX - tail.length - 1)).replace(/\s+\S*$/, '') + ' ' + tail;
+  }
+  return t.slice(0, SMS_MAX);
 }
 const CFG = 'members/config/ordersheet.json';
 const WHOP_CFG = 'members/config/whop.json';
@@ -487,7 +496,9 @@ module.exports = async (req, res) => {
         if(!b.phone){ rec.stop = 'no_consent'; }
         else{
           rec.p = b.phone; rec.n = b.name; rec.ac = b.id;
-          rec.l = b.link || (row.pid ? 'https://sellproducts.ai/?resume=' + encodeURIComponent(row.pid) : 'https://www.sellproducts.ai/members');
+          // short durable link only (37-38 chars) - the AC field can hold a long
+          // signed URL that would bust the per-message cap on its own
+          rec.l = row.pid ? 'https://sellproducts.ai/?resume=' + encodeURIComponent(row.pid) : 'https://www.sellproducts.ai/members';
         }
         d.buyers[row.id] = rec; dirty = true; dEnrolled++;
       }
