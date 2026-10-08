@@ -55,6 +55,13 @@ function dripPlan(b, now){
 }
 function dripMarkSent(b, due){ for(let i = 0; i <= due; i++) if(!b.sent.includes(i)) b.sent.push(i); }
 const DRIP_FAIL_MAX = 48; // ~4h of consecutive failures before a buyer is parked
+/* sweep safety: the function has a hard runtime limit. Work is capped per
+   sweep and the ledger is SAVED AFTER EVERY SEND, so a timeout can never lose
+   the record of a text that went out (which would mean re-sending it). */
+const DRIP_MAX_SENDS = 20;      // texts per sweep (cron runs every 5 min)
+const DRIP_MAX_ENROLL = 25;     // AC lookups per sweep
+const DRIP_MIN_GAP = 45 * 60;   // never two texts to one buyer within 45 min, whatever the schedule says
+const SWEEP_BUDGET_MS = 40000;  // stop sending with time to spare before the platform kills us
 const ST_API = 'https://api-app2.simpletexting.com/v2/api/messages';
 const AC = require('./members.js').AC; // ActiveCampaign creds live in members.js only
 /* DropStart status via OUR proxy (/api/ds holds the express key server-side —
@@ -374,6 +381,7 @@ async function dsStatus(pid){
 }
 
 module.exports = async (req, res) => {
+  const T0 = Date.now();
   res.setHeader('Cache-Control', 'no-store');
   const q = req.query || {};
   const ua = String(req.headers['user-agent'] || '');
@@ -422,6 +430,8 @@ module.exports = async (req, res) => {
         stop_list: { name: AC_COMPLETED_LIST, ac_list_id: clid || null, resolved: !!clid, ac_lists_seen: AC_LIST_NAMES },
         recent_pids: recentPids,
         enrolled: B.length, active: B.filter(b => !b.stop).length, stopped: stops,
+        due_now: B.filter(b => !b.stop && dripPlan(b, Math.floor(Date.now() / 1000)).due >= 0).length,
+        sent_last_hour: B.filter(b => b.last && b.last > Math.floor(Date.now() / 1000) - 3600).length,
         messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
         send_mode: ST_MODE, send_window_open_now: inSendWindow(Date.now()),
         recent: B.slice(-5).map(b => ({ cs_tail: '…' + String(b.cs || '').slice(-6), name: b.n || '', pid: b.pid || '',
@@ -533,8 +543,9 @@ module.exports = async (req, res) => {
       const now = Math.floor(Date.now() / 1000);
       const d = (await bread(DRIP_LEDGER)) || { start: now - 600, buyers: {} };
       let dirty = !d.written;
-      // enroll: $20 store sessions since the watermark, once each
+      // enroll: $20 store sessions since the watermark, once each (capped per sweep)
       for(const row of rows){
+        if(dEnrolled >= DRIP_MAX_ENROLL || Date.now() - T0 > SWEEP_BUDGET_MS) break;
         if(!DRIP_TYPES.has(row.type) || !/^cs_/.test(row.id)) continue;
         if(row.created < (d.start || 0) || d.buyers[row.id]) continue;
         if(now - row.created < 120) continue; // let the lead bridge land the phone on the AC contact first
@@ -549,10 +560,12 @@ module.exports = async (req, res) => {
         }
         d.buyers[row.id] = rec; dirty = true; dEnrolled++;
       }
+      if(dirty){ d.written = 1; await bwrite(DRIP_LEDGER, d); dirty = false; } // enrollments persisted before any send
       // send: one due step per active buyer per sweep (the latest due, never a
       // burst); skipped earlier steps are marked done so they never go out of
       // order; nothing leaves outside the quiet-hours window
       const windowOpen = inSendWindow(Date.now());
+      let dSkippedBudget = 0;
       for(const cs of Object.keys(d.buyers)){
         const b = d.buyers[cs];
         if(b.stop) continue;
@@ -562,13 +575,16 @@ module.exports = async (req, res) => {
           continue;
         }
         if(!windowOpen) continue; // waits for 11:00 ET; the latest due step goes then
+        if(b.last && now - b.last < DRIP_MIN_GAP) continue; // hard duplicate guard
+        if(dSent >= DRIP_MAX_SENDS || Date.now() - T0 > SWEEP_BUDGET_MS){ dSkippedBudget++; continue; } // next sweep
         if(await acCompleted(b)){ b.stop = 'store_completed'; dirty = true; dStopped++; continue; }
         const r = await pushSms(b.p, dripText(plan.step, b.n, b.l));
-        if(r.ok){ dripMarkSent(b, plan.due); b.last = now; b.err = null; b.fail = 0; dirty = true; dSent++; }
-        else if(r.optedOut){ b.stop = 'opted_out'; b.err = r.status + ' ' + r.body; dirty = true; dStopped++; }
-        else { b.fail = (b.fail || 0) + 1; b.err = r.status + ' ' + String(r.body || '').slice(0, 160); dirty = true;
+        if(r.ok){ dripMarkSent(b, plan.due); b.last = now; b.err = null; b.fail = 0; dSent++; }
+        else if(r.optedOut){ b.stop = 'opted_out'; b.err = r.status + ' ' + r.body; dStopped++; }
+        else { b.fail = (b.fail || 0) + 1; b.err = r.status + ' ' + String(r.body || '').slice(0, 160);
           if(b.fail >= DRIP_FAIL_MAX){ b.stop = 'send_failed'; dStopped++; } }
         if(b.sent.length >= DRIP_AT.length){ b.stop = 'completed'; dStopped++; }
+        d.written = 1; await bwrite(DRIP_LEDGER, d); dirty = false; // persist EVERY outcome immediately
       }
       // prune buyers older than the schedule + a margin
       for(const cs of Object.keys(d.buyers)) if(d.buyers[cs].c < now - 20 * 86400){ delete d.buyers[cs]; dirty = true; }
@@ -577,7 +593,8 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({ ok:true, scanned: rows.length,
       sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey },
-      drip: { enrolled: dEnrolled, sent: dSent, stopped: dStopped, enabled: !!smsKey() } });
+      drip: { enrolled: dEnrolled, sent: dSent, stopped: dStopped, deferred: dSkippedBudget, enabled: !!smsKey(),
+        sweep_ms: Date.now() - T0 } });
   }catch(e){
     return res.status(200).json({ ok:false, error: String(e && e.message || e).slice(0, 200) });
   }

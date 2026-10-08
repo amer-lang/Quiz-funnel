@@ -38,7 +38,7 @@
       "maxDuration": 60
     },
     "api/ordersheet.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/ds.js": {
       "maxDuration": 30
