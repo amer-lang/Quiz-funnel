@@ -276,12 +276,14 @@ async function pushSms(phone, text, diag){
   return { ok: r.status >= 200 && r.status < 300, optedOut, status: r.status };
 }
 /* the "Store completed" list id, resolved by name once per lambda */
-let AC_COMPLETED_ID = null;
+let AC_COMPLETED_ID = null, AC_LIST_NAMES = [];
 async function acCompletedList(){
   if(AC_COMPLETED_ID) return AC_COMPLETED_ID;
   try{
     const r = await fetch(AC.url + '/api/3/lists?limit=100', { headers: { 'Api-Token': AC.key } }).then(x => x.json());
-    const hit = ((r && r.lists) || []).find(l => String(l.name || '').trim().toLowerCase() === AC_COMPLETED_LIST.toLowerCase());
+    const lists = (r && r.lists) || [];
+    AC_LIST_NAMES = lists.map(l => String(l.name || ''));
+    const hit = lists.find(l => String(l.name || '').trim().toLowerCase() === AC_COMPLETED_LIST.toLowerCase());
     if(hit) AC_COMPLETED_ID = Number(hit.id);
   }catch(e){}
   return AC_COMPLETED_ID;
@@ -374,7 +376,7 @@ module.exports = async (req, res) => {
         .filter(r => DRIP_TYPES.has(r.type) && r.pid).slice(-3).map(r => r.pid);
       const clid = await acCompletedList();
       return res.status(200).json({ ok:true, has_sms_key: !!smsKey(), start: d.start || null,
-        stop_list: { name: AC_COMPLETED_LIST, ac_list_id: clid || null, resolved: !!clid },
+        stop_list: { name: AC_COMPLETED_LIST, ac_list_id: clid || null, resolved: !!clid, ac_lists_seen: AC_LIST_NAMES },
         recent_pids: recentPids,
         enrolled: B.length, active: B.filter(b => !b.stop).length, stopped: stops,
         messages_sent: B.reduce((n, b) => n + ((b.sent || []).length), 0),
