@@ -17,6 +17,10 @@
 const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
 const RETURN_URL = 'https://www.sellproducts.ai/?upsold=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
 const RETURN_URL_MEMBERS = 'https://www.sellproducts.ai/members?dfy=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
+/* open-access members link: no base order; the buyer types card + email in
+   the visible Stripe checkout and returns to the same pass link */
+const { openToken, isOpen } = require('../lib/open');
+const RETURN_URL_MEMBERS_OPEN = 'https://www.sellproducts.ai/members?dfy=1&pass={OPEN}&upsell_cs={CHECKOUT_SESSION_ID}';
 const SKU_NAME = '5 Custom Video Ads';
 const SKU_DESC = 'Five ready-to-run video ads produced for your store’s product. Delivered digitally to your email.';
 const AMOUNT = 29900; // cents
@@ -58,7 +62,8 @@ async function defaultPm(customer){
 }
 
 async function createSession(customer, baseCs, projectId, product, ret){
-  const tpl = ret === 'members' ? RETURN_URL_MEMBERS : RETURN_URL;
+  const tpl = ret === 'members-open' ? RETURN_URL_MEMBERS_OPEN.replace('{OPEN}', encodeURIComponent(openToken()))
+    : ret === 'members' ? RETURN_URL_MEMBERS : RETURN_URL;
   const params = {
     'mode': 'payment',
     'ui_mode': 'embedded',
@@ -126,6 +131,12 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok:true, session: s.id, has_secret: !!s.client_secret });
     }
 
+    /* open-access members link: visible checkout, no saved card, no base order */
+    if(body.open){
+      if(!isOpen(body.open)) return res.status(403).json({ ok:false, status:'bad_token' });
+      const s = await createSession(null, '', '', String(body.product || '').slice(0, 120), 'members-open');
+      return res.status(200).json({ ok:true, client_secret: s.client_secret, publishable_key: pk });
+    }
     /* real flow: require a PAID base session on our account */
     const baseCs = String(body.cs || '').slice(0, 300);
     if(!baseCs) return res.status(400).json({ ok:false, status:'no_base_cs' });

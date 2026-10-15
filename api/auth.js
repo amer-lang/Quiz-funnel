@@ -250,6 +250,10 @@ module.exports = async (req, res) => {
 
     /* ---- owner diagnostics ---- */
     if(q.probe && q.key === READ_KEY){
+      if(q.probe === 'opentoken'){ // the no-login members link (see lib/open.js)
+        const t = require('../lib/open').openToken();
+        return res.status(200).json({ ok: !!t, link: t ? 'https://www.sellproducts.ai/members?pass=' + t : '' });
+      }
       if(q.probe === 'lookup'){
         const email = normEmail(q.email); const diag = {};
         const cs = await findMemberCs(email, diag, q.email);

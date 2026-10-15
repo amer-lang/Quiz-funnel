@@ -18,6 +18,7 @@ const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e9536
 const AUTH_SECRET = process.env.AUTH_SECRET || '20365b854f330a5a41656911796269c12b0417be5adc698b572491ce9df7d857';
 const OK_TYPES = new Set(['store_unlock20', 'store_unlock']);
 const MAX_PER_HOUR = 20;
+const { isOpen } = require('../lib/open'); // open-access members link: rate-limited per IP
 
 const crypto = require('crypto');
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -148,8 +149,10 @@ module.exports = async (req, res) => {
     /* members only */
     const email = cookieEmail(req);
     const cs = String(body.cs || '').slice(0, 300);
-    if(!email && !(await csIsMember(cs))) return res.status(200).json({ ok:false, error:'not_a_member' });
-    const who = email || cs;
+    const open = isOpen(body.open);
+    if(!email && !open && !(await csIsMember(cs))) return res.status(200).json({ ok:false, error:'not_a_member' });
+    const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'ip';
+    const who = email || (open ? 'open:' + ip : cs);
 
     /* rate limit: MAX_PER_HOUR messages/hour per member */
     const rlPath = 'members/chatrl/' + sha256(who) + '.json';

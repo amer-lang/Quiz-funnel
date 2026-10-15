@@ -443,6 +443,15 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 'use strict';
 /* ============ state ============ */
 let CS = '', STATE = { done: [], email: '', product: '' }, CURRENT = 1, VIEWING = 0;
+/* OPEN ACCESS: /members?pass=<token> opens the roadmap with no login. The API
+   validates the token; progress lives on the device (localStorage); the
+   activation-link, chat and $299 buttons send the token instead of an order id. */
+const OPEN_CS = 'cs_open_access';
+let OPEN = '';
+const OPENMODE = () => !!OPEN;
+function openCheck(t){ return fetch('/api/members?open=' + encodeURIComponent(t) + '&check=1', { cache:'no-store' }).then(r => r.json()).then(j => !!j.ok).catch(() => false); }
+function openDone(){ try{ return JSON.parse(localStorage.getItem('spai_open_done') || '[]'); }catch(e){ return []; } }
+function openSave(){ try{ localStorage.setItem('spai_open_done', JSON.stringify(STATE.done)); }catch(e){} }
 const WELCOME_VIDEO = '1224146303';
 const DEMO = () => CS === 'cs_test_roadmap'; // owner preview: always fresh, never persists
 
@@ -682,6 +691,14 @@ async function boot(){
   const p = u.searchParams.get('cs');
   const dfyCs = u.searchParams.get('dfy') ? (u.searchParams.get('upsell_cs') || '') : '';
   if(p === 'cs_test_roadmap'){ CS = p; load(); return; } // owner preview: untouched
+  const pass = u.searchParams.get('pass') || '';
+  if(pass && await openCheck(pass)){
+    OPEN = pass; CS = OPEN_CS;
+    try{ localStorage.setItem('spai_members_pass', pass); }catch(e){}
+    await load();
+    if(dfyCs) dfyResume(dfyCs);
+    return;
+  }
   if(p){
     CS = p;
     try{ localStorage.setItem('spai_members_cs', p); }catch(e){}
@@ -702,6 +719,9 @@ async function boot(){
     authApi({ action:'exchange', cs: saved }).catch(() => {});
     load(); return;
   }
+  let savedPass = '';
+  try{ savedPass = localStorage.getItem('spai_members_pass') || ''; }catch(e){}
+  if(savedPass && await openCheck(savedPass)){ OPEN = savedPass; CS = OPEN_CS; load(); return; }
   document.getElementById('gate').style.display = 'block';
 }
 
@@ -803,6 +823,14 @@ function gateGo(){
   load();
 }
 async function load(){
+  if(OPENMODE()){ // no order lookup: progress is on this device
+    STATE = { done: openDone(), email: '', product: '' };
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('chatFab').style.display = 'flex';
+    teaseArm();
+    render();
+    return;
+  }
   try{
     const r = await fetch('/api/members?cs=' + encodeURIComponent(CS), { cache:'no-store' });
     const j = await r.json();
@@ -901,6 +929,7 @@ function renderMission(id, readonly){
 
     (id === 1 && !readonly ?
       '<div class="actbox" style="margin:12px 0 0"><div style="font-weight:800;font-size:.9rem;margin-bottom:8px">Haven\'t activated yet? Get your activation link:</div>' +
+      (OPENMODE() ? '<input id="actEmail" type="email" placeholder="Email you used at checkout" autocomplete="email" style="width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:8px;outline:none">' : '') +
       '<button class="bt" id="actBtn" onclick="resendActivation()">Send me my activation link 📩</button>' +
       '<div class="out" id="actOut"></div></div>' : '') +
 
@@ -972,6 +1001,7 @@ function refreshCta(){
 async function completeCurrent(){
   if(STATE.done.includes(CURRENT)){ render(); return; } // already done → advance, never a dead button
   if(DEMO()){ STATE.done.push(CURRENT); playEpic(CURRENT); return; } // preview never persists
+  if(OPENMODE()){ STATE.done.push(CURRENT); openSave(); playEpic(CURRENT); return; } // saved on this device
   const btn = document.getElementById('ctaBtn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try{
@@ -1106,11 +1136,33 @@ function goldRain(){
 /* ============ mission 1: activation resend ============ */
 async function resendActivation(){
   const btn = document.getElementById('actBtn'), out = document.getElementById('actOut');
+  let openEmail = '';
+  if(OPENMODE()){ // open access: the buyer is known only by the email they type; the link is emailed, never shown
+    openEmail = (document.getElementById('actEmail') || { value:'' }).value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(openEmail)){
+      out.style.display = 'block'; out.textContent = 'Enter the email you used at checkout first.'; return;
+    }
+  }
   btn.disabled = true; btn.textContent = 'Fetching your link…';
   try{
-    const r = await fetch('/api/members?cs=' + encodeURIComponent(CS) + '&activation=1', { cache:'no-store' });
+    const r = await fetch(OPENMODE()
+      ? '/api/members?open=' + encodeURIComponent(OPEN) + '&email=' + encodeURIComponent(openEmail) + '&activation=1'
+      : '/api/members?cs=' + encodeURIComponent(CS) + '&activation=1', { cache:'no-store' });
     const j = await r.json();
     out.style.display = 'block';
+    if(OPENMODE()){
+      if(j.ok && j.mailed){
+        out.innerHTML = '✅ Sent to <b>' + esc(openEmail) + '</b> — check your inbox (and spam). It can take a minute.';
+        btn.textContent = 'Link sent ✓';
+      } else if(j.ok && !j.found){
+        out.innerHTML = 'We couldn\'t find a store purchase under that email. Try the exact email you used at checkout, or reply to any of our emails and a person will send it within the day.';
+        btn.textContent = 'Send me my activation link 📩'; btn.disabled = false;
+      } else {
+        out.innerHTML = 'We found your order but couldn\'t email it just now. Reply to any of our emails and a person will send it within the day.';
+        btn.textContent = 'Send me my activation link 📩'; btn.disabled = false;
+      }
+      return;
+    }
     if(j.ok && j.link){
       out.innerHTML = (j.mailed
         ? '✅ Emailed to <b>' + esc(j.email || 'your email') + '</b>. Or open it right now:'
@@ -1168,7 +1220,9 @@ function dfyMount(j){
 async function buyDfy(){
   try{
     const r = await fetch('/api/upsell299', { method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ cs: CS, product: STATE.product || '', checkout: 1, return: 'members' }) });
+      body: JSON.stringify(OPENMODE()
+        ? { open: OPEN, product: STATE.product || '', checkout: 1, return: 'members-open' }
+        : { cs: CS, product: STATE.product || '', checkout: 1, return: 'members' }) });
     const j = await r.json();
     if(j.ok && j.charged){ // already owned — never double-charge
       dfySuccess(j.email, !!j.repeat);
@@ -1273,7 +1327,7 @@ async function chatSend(){
   const typing = chatBubble('t', '…thinking');
   try{
     const r = await fetch('/api/chat', { method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ messages: CHAT.slice(-12), cs: CS,
+      body: JSON.stringify({ messages: CHAT.slice(-12), cs: CS, open: OPEN || undefined,
         context: { product: STATE.product || '', mission: CURRENT } }) });
     const j = await r.json();
     typing.remove();

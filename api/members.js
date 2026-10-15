@@ -15,6 +15,10 @@ const AC_KEY = 'd84c8bf84307d5b159099552ae63a16a92af944cac522e0ff3ea8ece4bae99b7
 const ACTIVATION_FIELD_ID = 2;               // %ACTIVATION_LINK%
 const RESEND_LIST = 'SPAI Resend Activation'; // auto-created; wire an AC automation to it
 const OK_TYPES = new Set(['store_unlock20', 'store_unlock']); // $20 era + legacy $1 era
+/* open-access link (/members?pass=<token>): no order id, so the activation
+   link is looked up by the email the member types and EMAILED to that
+   address only — never returned to the page. */
+const { isOpen } = require('../lib/open');
 
 function blobToken(){
   if(process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
@@ -137,6 +141,15 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const q = req.query || {};
   try{
+    if(q.open){
+      if(!isOpen(q.open)) return res.status(403).json({ ok:false, error:'bad_token' });
+      if(q.check) return res.status(200).json({ ok:true });
+      const email = String(q.email || '').trim().toLowerCase().slice(0, 200);
+      if(!q.activation || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ ok:false, error:'bad_request' });
+      const link = await activationLink(email, {});
+      const mailed = link ? await sendActivationEmail(email, link, '') : false;
+      return res.status(200).json({ ok:true, found: !!link, mailed });
+    }
     const cs = String(q.cs || '').slice(0, 300);
     if(!/^cs_[A-Za-z0-9_]+$/.test(cs)) return res.status(400).json({ ok:false, error:'bad_cs' });
     if(!process.env.STRIPE_SECRET_KEY) return res.status(200).json({ ok:false, error:'no_keys' });
