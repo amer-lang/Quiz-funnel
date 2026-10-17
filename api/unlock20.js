@@ -21,6 +21,7 @@ const SKU_NAME = 'AI Store Unlock';
 const SKU_DESC = 'One-time unlock of your AI-built dropshipping store. Full store access, supplier connected, ready to launch on Shopify. No subscription.';
 const AMOUNT = 2000; // cents
 const STRIPE_VERSION = '2026-03-25.dahlia'; // ui_mode:'elements' (renamed from 'custom' in dahlia)
+const tax = require('../lib/tax');
 
 /* Order bump — a SEPARATE one-click charge right after the $20 confirms,
    so ticking the box never rebuilds the payment form. */
@@ -87,6 +88,7 @@ function sessionParams(projectId, email, product, uiMode, utm){
     // change. Product taxability comes from the account's default tax code
     // in Stripe Tax settings — deliberately not hardcoded here.
     'line_items[0][price_data][tax_behavior]': 'inclusive',
+    'line_items[0][price_data][product_data][tax_code]': tax.CODES.store_unlock20, // Website Design (tax specialist, Oct 2026)
     'automatic_tax[enabled]': 'true',
     'line_items[0][price_data][product_data][name]': SKU_NAME,
     'line_items[0][price_data][product_data][description]': SKU_DESC,
@@ -187,6 +189,26 @@ module.exports = async (req, res) => {
         automatic_tax: c.s.automatic_tax || null });
     }
 
+    /* owner check of the Stripe Tax wiring: a Tax Calculation for a ZIP and a
+       product. Read-only: no customer, no card, no PaymentIntent. */
+    if(q.taxprobe){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const zip = String(q.zip || '').replace(/\D/g, '').slice(0, 5);
+      const key = String(q.item || 'store_unlock20');
+      const amt = parseInt(q.amount || '2000', 10) || 2000;
+      const calc = await tax.calculate(sk, [{ key, amount: amt }], { country:'US', postal_code: zip });
+      return res.status(200).json({ ok:true, zip, item: key, tax_code: tax.CODES[key],
+        calc: { id: calc.id, amount_total: calc.amount_total, tax_inclusive: calc.tax_amount_inclusive,
+          breakdown: (calc.tax_breakdown || []).map(b => ({ amount: b.amount, rate: b.tax_rate_details && b.tax_rate_details.percentage_decimal, taxable: b.taxability_reason })) } });
+    }
+
+    /* owner: run the refund → tax reversal sweep now and show what it did */
+    if(q.taxsweep){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const r = await tax.sweepReversals(sk, parseInt(q.hours || '72', 10) || 72);
+      return res.status(200).json(Object.assign({ ok:true }, r));
+    }
+
     if(q.verify){
       if(!sk) return res.status(200).json({ paid:false, status:'no_keys' });
       const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.verify).slice(0, 300)));
@@ -224,14 +246,15 @@ module.exports = async (req, res) => {
       const pm = await defaultPm(customer);
       if(!pm) return res.status(200).json({ ok:false, status:'no_pm' });
       try{
-        const pi = await stripe('payment_intents', 'POST', {
+        const pi = await tax.charge(sk, {
           amount: String(BUMP_AMOUNT), currency: 'usd', customer, payment_method: pm,
           off_session: 'true', confirm: 'true',
           description: BUMP_NAME,
           'metadata[type]': BUMP_TYPE, 'metadata[base_cs]': cs,
           'metadata[email]': email,
           'metadata[project_id]': (s.metadata && s.metadata.project_id) || ''
-        }, 'bump39-' + cs);
+        }, 'bump39-' + cs, [{ key:'unlimited_stores', amount: BUMP_AMOUNT }],
+          s.customer_details && s.customer_details.address, tax.clientIp(req));
         if(pi.status === 'succeeded') return res.status(200).json({ ok:true, charged:true, pi: pi.id });
         return res.status(200).json({ ok:false, status:'not_succeeded' });
       }catch(e){

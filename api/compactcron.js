@@ -15,6 +15,7 @@ const BASE = 'https://www.sellproducts.ai/api/collect';
 const TZ = 'America/Los_Angeles';
 
 const dayStr = t => new Date(t).toLocaleDateString('en-CA', { timeZone: TZ });
+const tax = require('../lib/tax');
 
 module.exports = async (req, res) => {
   const ua = String((req.headers && req.headers['user-agent']) || '');
@@ -39,5 +40,10 @@ module.exports = async (req, res) => {
       break;
     }
   }
-  return res.status(200).json({ ok: true, ran: out, at: new Date().toISOString() });
+  /* Stripe Tax: reverse recorded tax transactions for refunds (lib/tax.js).
+     Isolated so a Stripe hiccup can never affect compaction. */
+  let taxrev = null;
+  try{ if(process.env.STRIPE_SECRET_KEY) taxrev = await tax.sweepReversals(process.env.STRIPE_SECRET_KEY, 72); }
+  catch(e){ taxrev = { error: String(e && e.message || e).slice(0, 120) }; }
+  return res.status(200).json({ ok: true, ran: out, taxrev, at: new Date().toISOString() });
 };

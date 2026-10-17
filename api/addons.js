@@ -25,6 +25,7 @@ const NAMES = {
   video_ad_1:       'Custom Video Ad'
 };
 
+const tax = require('../lib/tax');
 function keys(){
   return { sk: process.env.STRIPE_SECRET_KEY || '', pk: process.env.STRIPE_PUBLISHABLE_KEY || '' };
 }
@@ -122,8 +123,10 @@ module.exports = async (req, res) => {
     if(items.includes('unlimited_stores')) params['metadata[unlimited]'] = '1';
 
     try{
-      const pi = await stripe('payment_intents', 'POST', params,
-        'addons-' + cs + '-' + items.slice().sort().join('.'));
+      /* one tax line per product (taxability is per product), one charge */
+      const pi = await tax.charge(sk, params, 'addons-' + cs + '-' + items.slice().sort().join('.'),
+        items.map(i => ({ key: i, amount: PRICES[i] })),
+        base.customer_details && base.customer_details.address, tax.clientIp(req));
       if(pi.status === 'succeeded')
         return res.status(200).json({ ok:true, charged:true, pi: pi.id, amount, items });
       return res.status(200).json({ ok:false, status:'not_succeeded' });

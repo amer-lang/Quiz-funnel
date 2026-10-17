@@ -20,6 +20,7 @@ const SKU_NAME = '10 Custom Image Ads';
 const SKU_DESC = 'Ten ready-to-run image ads (feed + story formats) designed for your store’s product. Delivered digitally.';
 const AMOUNT = 4900; // cents
 
+const tax = require('../lib/tax');
 function keys(){
   return { sk: process.env.STRIPE_SECRET_KEY || '', pk: process.env.STRIPE_PUBLISHABLE_KEY || '' };
 }
@@ -78,7 +79,17 @@ async function createSession(customer, baseCs, projectId, product){
     'metadata[product]': String(product || '').slice(0, 120)
   };
   if(customer) params['customer'] = customer;
-  return stripe('checkout/sessions', 'POST', params);
+  /* Stripe Tax: tax-inclusive price, product tax code, automatic tax. If the
+     account ever rejects the tax params the session is created without them
+     so the checkout itself never breaks. */
+  const taxed = Object.assign({}, params, {
+    'line_items[0][price_data][tax_behavior]': 'inclusive',
+    'line_items[0][price_data][product_data][tax_code]': tax.CODES.image_ads_10,
+    'automatic_tax[enabled]': 'true'
+  });
+  if(customer) taxed['customer_update[address]'] = 'auto';
+  try{ return await stripe('checkout/sessions', 'POST', taxed); }
+  catch(e){ return stripe('checkout/sessions', 'POST', params); }
 }
 
 function readBody(req){
@@ -156,7 +167,7 @@ module.exports = async (req, res) => {
       if(q.probe !== READ_KEY) return res.status(403).json({ ok:false });
       if(!sk || !pk) return res.status(200).json({ ok:false, status:'no_keys' });
       const s = await createSession(null, '', '');
-      return res.status(200).json({ ok:true, session: s.id, has_secret: !!s.client_secret });
+      return res.status(200).json({ ok:true, session: s.id, has_secret: !!s.client_secret, automatic_tax: s.automatic_tax || null });
     }
 
     if(q.verify){
@@ -212,13 +223,14 @@ module.exports = async (req, res) => {
       const pm = await defaultPm(customer, typeof base.subscription === 'string' ? base.subscription : '');
       if(pm){
         try{
-          const pi = await stripe('payment_intents', 'POST', {
+          const pi = await tax.charge(sk, {
             amount: String(AMOUNT), currency: 'usd', customer, payment_method: pm,
             off_session: 'true', confirm: 'true',
             description: SKU_NAME,
             'metadata[type]': 'image_ads_10', 'metadata[base_cs]': baseCs,
             'metadata[project_id]': projectId, 'metadata[product]': product
-          }, 'upsell49-' + baseCs);
+          }, 'upsell49-' + baseCs, [{ key:'image_ads_10', amount: AMOUNT }],
+            base.customer_details && base.customer_details.address, tax.clientIp(req));
           if(pi.status === 'succeeded')
             return res.status(200).json({ ok:true, charged:true, pi: pi.id, email });
         }catch(e){ /* declined / needs authentication → embedded checkout below */ }
