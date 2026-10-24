@@ -15,13 +15,16 @@
    GET  ?ping=1       — env sanity.
    GET  ?probe=<KEY>  — key-gated: creates an unused test session to prove scopes. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const RETURN_URL = 'https://www.sellproducts.ai/?paid20=1&cs={CHECKOUT_SESSION_ID}';
 const SKU_NAME = 'AI Store Unlock';
 const SKU_DESC = 'One-time unlock of your AI-built dropshipping store. Full store access, supplier connected, ready to launch on Shopify. No subscription.';
 const AMOUNT = 2000; // cents
 const STRIPE_VERSION = '2026-03-25.dahlia'; // ui_mode:'elements' (renamed from 'custom' in dahlia)
 const tax = require('../lib/tax');
+const dealfuel = require('../lib/dealfuel');
 
 /* Order bump — a SEPARATE one-click charge right after the $20 confirms,
    so ticking the box never rebuilds the payment form. */
@@ -69,6 +72,20 @@ function utmFromBody(body){
   if(wacid) p['metadata[wacid]'] = wacid;
   if(wasid) p['metadata[wasid]'] = wasid;
   return p;
+}
+
+/* buyer details the funnel knows at checkout → session metadata, so the
+   DealFuel lead can be built from the paid session alone */
+function leadMeta(body){
+  const out = {};
+  const fn = String((body && body.first_name) || '').normalize('NFC').replace(/[^\p{L}\p{M}' .-]/gu, '').trim().slice(0, 40);
+  const ph = String((body && body.phone) || '').replace(/[^\d+() .-]/g, '').trim().slice(0, 40);
+  const tz = String((body && body.tz) || '').trim();
+  if(fn) out['metadata[first_name]'] = fn;
+  if(ph && ph.replace(/\D/g, '').length >= 10) out['metadata[phone]'] = ph;
+  out['metadata[sms_consent]'] = (body && (body.sms_consent === 1 || body.sms_consent === '1' || body.sms_consent === true)) ? '1' : '0';
+  if(/^[A-Za-z_]+\/[A-Za-z0-9_+\-\/]+$|^UTC$/.test(tz) && tz.length <= 60) out['metadata[tz]'] = tz;
+  return out;
 }
 
 function sessionParams(projectId, email, product, uiMode, utm){
@@ -202,6 +219,97 @@ module.exports = async (req, res) => {
           breakdown: (calc.tax_breakdown || []).map(b => ({ amount: b.amount, rate: b.tax_rate_details && b.tax_rate_details.percentage_decimal, taxable: b.taxability_reason })) } });
     }
 
+    /* owner: recent PaymentIntents with their Stripe Tax status (read-only) */
+    if(q.taxrecent){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const n = Math.min(parseInt(q.n || '25', 10) || 25, 100);
+      const since = parseInt(q.since || '0', 10) || 0;
+      const l = await tax.sreq(sk, 'payment_intents?limit=' + n + (since ? '&created[gte]=' + since : ''));
+      const rows = ((l && l.data) || []).map(p => ({ id: p.id, created: p.created, status: p.status, amount: p.amount,
+        type: p.metadata && p.metadata.type, tax_status: p.metadata && p.metadata.tax_status, tax_amount: p.metadata && p.metadata.tax_amount,
+        tax_transaction: p.metadata && p.metadata.tax_transaction, dealfuel: p.metadata && p.metadata.dealfuel }));
+      return res.status(200).json({ ok:true, count: rows.length, taxed: rows.filter(r => r.tax_status).length, rows });
+    }
+
+    /* owner: one recorded Stripe Tax transaction with Stripe's own reasons (read-only) */
+    if(q.taxtx){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const id = String(q.taxtx).replace(/[^A-Za-z0-9_]/g, '').slice(0, 80);
+      const t = await tax.sreq(sk, 'tax/transactions/' + id + '?expand[]=line_items');
+      const a = (t.customer_details && t.customer_details.address) || {};
+      return res.status(200).json({ ok:true, id: t.id, reference: t.reference, created: t.created,
+        address: { state: a.state, postal_code: a.postal_code, country: a.country, source: t.customer_details && t.customer_details.address_source },
+        lines: (((t.line_items || {}).data) || []).map(li => ({ ref: li.reference, tax_code: li.tax_code, amount: li.amount, amount_tax: li.amount_tax, behavior: li.tax_behavior,
+          breakdown: (li.tax_breakdown || []).map(b => ({ amount: b.amount, reason: b.taxability_reason, rate: b.tax_rate_details && b.tax_rate_details.percentage_decimal, state: b.jurisdiction && b.jurisdiction.state })) })) });
+    }
+
+    /* owner: duplicate-charge scan (read-only). Every PaymentIntent since a
+       timestamp, grouped by base order + product; reports any pair of
+       succeeded charges for the same buyer and product, plus totals. */
+    if(q.taxdupes){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const since = parseInt(q.since || '0', 10) || (Math.floor(Date.now() / 1000) - 86400);
+      const groups = {}, byStatus = {}, byType = {}, noneAmounts = {}; let after = '', total = 0;
+      for(let page = 0; page < 20; page++){
+        const l = await tax.sreq(sk, 'payment_intents?limit=100&created[gte]=' + since + (after ? '&starting_after=' + after : ''));
+        const data = (l && l.data) || [];
+        for(const p of data){
+          total++;
+          const m = p.metadata || {}, ty = m.type || '(none)';
+          byStatus[p.status] = (byStatus[p.status] || 0) + 1;
+          byType[ty] = (byType[ty] || 0) + 1;
+          if(!m.type) noneAmounts[p.amount] = (noneAmounts[p.amount] || 0) + 1;
+          if(m.type && m.base_cs){
+            const k = m.base_cs + '|' + ty + (m.items ? '|' + m.items : '');
+            (groups[k] = groups[k] || []).push({ id: p.id, status: p.status, amount: p.amount, created: p.created, tax: m.tax_status || '' });
+          }
+        }
+        if(!l.has_more || !data.length) break;
+        after = data[data.length - 1].id;
+      }
+      const dupes = Object.entries(groups).filter(([k, v]) => v.filter(x => x.status === 'succeeded').length > 1)
+        .map(([k, v]) => ({ key: k.slice(0, 40) + '…' + k.slice(k.indexOf('|')), charges: v }));
+      const multiAttempt = Object.values(groups).filter(v => v.length > 1).length;
+      return res.status(200).json({ ok:true, since, scanned: total, by_status: byStatus, by_type: byType,
+        amounts_without_our_metadata: noneAmounts, buyers_with_more_than_one_attempt: multiAttempt,
+        double_charged: dupes.length, dupes });
+    }
+
+    /* owner: charge-attempt scan (read-only). Counts Charge objects since a
+       timestamp by status, failure code and attempts per PaymentIntent. */
+    if(q.taxcharges){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const since = parseInt(q.since || '0', 10) || (Math.floor(Date.now() / 1000) - 86400);
+      const until = parseInt(q.until || '0', 10) || 0;
+      const byStatus = {}, byFail = {}, perPi = {}, byHour = {}; let after = '', total = 0, noPi = 0, succeededAmount = 0, amounts = {};
+      for(let page = 0; page < 30; page++){
+        const l = await tax.sreq(sk, 'charges?limit=100&created[gte]=' + since + (until ? '&created[lt]=' + until : '') + (after ? '&starting_after=' + after : ''));
+        const data = (l && l.data) || [];
+        for(const c of data){
+          total++;
+          byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+          if(c.status === 'succeeded'){ succeededAmount += c.amount; amounts[c.amount] = (amounts[c.amount] || 0) + 1; }
+          if(c.status === 'failed') byFail[c.failure_code || 'unknown'] = (byFail[c.failure_code || 'unknown'] || 0) + 1;
+          const pi = typeof c.payment_intent === 'string' ? c.payment_intent : (c.payment_intent && c.payment_intent.id);
+          if(pi) perPi[pi] = (perPi[pi] || 0) + 1; else noPi++;
+          const h = new Date(c.created * 1000).toISOString().slice(11, 13); byHour[h] = (byHour[h] || 0) + 1;
+        }
+        if(!l.has_more || !data.length) break;
+        after = data[data.length - 1].id;
+      }
+      const multi = Object.values(perPi).filter(n => n > 1);
+      return res.status(200).json({ ok:true, since, until, charges: total, by_status: byStatus, succeeded_gross: succeededAmount,
+        succeeded_amounts: amounts, failure_codes: byFail, charges_without_payment_intent: noPi,
+        payment_intents_with_several_attempts: multi.length, extra_attempts: multi.reduce((s, n) => s + n - 1, 0), by_hour_utc: byHour });
+    }
+
+    /* owner: account dashboard timezone (read-only) so day windows match the Stripe app */
+    if(q.taxacct){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const a = await tax.sreq(sk, 'account');
+      return res.status(200).json({ ok:true, timezone: a.settings && a.settings.dashboard && a.settings.dashboard.timezone, name: a.settings && a.settings.dashboard && a.settings.dashboard.display_name, country: a.country });
+    }
+
     /* owner: run the refund → tax reversal sweep now and show what it did */
     if(q.taxsweep){
       if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
@@ -209,10 +317,53 @@ module.exports = async (req, res) => {
       return res.status(200).json(Object.assign({ ok:true }, r));
     }
 
+    /* owner: DealFuel dry run — build the lead payload for a paid session (or the
+       latest paid unlock) without sending; shows the once-per-payment marker. */
+    if(q.dfprobe){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      let sess = null;
+      if(q.cs){ sess = await stripe('checkout/sessions/' + encodeURIComponent(String(q.cs).slice(0, 300))); }
+      else{
+        const l = await stripe('checkout/sessions?limit=40');
+        sess = ((l && l.data) || []).find(x => x.payment_status === 'paid' && x.metadata && x.metadata.type === 'store_unlock20') || null;
+      }
+      if(!sess) return res.status(200).json({ ok:false, status:'no_paid_session' });
+      const r = await dealfuel.sendForSession(sk, sess, { dry: true });
+      return res.status(200).json({ ok:true, has_token: !!process.env.DEALFUEL_LEADS_TOKEN, session: sess.id, paid: sess.payment_status === 'paid', result: r });
+    }
+
+    /* owner: DealFuel catch-up — send every paid $20 unlock from the last N hours
+       that has no once-per-payment marker yet (token set late, tab closed before
+       verify, earlier failure). Bounded to ~45 s per run; call again for more. */
+    if(q.dfsweep){
+      if(q.key !== READ_KEY) return res.status(403).json({ ok:false });
+      const hours = Math.min(parseInt(q.hours || '24', 10) || 24, 168);
+      const since = Math.floor(Date.now() / 1000) - hours * 3600;
+      const t0 = Date.now(), out = { scanned: 0, considered: 0, results: {}, stopped_early: false };
+      let after = '';
+      for(let page = 0; page < 10 && !out.stopped_early; page++){
+        const l = await stripe('checkout/sessions?limit=100&created[gte]=' + since + (after ? '&starting_after=' + after : ''));
+        const data = (l && l.data) || [];
+        for(const x of data){
+          out.scanned++;
+          if(x.payment_status !== 'paid' || !x.metadata || x.metadata.type !== 'store_unlock20') continue;
+          out.considered++;
+          const r = await dealfuel.sendForSession(sk, x, { dry: q.dry === '1' }); // dry=1: count only, send nothing
+          const k = String((r && r.reason) || 'unknown').replace(/^already_/, 'already_');
+          out.results[k] = (out.results[k] || 0) + 1;
+          if(Date.now() - t0 > 45000){ out.stopped_early = true; break; }
+        }
+        if(!l.has_more || !data.length) break;
+        after = data[data.length - 1].id;
+      }
+      return res.status(200).json(Object.assign({ ok:true, hours, dry: q.dry === '1', has_token: !!process.env.DEALFUEL_LEADS_TOKEN }, out));
+    }
+
     if(q.verify){
       if(!sk) return res.status(200).json({ paid:false, status:'no_keys' });
       const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.verify).slice(0, 300)));
       const paid = s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'store_unlock20';
+      if(paid){ try{ dealfuel.kick(sk, s); }catch(e){} } // DealFuel lead, background, once per payment
       return res.status(200).json({ paid,
         project_id: (s.metadata && s.metadata.project_id) || '',
         product: (s.metadata && s.metadata.product) || '',
@@ -277,7 +428,7 @@ module.exports = async (req, res) => {
     // }
 
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
-      utmFromBody(body));
+      Object.assign(utmFromBody(body), leadMeta(body)));
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
       ui: c.ui, custom_error: c.custom_error || '' });
   }catch(e){

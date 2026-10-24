@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "@vercel/blob": "latest",
-    "@anthropic-ai/sdk": "latest"
+    "@anthropic-ai/sdk": "latest",
+    "@vercel/functions": "latest"
   }
 }

@@ -2132,6 +2132,16 @@ const CHECKOUT_URL = '';
    no network) — handy for design work.                                     */
 const DS_API  = '/api/ds'; // proxied server-side — the express key never ships to the browser
 const DS_ORIGIN = 'https://chat.dropstart.app'; // public assets (product images) only
+// Product photos are served from the Cloudflare-fronted image host (same files, cached at the edge). If it ever fails to load, each image
+// falls back ONCE to the origin so the funnel never shows a broken photo. TG14774.
+const DS_ASSET_ORIGIN = 'https://img.dropstartcdn.com';
+document.addEventListener('error', function(e){
+  const t = e.target;
+  if(t && t.tagName === 'IMG' && !t.dataset.dsFb && typeof t.src === 'string' && t.src.indexOf(DS_ASSET_ORIGIN) === 0){
+    t.dataset.dsFb = '1';
+    t.src = DS_ORIGIN + t.src.slice(DS_ASSET_ORIGIN.length);
+  }
+}, true);
 // Where DropStart picks the buyer up once this funnel is done with them: it
 // verifies the charge, unlocks the store and runs the Shopify setup.
 const DS_HANDOFF = 'https://sell.ecomwebsites.com/start/paid';
@@ -2228,7 +2238,7 @@ async function dsOpenPay20(clientSecret, pubKey){
       const j = await fetch('/api/unlock20', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(Object.assign({ embedded: 1, project_id: (dsBuild && dsBuild.project_id) || '',
-          email: userEmail || '', product: (chosen && chosen.name) || '' }, dsUtm()))
+          email: userEmail || '', product: (chosen && chosen.name) || '' }, dsUtm(), dsLeadBits()))
       }).then(r=>r.json());
       if(j && j.ok && j.client_secret) return dsOpenPay(j.client_secret, j.publishable_key, false);
     }catch(e2){}
@@ -2607,6 +2617,7 @@ function runScan(){
    ============================================================ */
 let PRODUCTS = FALLBACK_PRODUCTS;
 let pIdx = 0, chosen = null, swapping = false, pickEntered = false;
+let pickShown = null;   // the card currently DRAWN on the picker - what a tap on Choose must pick (PRODUCTS can be swapped/reshuffled underneath)
 let soldTimer = null;
 
 /* Products for the picker, in order of preference:
@@ -2617,8 +2628,10 @@ let soldTimer = null;
      3. the FALLBACK_PRODUCTS baked in above                                */
 function dsLoadProducts(){
   if(!DS_LIVE) return Promise.reject();
-  return fetch(DS_API + '/trending')
-    .then(r=>r.ok ? r.json() : Promise.reject())
+  const ctl = new AbortController();
+  const timer = setTimeout(()=>ctl.abort(), 15000);     // a hung request must not wedge the picker (the retry flag would never clear)
+  return fetch(DS_API + '/trending', { cache: 'no-store', signal: ctl.signal }) // no-store: a retry must not queue behind a slow first request in the browser cache
+    .then(r=>{ clearTimeout(timer); return r.ok ? r.json() : Promise.reject(); }, e=>{ clearTimeout(timer); throw e; })
     .then(j=>{
       const list = ((j && j.products) || []).filter(p=>p && p.label && (p.image_card || p.image));
       if(!list.length) return Promise.reject();
@@ -2672,12 +2685,54 @@ function dsShuffle(arr){
   return arr;
 }
 
+/* A short outage should not demote the picker to the built-in placeholders: try the live catalogue
+   a few times (about 1.2 s apart) before giving up on it. */
+function dsLoadProductsRetry(n){
+  if(!DS_LIVE) return Promise.reject();
+  return dsLoadProducts().catch(err=>{
+    if(n <= 0) throw err;
+    return new Promise(r=>setTimeout(r, 1200)).then(()=>dsLoadProductsRetry(n - 1));
+  });
+}
+
+/* The built-in placeholders (products.json / FALLBACK_PRODUCTS) have NO catalogue id (dsId). A buyer
+   who picked one used to pay $20 for a store built around a text search for something "similar"
+   (Oct 21 2026: 2 paid stores). So a card without a dsId is never accepted in live mode — we reload the
+   real catalogue instead (see pickChoose / enterPick). */
+function dsIsPlaceholder(p){ return DS_LIVE && !(p && p.dsId); }
+let dsCatRetrying = false, dsCatFails = 0;
+function dsRetryCatalog(silent){
+  if(dsCatRetrying || !DS_LIVE) return;
+  dsCatRetrying = true;
+  dsLoadProductsRetry(2)
+    .then(list=>{
+      if(pickShown && pickShown.dsId && PRODUCTS.some(p=>p && p.dsId)){ dsCatFails = 0; return; }   // real cards are already on screen - leave them
+      PRODUCTS = dsShuffle(list);
+      pIdx = 0;
+      dsPreloadImages(PRODUCTS);
+      dsCatFails = 0;
+      if(current === 's-pick' && !chosen){
+        fillPick(PRODUCTS[0], 0);
+        if(!silent) showToast('✅', 'Products loaded — pick your favourite');
+      }
+    })
+    .catch(()=>{
+      dsCatFails++;
+      if(!silent) showToast('⚠️', dsCatFails >= 3
+        ? 'Our product list is temporarily unavailable — please try again in a few minutes.'
+        : 'Still loading today’s products — one moment…');
+    })
+    .then(()=>{ dsCatRetrying = false; });
+}
+
 // Expose a "catalogue is loaded" promise so the "Sell this one" deep-link can fill
 // in the real product name once the live catalogue arrives (it loads after boot). TG13325.
-let dsCatalogReady = dsLoadProducts()
+let dsCatalogReady = dsLoadProductsRetry(2)
   .catch(dsLoadProductsJson)
   .then(list=>{
-    if(list && list.length){
+    // Once real catalogue cards are in PRODUCTS (e.g. a retry beat this boot load), never overwrite them with
+    // a second shuffle or with the placeholders - the picker may already be showing them.
+    if(list && list.length && !PRODUCTS.some(p=>p && p.dsId)){
       PRODUCTS = dsShuffle(list);
       dsPreloadImages(PRODUCTS);
     }
@@ -2689,6 +2744,7 @@ function matchScore(i){ return 93 + ((i*37 + (answers.rev||'').length*7) % 6); }
 function stars(r){ const f=Math.round(r||4.8); return '★★★★★'.slice(0,f)+'☆☆☆☆☆'.slice(f); }
 
 function fillPick(p, i){
+  pickShown = p;
   spLog('product_view', p.name);
   const box = document.getElementById('pImgBox');
   const old = box.querySelector('img'); if(old) old.remove();
@@ -2729,6 +2785,7 @@ function enterPick(){
   if(pickEntered){ return; }
   pickEntered = true;
   fillPick(PRODUCTS[0], 0);
+  if(!sellProductId && dsIsPlaceholder(PRODUCTS[0])) dsRetryCatalog(true); // showing placeholders: fetch the real products
   playTada();
   confettiBurst(window.innerWidth/2, 120, 70);
   // "reserved today" ticker — REAL funnel data (unique visitors who reserved
@@ -2776,7 +2833,13 @@ function pickSkip(){
 
 function pickChoose(e){
   if(chosen) return;
-  chosen = PRODUCTS[pIdx];
+  const sel = pickShown || PRODUCTS[pIdx];   // exactly the card on screen
+  if(!sellProductId && dsIsPlaceholder(sel)){
+    showToast('⏳', 'Loading today’s products — one moment…');
+    dsRetryCatalog(false);
+    return;
+  }
+  chosen = sel;
   spLog('product_choose', chosen.name);
   try{
     window.__ttP = { id: chosen.dsId || chosen.name || 'store', name: chosen.name || 'AI Store' };
@@ -2939,6 +3002,11 @@ function dsTrack(id){
 /* SMS consent — disclosure version recorded server-side with every opt-in */
 const SMS_CONSENT_VERSION = 'sms-v1-2026-10';
 function smsOpted(){ const c = document.getElementById('smsOpt'); return !!(c && c.checked); }
+/* phone exactly as typed (only while the SMS box is ticked) + the browser's IANA
+   time zone — stamped on the $20 checkout so the buyer's lead record is complete */
+function smsPhoneRaw(){ const el = document.getElementById('phoneInput'); return (smsOpted() && el) ? el.value.trim().slice(0, 40) : ''; }
+function dsTz(){ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }catch(e){ return ''; } }
+function dsLeadBits(){ return { first_name: firstName(), phone: smsPhoneRaw(), sms_consent: smsOpted() ? 1 : 0, tz: dsTz() }; }
 function smsPhone(){
   const el = document.getElementById('phoneInput');
   const d = ((el && el.value) || '').replace(/\D/g, '');
@@ -3605,7 +3673,7 @@ function dsPaidClaim(btn){
     fetch('/api/unlock20', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(Object.assign({ project_id: dsBuild.project_id, email: userEmail || '',
-        product: (chosen && chosen.name) || '' }, dsUtm()))
+        product: (chosen && chosen.name) || '' }, dsUtm(), dsLeadBits()))
     })
     .then(r=>r.json())
     .then(j=>{
@@ -4487,8 +4555,7 @@ function dsSellFromEmail(){
   // image_card holds /featured-main/<pid>/, label = name, price/cost = profit),
   // which loads AFTER boot — so fill those the moment it arrives. Never leave the
   // demo placeholder (icon/name/profit) showing. TG13325 + TG13331 (product image as icon).
-  const base = DS_ORIGIN;
-  const dsSellImg = base + '/start/featured-main/' + pid + '/3x2';
+  const dsSellImg = DS_ASSET_ORIGIN + '/start/featured-main/' + pid + '/3x2';
   const dsSellCard = () => {
     try{ return (PRODUCTS||[]).find(c => c && c.image && c.image.indexOf('/featured-main/'+pid+'/') !== -1) || null; }
     catch(e){ return null; }

@@ -42,6 +42,12 @@
     },
     "api/ds.js": {
       "maxDuration": 30
+    },
+    "api/cardsnap.js": {
+      "maxDuration": 30
+    },
+    "api/unlock20.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
@@ -58,6 +64,10 @@
     {
       "path": "/api/ordersheet",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cardsnap",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

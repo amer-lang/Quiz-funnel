@@ -22,8 +22,9 @@
                          names so the mapping can be sanity-checked. */
 
 const AC_URL = 'https://sellproducts.api-us1.com';
-const AC_KEY = 'd84c8bf84307d5b159099552ae63a16a92af944cac522e0ff3ea8ece4bae99b7350dab92';
-const TEST_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey, credential } = require('../lib/secrets');
+const AC_KEY = credential('AC_KEY');
+const TEST_KEY = guardKey('READ_KEY');
 
 // Payment verification (same backend the funnel itself uses)
 const DS_API = 'https://chat.dropstart.app/api/express';
@@ -254,6 +255,7 @@ async function verifyPaid(cs){
 }
 
 async function ac(path, method, body){
+  if(!AC_KEY) return { status: 0, ok: false, j: {} };
   const r = await fetch(AC_URL + path, {
     method: method || 'GET',
     headers: { 'Api-Token': AC_KEY, 'Content-Type': 'application/json' },
@@ -271,7 +273,63 @@ module.exports = async (req, res) => {
   if(req.method === 'OPTIONS') return res.status(204).end();
 
   try{
-    if(req.method === 'GET' && (req.query || {}).stlists){
+    /* owner: SimpleTexting health (read-only). Newest contacts on each list,
+       total contacts, and how many AC contacts created in the last N hours
+       carry a phone + SMS consent — tells whether capture or the push broke. */
+    if(req.method === 'GET' && (req.query || {}).stcheck){
+      if(req.query.stcheck !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+      const hours = parseInt(req.query.hours || '48', 10) || 48;
+      const out = { has_key: !!stKey() };
+      const L = await stLists(); out.lists = { checkout: L.checkout || null, buyer: L.buyer || null, error: L.error || null };
+      const paths = { all: '/contacts?page=0&size=5&sort=created,desc', checkout: '/contacts?page=0&size=5&sort=created,desc&listId=' + L.checkout, buyer: '/contacts?page=0&size=5&sort=created,desc&listId=' + L.buyer };
+      out.st = {};
+      for(const [k, p] of Object.entries(paths)){
+        try{
+          const r = await st(p);
+          const content = (r.j && (r.j.content || r.j.data)) || (Array.isArray(r.j) ? r.j : []);
+          out.st[k] = { status: r.status, total: r.j && (r.j.totalElements ?? r.j.total ?? null), newest: content.slice(0, 5).map(c => ({ created: c.created || c.createdAt || c.dateCreated, lists: (c.listIds || c.lists || []).length })), raw_keys: r.j ? Object.keys(r.j).slice(0, 12) : [], err: r.ok ? null : JSON.stringify(r.j).slice(0, 200) };
+        }catch(e){ out.st[k] = { error: String(e && e.message || e).slice(0, 120) }; }
+      }
+      /* ActiveCampaign: contacts created in the window, with phone / consent */
+      try{
+        const sinceIso = new Date(Date.now() - hours * 3600000).toISOString().slice(0, 19).replace('T', ' ');
+        let withPhone = 0, total = 0, offset = 0, consent = 0;
+        const sfid = await smsField();
+        for(let page = 0; page < 6; page++){
+          const r = await ac('/api/3/contacts?filters[created_after]=' + encodeURIComponent(sinceIso) + '&orders[cdate]=DESC&limit=100&offset=' + offset);
+          const cs = (r.ok && r.j.contacts) || [];
+          for(const c of cs){ total++; if(String(c.phone || '').replace(/\D/g, '').length >= 10) withPhone++; }
+          if(cs.length < 100) break; offset += 100;
+        }
+        out.ac = { hours, contacts_created: total, with_phone: withPhone, sms_consent_field_id: sfid || null, note: total >= 600 ? 'capped at 600' : '' };
+      }catch(e){ out.ac = { error: String(e && e.message || e).slice(0, 120) }; }
+      return res.status(200).json(out);
+    }
+        /* owner: re-send up to N consented contacts from the last H hours to the
+       SimpleTexting checkout list and return SimpleTexting's exact replies.
+       This is the same upsert the opt-in already attempts; it only re-tries it. */
+    if(req.method === 'GET' && (req.query || {}).stretry){
+      if(req.query.stretry !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+      const hours = parseInt(req.query.hours || '6', 10) || 6;
+      const limit = Math.min(parseInt(req.query.limit || '1', 10) || 1, 5);
+      const L = await stLists();
+      const sfid = await smsField();
+      const sinceIso = new Date(Date.now() - hours * 3600000).toISOString().slice(0, 19).replace('T', ' ');
+      const r = await ac('/api/3/contacts?filters[created_after]=' + encodeURIComponent(sinceIso) + '&orders[cdate]=DESC&limit=100');
+      const cs = ((r.ok && r.j.contacts) || []).filter(c => String(c.phone || '').replace(/\D/g, '').length >= 10);
+      const out = { candidates: cs.length, checkout_list: L.checkout || null, results: [] };
+      for(const c of cs){
+        if(out.results.length >= limit) break;
+        const fv = await ac('/api/3/contacts/' + c.id + '/fieldValues');
+        const consented = !!(sfid && fv.ok && (fv.j.fieldValues || []).some(v => String(v.field) === String(sfid) && v.value));
+        if(!consented) continue;
+        const d = String(c.phone).replace(/\D/g, '');
+        const res2 = await stPush(d.length === 10 ? '1' + d : d, c.email, L.checkout, false, String(c.firstName || '').slice(0, 40));
+        out.results.push({ created: c.cdate, phone_tail: d.slice(-4), st_status: res2.status, st_ok: res2.ok, st_body: JSON.stringify(res2.j || {}).slice(0, 400) });
+      }
+      return res.status(200).json(out);
+    }
+        if(req.method === 'GET' && (req.query || {}).stlists){
       if(req.query.stlists !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
       const L = await stLists();
       return res.status(200).json({ ok: !!(L.checkout && L.buyer), has_key: !!stKey(),
