@@ -70,13 +70,30 @@ async function stLists(){
   if(out.checkout && out.buyer) stListCache = out;
   return out;
 }
+/* SimpleTexting custom field "Live Link" (the buyer's durable activation
+   link). Resolved by label once per lambda; the API keys customFields by the
+   field's internal name. */
+let stLiveKey = null;
+async function stLiveLinkKey(){
+  if(stLiveKey !== null) return stLiveKey;
+  stLiveKey = '';
+  try{
+    const r = await st('/custom-fields?size=100');
+    const arr = Array.isArray(r.j) ? r.j : ((r.j && (r.j.content || r.j.data)) || []);
+    const f = arr.find(x => /live\s*link/i.test(String(x.label || x.name || x.title || '')));
+    if(f) stLiveKey = String(f.mergeTag || f.name || f.key || f.id || f.label); // API keys customFields by mergeTag
+  }catch(e){}
+  return stLiveKey;
+}
 /* upsert the contact onto ONE list. replace=true drops every other list
-   membership (that is how a buyer leaves "SPAI Checkout"). */
-async function stPush(phone, email, listId, replace, firstName){
+   membership (that is how a buyer leaves "SPAI Checkout"). custom = {key:value}
+   custom fields to set, e.g. the Live Link for buyers. */
+async function stPush(phone, email, listId, replace, firstName, custom){
   if(!stKey() || !phone || !listId) return { ok: false, skipped: true };
   const body = { contactPhone: phone, listIds: [listId] };
   if(email) body.email = email;
   if(firstName) body.firstName = firstName;
+  if(custom && Object.keys(custom).length) body.customFields = custom;
   return st('/contacts?upsert=true&listsReplacement=' + (replace ? 'true' : 'false'), 'POST', body);
 }
 const ACTIVATION_FIELD_ID = 2; // AC custom field %ACTIVATION_LINK% ("Activation link")
@@ -329,7 +346,47 @@ module.exports = async (req, res) => {
       }
       return res.status(200).json(out);
     }
-        if(req.method === 'GET' && (req.query || {}).stlists){
+        /* owner: SimpleTexting custom fields as the API reports them (read-only) */
+    if(req.method === 'GET' && (req.query || {}).stfields){
+      if(req.query.stfields !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+      const r = await st('/custom-fields?size=100');
+      return res.status(200).json({ status: r.status, live_link_key: await stLiveLinkKey(), fields: r.j });
+    }
+    /* owner: re-push consented BUYERS from the last H hours to the Store Buyer
+       list with their Live Link (same upsert the purchase path does). dry=1 lists only. */
+    if(req.method === 'GET' && (req.query || {}).stbuyers){
+      if(req.query.stbuyers !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
+      const hours = parseInt(req.query.hours || '48', 10) || 48;
+      const limit = Math.min(parseInt(req.query.limit || '5', 10) || 5, 200);
+      const dry = req.query.dry === '1';
+      const L = await stLists(); const sfid = await smsField(); const key = await stLiveLinkKey();
+      const sinceIso = new Date(Date.now() - hours * 3600000).toISOString().slice(0, 19).replace('T', ' ');
+      const out = { hours, dry, live_link_key: key || null, buyer_list: L.buyer || null, scanned: 0, buyers_with_phone: 0, pushed: 0, results: [], stopped_early: false };
+      let offset = 0; const t0 = Date.now(); const budget = 40000;
+      outer: for(let page = 0; page < 8; page++){
+        const r = await ac('/api/3/contacts?filters[created_after]=' + encodeURIComponent(sinceIso) + '&orders[cdate]=DESC&limit=100&offset=' + offset);
+        const cs = (r.ok && r.j.contacts) || [];
+        for(const c of cs){
+          out.scanned++;
+          const d = String(c.phone || '').replace(/\D/g, ''); if(d.length < 10) continue;
+          const fv = await ac('/api/3/contacts/' + c.id + '/fieldValues'); const vals = (fv.ok && fv.j.fieldValues) || [];
+          const live = ((vals.find(v => String(v.field) === String(ACTIVATION_FIELD_ID)) || {}).value) || '';
+          const consented = !!(sfid && vals.some(v => String(v.field) === String(sfid) && v.value));
+          if(!live || !consented) continue;
+          out.buyers_with_phone++;
+          if(out.pushed >= limit || Date.now() - t0 > budget){ out.stopped_early = true; break outer; }
+          if(dry){ out.results.push({ created: c.cdate, phone_tail: d.slice(-4), live }); out.pushed++; continue; }
+          const r2 = await stPush(d.length === 10 ? '1' + d : d, c.email, L.buyer, true, String(c.firstName || '').slice(0, 40), key ? { [key]: live } : null);
+          out.pushed++;
+          let now = null; try{ const g = await st('/contacts/' + (d.length === 10 ? '1' + d : d)); now = g.j && (g.j.customFields || g.j.custom_fields || null); if(now === null && g.j) now = { _keys: Object.keys(g.j).slice(0, 20) }; }catch(e){}
+          out.results.push({ created: c.cdate, phone_tail: d.slice(-4), st_status: r2.status, st_ok: r2.ok, live_link_sent: live, custom_fields_now: now, err: r2.ok ? null : JSON.stringify(r2.j || {}).slice(0, 200) });
+          if(out.results.length > 60) out.results.splice(0, out.results.length - 60);
+        }
+        if(cs.length < 100 || Date.now() - t0 > budget) break; offset += 100;
+      }
+      return res.status(200).json(out);
+    }
+    if(req.method === 'GET' && (req.query || {}).stlists){
       if(req.query.stlists !== TEST_KEY) return res.status(403).json({ error: 'bad key' });
       const L = await stLists();
       return res.status(200).json({ ok: !!(L.checkout && L.buyer), has_key: !!stKey(),
@@ -728,8 +785,11 @@ module.exports = async (req, res) => {
           }
           if(consented){
             const L = await stLists();
+            // the buyer's activation link rides along as the "Live Link" custom field
+            const live = (((contact.fieldValues || []).find(f => String(f.field) === String(ACTIVATION_FIELD_ID)) || {}).value) || '';
+            const key = live ? await stLiveLinkKey() : '';
             if(L.buyer) await stPush(ph.length === 10 ? '1' + ph : ph, email, L.buyer, true,
-              String((sync.j.contact && sync.j.contact.firstName) || '').slice(0, 40));
+              String((sync.j.contact && sync.j.contact.firstName) || '').slice(0, 40), key ? { [key]: live } : null);
           }
         }catch(e){}
       }
