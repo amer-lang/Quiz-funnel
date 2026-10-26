@@ -782,7 +782,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .sms-wrap{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .25s ease}
 .sms-wrap.open{max-height:320px;opacity:1}
 .sms-opt span b{font-weight:600;color:inherit}
-.sms-legal{display:block;font-size:.62rem;line-height:1.5;color:var(--muted);text-align:left;margin-top:5px;font-weight:500}
+.sms-legal{display:none;font-size:.62rem;line-height:1.5;color:var(--muted);text-align:left;margin-top:5px;font-weight:500}
+#smsOpt:checked+span .sms-legal{display:block}
 .sms-legal a{color:inherit;text-decoration:underline}
 
 /* ============================================================
