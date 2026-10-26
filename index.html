@@ -59,10 +59,10 @@ body{
   overflow-x:hidden;
 }
 body::before,body::after{
-  content:'';position:fixed;border-radius:50%;filter:blur(110px);z-index:0;pointer-events:none;
+  content:'';position:fixed;border-radius:50%;z-index:0;pointer-events:none; /* soft gradient, no blur filter: same look, zero per-frame cost */
 }
-body::before{width:520px;height:520px;top:-180px;left:-160px;background:rgba(59,130,246,.16)}
-body::after{width:520px;height:520px;bottom:-200px;right:-160px;background:rgba(34,197,94,.13)}
+body::before{width:900px;height:900px;top:-370px;left:-350px;background:radial-gradient(circle,rgba(59,130,246,.20) 0%,rgba(59,130,246,.08) 32%,transparent 64%)}
+body::after{width:900px;height:900px;bottom:-390px;right:-350px;background:radial-gradient(circle,rgba(34,197,94,.17) 0%,rgba(34,197,94,.07) 32%,transparent 64%)}
 
 button{font-family:inherit}
 input{font-family:inherit}
@@ -137,8 +137,8 @@ input{font-family:inherit}
    ============================================================ */
 .stage{flex:1;display:flex;flex-direction:column;position:relative}
 .screen{display:none;flex:1;flex-direction:column;justify-content:center;padding:12px 0 28px}
-.screen.active{display:flex;animation:screenIn .55s cubic-bezier(.22,1,.36,1)}
-.screen.leaving{animation:screenOut .28s ease forwards}
+.screen.active{display:flex;animation:screenIn .32s cubic-bezier(.22,1,.36,1)}
+.screen.leaving{animation:screenOut .15s ease forwards}
 @keyframes screenIn{from{opacity:0;transform:translateX(46px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes screenOut{to{opacity:0;transform:translateX(-40px) scale(.985)}}
 
@@ -175,15 +175,16 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   overflow:hidden;
 }
 .cta::after{
-  content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;
+  content:'';position:absolute;top:0;left:0;width:55%;height:100%;
   background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);
-  animation:sheen 2.8s ease infinite;
+  transform:translateX(-150%);will-change:transform;
+  animation:sheen 2.8s ease infinite; /* transform, not left: no layout per frame */
 }
-@keyframes sheen{0%,55%{left:-80%}100%{left:130%}}
+@keyframes sheen{0%,55%{transform:translateX(-150%)}100%{transform:translateX(240%)}}
 .cta:hover{transform:translateY(-3px) scale(1.015)}
 .cta:active{transform:scale(.965)}
 .cta.gold{background:var(--grad-money);color:#241500;box-shadow:var(--shadow-gold)}
-.cta.pulse{animation:ctaPulse 1.9s ease infinite}
+.cta.pulse{animation:ctaPulse 1.9s ease infinite;will-change:transform} /* own layer: the shadow repaint stays inside the button */
 @keyframes ctaPulse{0%,100%{box-shadow:var(--shadow-pop),0 0 0 0 rgba(34,197,94,.5)}55%{box-shadow:var(--shadow-pop),0 0 0 16px rgba(34,197,94,0)}}
 .cta:disabled{opacity:.45;cursor:not-allowed;transform:none;animation:none}
 .cta-note{margin-top:13px;text-align:center;font-size:.8rem;color:var(--muted)}
@@ -514,7 +515,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .scan-fill::after{
   content:'';position:absolute;inset:0;
   background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
-  background-size:200% 100%;animation:barsheen 1.1s linear infinite;
+  background-size:200% 100%;animation:barsheen 1.1s linear infinite;will-change:background-position;
 }
 @keyframes barsheen{0%{background-position:180% 0}100%{background-position:-80% 0}}
 
@@ -720,7 +721,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;
   font-weight:800;font-size:.95rem;position:relative;overflow:hidden;
   transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s;
-  animation:nudgeBlue 1.9s ease infinite;
+  animation:nudgeBlue 1.9s ease infinite;will-change:transform;
 }
 .act-blue::after{
   content:'';position:absolute;top:0;left:-80%;width:55%;height:100%;
@@ -856,8 +857,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 /* glam layer — reserved ribbon, golden spotlight, profit engine, value stack */
 .scene-spot{
   position:absolute;left:-12%;right:-12%;top:-26%;height:75%;pointer-events:none;z-index:0;
-  background:radial-gradient(ellipse at 50% 0%,rgba(255,201,60,.16),transparent 62%);
-  filter:blur(6px);
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,201,60,.16),transparent 66%);
 }
 .resv-corner{
   position:absolute;top:-6px;right:-6px;width:118px;height:118px;
@@ -890,7 +890,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .eq-tile.gold{
   background:linear-gradient(135deg,rgba(255,201,60,.2),rgba(245,158,11,.1));
   border-color:rgba(255,201,60,.6);box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55);
-  animation:goldGlow 2s ease infinite;
+  animation:goldGlow 2s ease infinite;will-change:transform;
 }
 .eq-tile.gold b{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.1rem}
 @keyframes goldGlow{0%,100%{box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55)}50%{box-shadow:0 0 0 8px rgba(255,201,60,.04),0 10px 32px -8px rgba(245,158,11,.75)}}
@@ -941,10 +941,10 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 .scene-glow{
   position:absolute;left:8%;right:8%;bottom:-4px;height:70px;border-radius:50%;
-  background:radial-gradient(ellipse at center,rgba(59,130,246,.4),rgba(34,197,94,.18) 55%,transparent 75%);
-  filter:blur(20px);pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(59,130,246,.32),rgba(34,197,94,.14) 50%,transparent 72%);
+  pointer-events:none;
 }
-.dev-screen{position:relative;overflow:hidden;background:#fff}
+.dev-screen{position:relative;overflow:hidden;background:#fff;contain:paint}
 .dev-screen::after{ /* glass reflection */
   content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(115deg,rgba(255,255,255,.14) 0%,transparent 28%);
@@ -2336,7 +2336,7 @@ function go(id, opts={}){
     window.scrollTo({top:0,behavior:'instant'});
     updateBack();
     onEnter(id);
-  },260);
+  },150); // was 260: matches the shorter exit animation
   if(opts.fx==='ripple') flashPulse();
   if(opts.fx==='brain') emojiBurst('💡', window.innerWidth/2, window.innerHeight/3, 14);
 }
@@ -2441,7 +2441,7 @@ function answer(el, key, val, emoji, opts={}){
   showToast(t[0], t[1]+' ✓');
 
   const nxt = opts.next || NEXT_MAP[key];
-  setTimeout(()=>{ answering=false; go(nxt); }, 780);
+  setTimeout(()=>{ answering=false; go(nxt); }, 260); // was 780: the pick animation + pop land in ~250ms, nothing to wait for
 }
 
 function bumpStreak(){
@@ -2869,10 +2869,10 @@ function pickChoose(e){
   if(pickLinkMode && userEmail){
     spLead('optin', userEmail); // refresh their AC contact/product fields
     startRealBuild();
-    setTimeout(()=>{ go('s-build'); }, 650);
+    setTimeout(()=>{ go('s-build'); }, 400);
     return;
   }
-  setTimeout(()=>{ go('s-email'); }, 650);
+  setTimeout(()=>{ go('s-email'); }, 400);
 }
 
 /* allow re-choosing if they go back */
@@ -4683,12 +4683,13 @@ function countUp(el, from, to, dur, fmt){
 const cvs = document.getElementById('fx');
 const ctx = cvs.getContext('2d');
 let parts = [];
-function fit(){ cvs.width = innerWidth*devicePixelRatio; cvs.height = innerHeight*devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+const FX_DPR = Math.min(window.devicePixelRatio || 1, 2); // 3x phones: 2x is indistinguishable for confetti and half the pixels
+function fit(){ cvs.width = innerWidth*FX_DPR; cvs.height = innerHeight*FX_DPR; ctx.setTransform(FX_DPR,0,0,FX_DPR,0,0); }
 fit(); addEventListener('resize', fit);
 
 const CONF_COLORS = ['#3B82F6','#22C55E','#FFC93C','#F59E0B','#8EC5FF','#7CF0A9','#fff'];
 
-function spawn(n, maker){ for(let i=0;i<n;i++) parts.push(maker(i)); loopFx(); }
+function spawn(n, maker){ n = Math.min(n, 70); for(let i=0;i<n;i++) parts.push(maker(i)); loopFx(); } // cap per burst; bursts overlap anyway
 
 function confettiBurst(x,y,n=80){
   spawn(n, ()=>({
@@ -4714,9 +4715,9 @@ function coinRain(dur){
     if(performance.now()-t0 > dur) return;
     spawn(3, ()=>({
       type:'coin', x:Math.random()*innerWidth, y:-24,
-      vx:(Math.random()-.5)*2, vy:3+Math.random()*5,
-      g:.22, r:7+Math.random()*8, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.4,
-      life:1, decay:.004
+      vx:(Math.random()-.5)*2, vy:5+Math.random()*6,
+      g:.34, r:7+Math.random()*8, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.5,
+      life:1, decay:.006
     }));
     setTimeout(drop, 60);
   })();
@@ -4737,36 +4738,66 @@ function emojiBurst(emoji,x,y,n=10){
   }));
 }
 
-let fxRunning = false;
+/* ---- sprite cache: coins and emoji are rasterized ONCE and stamped every frame.
+   Drawing a gradient + text per coin per frame (and emoji as text) was the
+   cost that made the coin rain stutter on phones. ---- */
+const SPRITES = new Map();
+function coinSprite(r){
+  const R = Math.max(4, Math.round(r)), key = 'coin' + R;
+  let c = SPRITES.get(key); if(c) return c;
+  const S = (R + 3) * 2;
+  c = document.createElement('canvas'); c.width = Math.ceil(S * FX_DPR); c.height = Math.ceil(S * FX_DPR); c._s = S;
+  const g = c.getContext('2d'); g.setTransform(FX_DPR, 0, 0, FX_DPR, 0, 0); g.translate(S / 2, S / 2);
+  const gr = g.createRadialGradient(-R * .3, -R * .3, 1, 0, 0, R);
+  gr.addColorStop(0, '#FFE9A3'); gr.addColorStop(.55, '#FFC93C'); gr.addColorStop(1, '#C77E06');
+  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#8A5A04'; g.lineWidth = 1.4; g.stroke();
+  g.fillStyle = '#8A5A04'; g.font = 'bold ' + (R * 1.1) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('$', 0, 1);
+  SPRITES.set(key, c); return c;
+}
+function emojiSprite(ch, size){
+  const sz = Math.max(12, Math.round(size / 4) * 4), key = 'e' + ch + sz;
+  let c = SPRITES.get(key); if(c) return c;
+  const S = Math.ceil(sz * 1.4);
+  c = document.createElement('canvas'); c.width = Math.ceil(S * FX_DPR); c.height = Math.ceil(S * FX_DPR); c._s = S;
+  const g = c.getContext('2d'); g.setTransform(FX_DPR, 0, 0, FX_DPR, 0, 0);
+  g.font = sz + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, S / 2, S / 2 + 1);
+  SPRITES.set(key, c); return c;
+}
+
+let fxRunning = false, fxLast = 0;
 function loopFx(){
-  if(fxRunning) return; fxRunning = true;
-  (function frame(){
+  if(fxRunning) return; fxRunning = true; fxLast = 0;
+  (function frame(now){
+    /* time-based motion: k = how many 60fps ticks elapsed. A dropped frame
+       becomes a bigger step instead of a stall, so speed is the same on a
+       slow phone, a 60Hz phone and a 120Hz phone. */
+    const k = fxLast ? Math.min((now - fxLast) / 16.667, 3) : 1; fxLast = now;
+    ctx.setTransform(FX_DPR,0,0,FX_DPR,0,0);
     ctx.clearRect(0,0,innerWidth,innerHeight);
-    parts = parts.filter(p=>p.life>0 && p.y<innerHeight+60);
+    let w = 0; for(let i=0;i<parts.length;i++){ const q = parts[i]; if(q.life>0 && q.y<innerHeight+60) parts[w++] = q; } parts.length = w; // compact in place, no allocation
+    const D = FX_DPR;
     for(const p of parts){
-      p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.rot+=(p.vr||0); p.life-=p.decay;
+      p.x+=p.vx*k; p.y+=p.vy*k; p.vy+=p.g*k; p.rot+=(p.vr||0)*k; p.life-=p.decay*k;
       ctx.globalAlpha = Math.max(0,Math.min(1,p.life*1.4));
       if(p.type==='rect'){
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+        const c = Math.cos(p.rot), sn = Math.sin(p.rot);
+        ctx.setTransform(D*c, D*sn, -D*sn, D*c, D*p.x, D*p.y); // one matrix set instead of save/translate/rotate/restore
+        ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
       } else if(p.type==='coin'){
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        const sq = Math.abs(Math.cos(p.rot*2))*.65+.35;
-        ctx.scale(sq,1);
-        const g = ctx.createRadialGradient(-p.r*.3,-p.r*.3,1,0,0,p.r);
-        g.addColorStop(0,'#FFE9A3'); g.addColorStop(.55,'#FFC93C'); g.addColorStop(1,'#C77E06');
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#8A5A04'; ctx.lineWidth=1.4; ctx.stroke();
-        ctx.fillStyle='#8A5A04'; ctx.font='bold '+p.r*1.1+'px sans-serif';
-        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,1);
-        ctx.restore();
+        const spr = coinSprite(p.r), S = spr._s;
+        const sq = Math.abs(Math.cos(p.rot*2))*.65+.35, c = Math.cos(p.rot), sn = Math.sin(p.rot);
+        ctx.setTransform(D*c*sq, D*sn*sq, -D*sn, D*c, D*p.x, D*p.y);
+        ctx.drawImage(spr, -S/2, -S/2, S, S);
       } else if(p.type==='spark'){
+        ctx.setTransform(D,0,0,D,0,0);
         ctx.strokeStyle=p.color; ctx.lineWidth=2.2; ctx.lineCap='round';
         ctx.beginPath(); ctx.moveTo(p.x,p.y);
         const m = Math.hypot(p.vx,p.vy)||1;
         ctx.lineTo(p.x-p.vx/m*p.len, p.y-p.vy/m*p.len); ctx.stroke();
       } else if(p.type==='dust'){
-        p.tw += .12;
+        ctx.setTransform(D,0,0,D,0,0);
+        p.tw += .12*k;
         const a = Math.max(0, Math.min(1, p.life)) * (0.45 + 0.55*Math.abs(Math.sin(p.tw)));
         ctx.globalAlpha = a;
         const g2 = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
@@ -4774,14 +4805,15 @@ function loopFx(){
         ctx.fillStyle = g2;
         ctx.beginPath(); ctx.arc(p.x,p.y,p.r*3,0,Math.PI*2); ctx.fill();
       } else if(p.type==='emoji'){
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        ctx.font=p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(p.ch,0,0); ctx.restore();
+        const spr = emojiSprite(p.ch, p.size), S = spr._s, c = Math.cos(p.rot), sn = Math.sin(p.rot);
+        ctx.setTransform(D*c, D*sn, -D*sn, D*c, D*p.x, D*p.y);
+        ctx.drawImage(spr, -S/2, -S/2, S, S);
       }
     }
+    ctx.setTransform(FX_DPR,0,0,FX_DPR,0,0);
     ctx.globalAlpha = 1;
     if(parts.length){ requestAnimationFrame(frame); } else { fxRunning=false; ctx.clearRect(0,0,innerWidth,innerHeight); }
-  })();
+  })(performance.now());
 }
 
 function flashPulse(){
