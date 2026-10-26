@@ -359,15 +359,18 @@ module.exports = async (req, res) => {
       const hours = parseInt(req.query.hours || '48', 10) || 48;
       const limit = Math.min(parseInt(req.query.limit || '5', 10) || 5, 200);
       const dry = req.query.dry === '1';
+      const before = parseFloat(req.query.before || '0') || 0; // skip contacts newer than N hours ago (paging backwards)
+      const verify = req.query.verify !== '0';
       const L = await stLists(); const sfid = await smsField(); const key = await stLiveLinkKey();
       const sinceIso = new Date(Date.now() - hours * 3600000).toISOString().slice(0, 19).replace('T', ' ');
-      const out = { hours, dry, live_link_key: key || null, buyer_list: L.buyer || null, scanned: 0, buyers_with_phone: 0, pushed: 0, results: [], stopped_early: false };
+      const beforeIso = before ? new Date(Date.now() - before * 3600000).toISOString().slice(0, 19).replace('T', ' ') : '';
+      const out = { hours, before, dry, live_link_key: key || null, buyer_list: L.buyer || null, scanned: 0, buyers_with_phone: 0, pushed: 0, results: [], oldest_scanned: null, stopped_early: false };
       let offset = 0; const t0 = Date.now(); const budget = 40000;
       outer: for(let page = 0; page < 8; page++){
-        const r = await ac('/api/3/contacts?filters[created_after]=' + encodeURIComponent(sinceIso) + '&orders[cdate]=DESC&limit=100&offset=' + offset);
+        const r = await ac('/api/3/contacts?filters[created_after]=' + encodeURIComponent(sinceIso) + (beforeIso ? '&filters[created_before]=' + encodeURIComponent(beforeIso) : '') + '&orders[cdate]=DESC&limit=100&offset=' + offset);
         const cs = (r.ok && r.j.contacts) || [];
         for(const c of cs){
-          out.scanned++;
+          out.scanned++; out.oldest_scanned = c.cdate || out.oldest_scanned;
           const d = String(c.phone || '').replace(/\D/g, ''); if(d.length < 10) continue;
           const fv = await ac('/api/3/contacts/' + c.id + '/fieldValues'); const vals = (fv.ok && fv.j.fieldValues) || [];
           const live = ((vals.find(v => String(v.field) === String(ACTIVATION_FIELD_ID)) || {}).value) || '';
@@ -378,7 +381,7 @@ module.exports = async (req, res) => {
           if(dry){ out.results.push({ created: c.cdate, phone_tail: d.slice(-4), live }); out.pushed++; continue; }
           const r2 = await stPush(d.length === 10 ? '1' + d : d, c.email, L.buyer, true, String(c.firstName || '').slice(0, 40), key ? { [key]: live } : null);
           out.pushed++;
-          let now = null; try{ const g = await st('/contacts/' + (d.length === 10 ? '1' + d : d)); now = g.j && (g.j.customFields || g.j.custom_fields || null); if(now === null && g.j) now = { _keys: Object.keys(g.j).slice(0, 20) }; }catch(e){}
+          let now = null; if(verify) try{ const g = await st('/contacts/' + (d.length === 10 ? '1' + d : d)); now = g.j && (g.j.customFields || g.j.custom_fields || null); if(now === null && g.j) now = { _keys: Object.keys(g.j).slice(0, 20) }; }catch(e){}
           out.results.push({ created: c.cdate, phone_tail: d.slice(-4), st_status: r2.status, st_ok: r2.ok, live_link_sent: live, custom_fields_now: now, err: r2.ok ? null : JSON.stringify(r2.j || {}).slice(0, 200) });
           if(out.results.length > 60) out.results.splice(0, out.results.length - 60);
         }
