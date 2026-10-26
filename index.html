@@ -1832,7 +1832,7 @@ window.dsFire('PageView');
       </label>
       <div class="sms-wrap" id="smsWrap">
         <input type="tel" class="email-input" id="phoneInput" placeholder="(201) 555-0123" autocomplete="tel" inputmode="tel" oninput="emailCheck()">
-        <p class="sms-legal">By checking the box and entering your number, you agree to receive recurring automated marketing and store-alert text messages from Sell Products AI at the number provided. Consent is not a condition of any purchase. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help. <a href="/privacy" target="_blank">Privacy Policy</a> · <a href="/terms" target="_blank">Terms</a></p>
+        <p class="sms-legal">By checking the box and entering your number, you agree to receive recurring automated marketing and store-alert text messages from Sell Products AI (Ecom Websites LLC) at the number provided. Consent is not a condition of any purchase. Msg frequency varies, up to 10 msgs/month. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help. <a href="/privacy" target="_blank">Privacy Policy</a> · <a href="/sms-terms" target="_blank">SMS Terms</a> · <a href="/terms" target="_blank">Terms</a></p>
       </div>
       <button class="cta gold" id="emailBtn" disabled onclick="startBuild(event)">Build My Store 🔨</button>
       <p class="privacy-note">🛡️ We'll send your store link plus launch tips and offers — unsubscribe anytime. <a href="/privacy" target="_blank" style="color:inherit;text-decoration:underline">Privacy Policy</a></p>
@@ -4841,6 +4841,18 @@ if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell199() && !dsResumeAfterUpsell49
     go(UPSELL_ADS ? 's-launch1' : 's-upsell-ads');
   }, 900); // give the live catalogue a beat to load so real photos show
 })();
+
+/* Compliance review link: ?step=email opens the funnel directly on the email +
+   SMS opt-in step, so a carrier/A2P reviewer can see the real consent form
+   without taking the quiz. Display only; nothing else about the flow changes. */
+try{
+  if(new URLSearchParams(location.search).get('step') === 'email'){
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+      try{ const n = document.getElementById('cName'); if(n) n.textContent = 'Your AI-picked product'; const pr = document.getElementById('cProfit'); if(pr) pr.textContent = '🔒 reserved while you build'; }catch(e){}
+      go('s-email');
+    }, 80));
+  }
+}catch(e){}
 </script>
 <!-- In-page Stripe checkout (mounted by dsOpenPay) -->
 <div id="dsPayModal" style="display:none;position:fixed;inset:0;z-index:200;align-items:flex-start;justify-content:center;background:rgba(7,11,21,.72);backdrop-filter:blur(4px);overflow-y:auto;padding:24px 14px;">
