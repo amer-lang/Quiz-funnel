@@ -780,7 +780,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .sms-opt input:focus-visible{box-shadow:0 0 0 4px rgba(255,201,60,.25)}
 .sms-wrap{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .25s ease}
 .sms-wrap.open{max-height:320px;opacity:1}
-.sms-legal{font-size:.62rem;line-height:1.5;color:var(--muted);text-align:center;margin:-4px 0 14px;padding:0 4px}
+.sms-legal{font-size:.62rem;line-height:1.5;color:var(--muted);text-align:left;margin:-6px 0 10px;padding:0 2px}
 .sms-legal a{color:inherit;text-decoration:underline}
 
 /* ============================================================
@@ -1827,12 +1827,12 @@ window.dsFire('PageView');
       <input type="text" class="email-input" id="nameInput" placeholder="First name" autocomplete="given-name" autocapitalize="words" maxlength="40" oninput="emailCheck()">
       <input type="email" class="email-input" id="emailInput" placeholder="you@email.com" autocomplete="email" inputmode="email" oninput="emailCheck()">
       <label class="sms-opt" for="smsOpt">
-        <input type="checkbox" id="smsOpt" onchange="smsToggle()">
+        <input type="checkbox" id="smsOpt" onchange="smsToggle()" aria-describedby="smsLegal">
         <span>📲 Yes — text me exclusive offers, reminders &amp; alerts about my store</span>
       </label>
+      <p class="sms-legal" id="smsLegal">By checking the box and entering your number, you agree to receive recurring automated marketing and store-alert text messages from Sell Products AI (Ecom Websites LLC) at the number provided. Consent is not a condition of any purchase. Msg frequency varies, up to 10 msgs/month. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help. <a href="/privacy" target="_blank">Privacy Policy</a> · <a href="/sms-terms" target="_blank">SMS Terms</a> · <a href="/terms" target="_blank">Terms</a></p>
       <div class="sms-wrap" id="smsWrap">
         <input type="tel" class="email-input" id="phoneInput" placeholder="(201) 555-0123" autocomplete="tel" inputmode="tel" oninput="emailCheck()">
-        <p class="sms-legal">By checking the box and entering your number, you agree to receive recurring automated marketing and store-alert text messages from Sell Products AI (Ecom Websites LLC) at the number provided. Consent is not a condition of any purchase. Msg frequency varies, up to 10 msgs/month. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help. <a href="/privacy" target="_blank">Privacy Policy</a> · <a href="/sms-terms" target="_blank">SMS Terms</a> · <a href="/terms" target="_blank">Terms</a></p>
       </div>
       <button class="cta gold" id="emailBtn" disabled onclick="startBuild(event)">Build My Store 🔨</button>
       <p class="privacy-note">🛡️ We'll send your store link plus launch tips and offers — unsubscribe anytime. <a href="/privacy" target="_blank" style="color:inherit;text-decoration:underline">Privacy Policy</a></p>
