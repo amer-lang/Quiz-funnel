@@ -10,7 +10,9 @@
    (~2 hours of traffic) — dashboards showed ~5% of real numbers while Stripe
    stayed correct. A cron makes compaction independent of anyone watching. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const BASE = 'https://www.sellproducts.ai/api/collect';
 const TZ = 'America/Los_Angeles';
 
@@ -43,7 +45,16 @@ module.exports = async (req, res) => {
   /* Stripe Tax: reverse recorded tax transactions for refunds (lib/tax.js).
      Isolated so a Stripe hiccup can never affect compaction. */
   let taxrev = null;
+  /* $49 ad packs: kick the heal sweep (regenerates missing images for recent
+     paid orders). The sweep lambda keeps running after this 4 s wait ends, so
+     outages like the gpt-image-1 retirement self-heal within the hour. */
+  let adheal = null;
+  try{
+    const r = await fetch('https://www.sellproducts.ai/api/adsorder?heal=' + READ_KEY + '&days=3&emails=0&batch=40',
+      { signal: AbortSignal.timeout(4000) });
+    adheal = await r.json();
+  }catch(e){ adheal = { kicked: true }; }
   try{ if(process.env.STRIPE_SECRET_KEY) taxrev = await tax.sweepReversals(process.env.STRIPE_SECRET_KEY, 72); }
   catch(e){ taxrev = { error: String(e && e.message || e).slice(0, 120) }; }
-  return res.status(200).json({ ok: true, ran: out, taxrev, at: new Date().toISOString() });
+  return res.status(200).json({ ok: true, ran: out, taxrev, adheal, at: new Date().toISOString() });
 };

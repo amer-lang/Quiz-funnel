@@ -203,14 +203,31 @@ module.exports = async (req, res) => {
       if(q.heal !== READ_KEY) return res.status(403).json({ ok:false });
       const sk = process.env.STRIPE_SECRET_KEY || '';
       if(!sk || !process.env.OPENAI_API_KEY) return res.status(200).json({ ok:false, status:'no_keys' });
-      const days = Math.min(7, Math.max(1, parseInt(q.days, 10) || 3));
+      const days = Math.min(10, Math.max(1, parseInt(q.days, 10) || 3));
       const gte = Math.floor(Date.now() / 1000) - days * 86400;
+      const t0 = Date.now();
       const sget = p => fetch('https://api.stripe.com/v1/' + p, { headers: { Authorization: 'Bearer ' + sk } })
         .then(r => r.json()).catch(() => ({}));
-      const page2 = async base => {
+      /* one-click $49 orders are PaymentIntents: Stripe Search finds them by
+         metadata directly instead of paging through every $20 PI of the week */
+      const searchPis = async () => {
+        const out = []; let page = '';
+        for(let p = 0; p < 20; p++){
+          const j = await sget('payment_intents/search?limit=100&query=' +
+            encodeURIComponent("metadata['type']:'image_ads_10' AND created>=" + gte) + (page ? '&page=' + encodeURIComponent(page) : ''));
+          const data = (j && j.data) || [];
+          out.push(...data);
+          if(!j.has_more || !j.next_page || !data.length) break;
+          page = j.next_page;
+        }
+        return out;
+      };
+      /* hosted-checkout $49 orders are Sessions (no search API): page by created,
+         newest first, within a time budget */
+      const pageSessions = async () => {
         const out = []; let after = '';
-        for(let p = 0; p < 6; p++){
-          const j = await sget(base + '&limit=100&created[gte]=' + gte + (after ? '&starting_after=' + after : ''));
+        for(let p = 0; p < 80 && Date.now() - t0 < 30000; p++){
+          const j = await sget('checkout/sessions?limit=100&created[gte]=' + gte + (after ? '&starting_after=' + after : ''));
           const data = (j && j.data) || [];
           out.push(...data);
           if(!j.has_more || !data.length) break;
@@ -218,28 +235,38 @@ module.exports = async (req, res) => {
         }
         return out;
       };
-      const [pis, sessions] = await Promise.all([page2('payment_intents?'), page2('checkout/sessions?')]);
+      const [pis, sessions] = await Promise.all([searchPis(), pageSessions()]);
       const orders = [];
       for(const p of pis) if(p.status === 'succeeded' && p.metadata && p.metadata.type === 'image_ads_10') orders.push(p.id);
       for(const s of sessions) if(s.payment_status === 'paid' && s.metadata && s.metadata.type === 'image_ads_10') orders.push(s.id);
 
       const report = [], tasks = [];
-      for(const id of orders){
-        const st2 = await orderState(keyOf(id));
+      /* blob listings, 8 at a time */
+      const states = new Array(orders.length); let oi = 0;
+      await Promise.all(Array.from({ length: 8 }, async () => {
+        while(oi < orders.length){ const k = oi++; states[k] = await orderState(keyOf(orders[k])).catch(() => ({ ads: {}, pending: {} })); }
+      }));
+      orders.forEach((id, k) => {
+        const st2 = states[k];
         const missing = [];
         for(let i = 0; i < TOTAL; i++)
           if(!st2.ads[i] && !(st2.pending[i] && Date.now() - st2.pending[i] < PENDING_TTL)) missing.push(i);
         if(missing.length) report.push({ order: id.slice(0, 14) + '…', missing: missing.length });
         for(const i of missing) tasks.push({ id, i });
-      }
+      });
       if(q.dry === '1') return res.status(200).json({ ok: true, dry: true, days,
-        orders_scanned: orders.length, incomplete_orders: report, images_missing: tasks.length });
+        orders_scanned: orders.length, incomplete_orders: report.length, images_missing: tasks.length,
+        sample: report.slice(0, 12) });
 
-      const batch = tasks.slice(0, 26); // parallel lambdas, one image each
+      /* parallel lambdas, one image each. Each child keeps running after we stop
+         waiting for it, so the 55 s cap only bounds THIS response, not the work. */
+      const batch = tasks.slice(0, Math.min(60, Math.max(1, parseInt(q.batch, 10) || 40)));
       const results = await Promise.all(batch.map(t =>
-        fetch('https://www.sellproducts.ai/api/adsorder?cs=' + encodeURIComponent(t.id) + '&make=1&i=' + t.i)
-          .then(r => r.json()).catch(() => ({ ok: false }))));
+        fetch('https://www.sellproducts.ai/api/adsorder?cs=' + encodeURIComponent(t.id) + '&make=1&i=' + t.i,
+          { signal: AbortSignal.timeout(55000) })
+          .then(r => r.json()).catch(() => ({ ok: false, timeout: true }))));
       const made = results.filter(r => r && r.ok).length;
+      const stillRunning = results.filter(r => r && r.timeout).length;
 
       /* email packs regenerate on page-load; warm the most recent ones too */
       let emailsWarmed = 0;
@@ -253,8 +280,8 @@ module.exports = async (req, res) => {
       }
 
       return res.status(200).json({ ok: true, days, orders_scanned: orders.length,
-        incomplete_orders: report, images_missing: tasks.length,
-        kicked_this_run: batch.length, generated_ok: made, email_packs_warmed: emailsWarmed,
+        incomplete_orders: report.length, images_missing: tasks.length,
+        kicked_this_run: batch.length, generated_ok: made, still_running: stillRunning, email_packs_warmed: emailsWarmed,
         note: tasks.length > batch.length || made < batch.length
           ? 'Not finished — run this same URL again until images_missing is 0.'
           : 'All caught up.' });
