@@ -2,7 +2,7 @@
    Vercel serverless function at /api/adpack.
 
    Generates ONE premium pack-shot mockup per catalogue product (fanned deck
-   of ad cards, gold "10-AD PACK" ribbon) with OpenAI gpt-image-1, using the
+   of ad cards, gold "10-AD PACK" ribbon) with OpenAI's image model (lib/imagemodel.js), using the
    product's real photo as reference, and stores it in Vercel Blob at a
    deterministic path (adpack/<slug>.webp). The Blob listing itself is the
    cache index — no external index service. Each product costs one
@@ -19,7 +19,10 @@
    Vercel Blob store; degrades to {ready:false} so the funnel's built-in
    fallback shows. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+const imagemodel = require('../lib/imagemodel');
+
+const READ_KEY = guardKey('READ_KEY');
 const DS_API = 'https://chat.dropstart.app/api/express';
 /* DropStart API key — ROTATED 2026-09-27: the previous key sat in the public page
    source Jul 22–Sep 23, so it was replaced and no longer works. Do NOT paste an
@@ -101,30 +104,35 @@ async function generate(name, imgUrl){
   if(imgRes && imgRes.ok){
     const buf = Buffer.from(await imgRes.arrayBuffer());
     const ct = imgRes.headers.get('content-type') || 'image/png';
-    const fd = new FormData();
-    fd.append('model', 'gpt-image-1');
-    fd.append('image', new Blob([buf], { type: ct }), 'product.' + (ct.includes('webp') ? 'webp' : ct.includes('jpeg') ? 'jpg' : 'png'));
-    fd.append('prompt', PROMPT(name));
-    fd.append('size', '1024x1536');
-    fd.append('quality', 'medium');
-    fd.append('output_format', 'webp');
-    fd.append('output_compression', '80');
-    const r = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd
+    const r = await imagemodel.run(async model => {
+      const fd = new FormData();
+      fd.append('model', model);
+      fd.append('image', new Blob([buf], { type: ct }), 'product.' + (ct.includes('webp') ? 'webp' : ct.includes('jpeg') ? 'jpg' : 'png'));
+      fd.append('prompt', PROMPT(name));
+      fd.append('size', '1024x1536');
+      fd.append('quality', 'medium');
+      fd.append('output_format', 'webp');
+      fd.append('output_compression', '80');
+      const res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd
+      });
+      return { status: res.status, out: await res.json().catch(() => null) };
     });
-    out = await r.json();
-    if(!r.ok) out = null;
+    out = r.status >= 200 && r.status < 300 ? r.out : null;
   }
   if(!out || !out.data || !out.data[0] || !out.data[0].b64_json){
-    const r = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt: PROMPT(name), size: '1024x1536',
-        quality: 'medium', output_format: 'webp', output_compression: 80 })
+    const r = await imagemodel.run(async model => {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt: PROMPT(name), size: '1024x1536',
+          quality: 'medium', output_format: 'webp', output_compression: 80 })
+      });
+      return { status: res.status, out: await res.json().catch(() => null) };
     });
-    out = await r.json();
-    if(!r.ok || !out.data || !out.data[0] || !out.data[0].b64_json){
-      return { error: 'gen_failed', detail: (out && out.error && out.error.message) || '' };
+    out = r.out;
+    if(!(r.status >= 200 && r.status < 300) || !out || !out.data || !out.data[0] || !out.data[0].b64_json){
+      return { error: 'gen_failed', model: r.model, detail: (out && out.error && out.error.message) || '' };
     }
   }
   return { b64: out.data[0].b64_json };

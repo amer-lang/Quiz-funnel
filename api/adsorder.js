@@ -1,6 +1,6 @@
 /* Sell Products AI — $49 order fulfillment: generates the buyer's 10 REAL
    image ads (6 feed squares + 4 story portraits) from their product's photo
-   with OpenAI gpt-image-1, and stores them in Vercel Blob under a key derived
+   with OpenAI's image model (see lib/imagemodel.js), and stores them in Vercel Blob under a key derived
    from their PAID $49 checkout session. The /ads delivery page drives this.
 
    GET ?cs=<upsell_cs>&status=1      — verify paid → per-ad ready/src map
@@ -16,7 +16,10 @@
 
 const crypto = require('crypto');
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+const imagemodel = require('../lib/imagemodel');
+
+const READ_KEY = guardKey('READ_KEY');
 const DS_API = 'https://chat.dropstart.app/api/express';
 /* DropStart API key — ROTATED 2026-09-27: the previous key sat in the public page
    source Jul 22–Sep 23, so it was replaced and no longer works. Do NOT paste an
@@ -127,30 +130,35 @@ async function generate(name, spec, imgUrl){
   if(imgRes && imgRes.ok){
     const buf = Buffer.from(await imgRes.arrayBuffer());
     const ct = imgRes.headers.get('content-type') || 'image/png';
-    const fd = new FormData();
-    fd.append('model', 'gpt-image-1');
-    fd.append('image', new Blob([buf], { type: ct }), 'product.' + (ct.includes('webp') ? 'webp' : ct.includes('jpeg') ? 'jpg' : 'png'));
-    fd.append('prompt', PROMPT(name, spec.style));
-    fd.append('size', spec.size);
-    fd.append('quality', 'high');
-    fd.append('output_format', 'webp');
-    fd.append('output_compression', '85');
-    const r = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd
+    const r = await imagemodel.run(async model => {
+      const fd = new FormData();
+      fd.append('model', model);
+      fd.append('image', new Blob([buf], { type: ct }), 'product.' + (ct.includes('webp') ? 'webp' : ct.includes('jpeg') ? 'jpg' : 'png'));
+      fd.append('prompt', PROMPT(name, spec.style));
+      fd.append('size', spec.size);
+      fd.append('quality', 'high');
+      fd.append('output_format', 'webp');
+      fd.append('output_compression', '85');
+      const res = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd
+      });
+      return { status: res.status, out: await res.json().catch(() => null) };
     });
-    out = await r.json();
-    if(!r.ok) out = null;
+    out = r.status >= 200 && r.status < 300 ? r.out : null;
   }
   if(!out || !out.data || !out.data[0] || !out.data[0].b64_json){
-    const r = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt: PROMPT(name, spec.style), size: spec.size,
-        quality: 'high', output_format: 'webp', output_compression: 85 })
+    const r = await imagemodel.run(async model => {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt: PROMPT(name, spec.style), size: spec.size,
+          quality: 'high', output_format: 'webp', output_compression: 85 })
+      });
+      return { status: res.status, out: await res.json().catch(() => null) };
     });
-    out = await r.json();
-    if(!r.ok || !out.data || !out.data[0] || !out.data[0].b64_json){
-      return { error: 'gen_failed', detail: (out && out.error && out.error.message) || '' };
+    out = r.out;
+    if(!(r.status >= 200 && r.status < 300) || !out || !out.data || !out.data[0] || !out.data[0].b64_json){
+      return { error: 'gen_failed', model: r.model, detail: (out && out.error && out.error.message) || '' };
     }
   }
   return { b64: out.data[0].b64_json };
@@ -180,6 +188,12 @@ module.exports = async (req, res) => {
   const q = req.query || {};
 
   try{
+    /* owner: which OpenAI image models this key can use, and which one is in use */
+    if(q.models){
+      if(q.models !== READ_KEY) return res.status(403).json({ ok:false });
+      if(!process.env.OPENAI_API_KEY) return res.status(200).json({ ok:false, status:'no_key' });
+      return res.status(200).json(Object.assign({ ok:true }, await imagemodel.listModels(process.env.OPENAI_API_KEY)));
+    }
     if(!blobReady()) return res.status(200).json({ ok:false, status:'no_blob_store' });
 
     /* ---- key-gated heal sweep: after an OpenAI outage, find every recent
