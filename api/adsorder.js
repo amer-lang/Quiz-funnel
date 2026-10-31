@@ -206,15 +206,18 @@ module.exports = async (req, res) => {
       const days = Math.min(10, Math.max(1, parseInt(q.days, 10) || 3));
       const gte = Math.floor(Date.now() / 1000) - days * 86400;
       const t0 = Date.now();
-      const sget = p => fetch('https://api.stripe.com/v1/' + p, { headers: { Authorization: 'Bearer ' + sk } })
+      const sget = p => fetch('https://api.stripe.com/v1/' + p, { headers: Object.assign({ Authorization: 'Bearer ' + sk },
+          /\/search\?/.test(p) ? { 'Stripe-Version': '2020-08-27' } : {}) }) // account default predates Search; per-request override
         .then(r => r.json()).catch(() => ({}));
       /* one-click $49 orders are PaymentIntents: Stripe Search finds them by
          metadata directly instead of paging through every $20 PI of the week */
+      let searchDebug = null;
       const searchPis = async () => {
         const out = []; let page = '';
         for(let p = 0; p < 20; p++){
           const j = await sget('payment_intents/search?limit=100&query=' +
             encodeURIComponent("metadata['type']:'image_ads_10' AND created>=" + gte) + (page ? '&page=' + encodeURIComponent(page) : ''));
+          if(p === 0) searchDebug = { error: j && j.error && j.error.message, got: (j && j.data && j.data.length) || 0, has_more: !!(j && j.has_more) };
           const data = (j && j.data) || [];
           out.push(...data);
           if(!j.has_more || !j.next_page || !data.length) break;
@@ -255,8 +258,8 @@ module.exports = async (req, res) => {
         for(const i of missing) tasks.push({ id, i });
       });
       if(q.dry === '1') return res.status(200).json({ ok: true, dry: true, days,
-        orders_scanned: orders.length, incomplete_orders: report.length, images_missing: tasks.length,
-        sample: report.slice(0, 12) });
+        orders_scanned: orders.length, pis_found: pis.length, sessions_paged: sessions.length, search: searchDebug,
+        incomplete_orders: report.length, images_missing: tasks.length, sample: report.slice(0, 12) });
 
       /* parallel lambdas, one image each. Each child keeps running after we stop
          waiting for it, so the 55 s cap only bounds THIS response, not the work. */
