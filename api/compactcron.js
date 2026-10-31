@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
      outages like the gpt-image-1 retirement self-heal within the hour. */
   let adheal = null;
   try{
-    const r = await fetch('https://www.sellproducts.ai/api/adsorder?heal=' + READ_KEY + '&days=3&emails=0&batch=40',
+    const r = await fetch('https://www.sellproducts.ai/api/adsorder?heal=' + READ_KEY + '&days=10&emails=0&batch=60',
       { signal: AbortSignal.timeout(4000) });
     adheal = await r.json();
   }catch(e){ adheal = { kicked: true }; }
