@@ -1250,6 +1250,24 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
 /* device-trio mockup — their store on desktop, tablet and phone at once */
 .mock-scene{position:relative;margin:0 auto 8px;padding-bottom:8px;max-width:380px;width:100%}
+/* Tablet and desktop: the preview fits the viewport, no page scroll. The
+   device scene sizes to the height left over; wide screens put the margin
+   box beside the devices. */
+@media (min-width:700px){
+  #s-preview{justify-content:flex-start;padding-top:10px;padding-bottom:140px !important}
+  #s-preview .mock-scene{max-width:min(480px,calc((100vh - 560px) / .7));margin-bottom:6px}
+}
+@media (min-width:1000px){
+  .screen#s-preview.active{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:40px;align-content:start;justify-items:center;
+    width:min(980px,calc(100vw - 48px));margin-left:calc(50% - min(490px,50vw - 24px));
+  }
+  #s-preview>.kicker,#s-preview>h2,#s-preview>.sub{grid-column:1 / -1}
+  #s-preview>.sub{margin-bottom:14px}
+  #s-preview .mock-scene{grid-column:1;grid-row:4 / span 2;align-self:center;max-width:min(480px,calc((100vh - 330px) / .7));margin:0}
+  #s-preview .engine{grid-column:2;grid-row:4;align-self:end;width:100%;max-width:440px;margin:0 0 12px}
+  #s-preview .stack-line{grid-column:2;grid-row:5;align-self:start;max-width:440px;justify-content:center}
+}
 @media (max-height:880px){
   #s-preview h2{font-size:1.22rem}
   #s-preview .sub{font-size:.78rem !important;margin-bottom:8px !important}
@@ -4112,7 +4130,7 @@ function pvPrepare(){
   mountScaledPanHtml(document.getElementById('scrMonitor'), bxDesktopHTML(p, brand, th), 1200);
   mountScaledPanHtml(document.getElementById('scrTablet'), bxStoreHTML(p, brand, th, true, 'spt'), 768);
   mountScaledPanHtml(document.getElementById('scrPhone'), bxStoreHTML(p, brand, th, true), 390);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(!sec.classList.contains('active')) sec.classList.remove('prep'); }));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>sec.classList.remove('prep')));   // the devices have measured themselves; back to normal flow
 }
 function runPreview(){
   if(previewRan) return; previewRan = true;
