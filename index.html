@@ -160,6 +160,13 @@ input{font-family:inherit}
 .screen{display:none;flex:1;flex-direction:column;justify-content:center;padding:12px 0 28px}
 .screen.active{display:flex;animation:screenIn .55s cubic-bezier(.22,1,.36,1)}
 .screen.leaving{animation:screenOut .28s ease forwards}
+.screen.prep{display:flex;visibility:hidden;position:absolute;inset:0;pointer-events:none}
+.screen.fading{position:absolute;inset:0;animation:screenFade .26s ease forwards;pointer-events:none;z-index:0}
+.screen.fading .bx-head,.screen.fading .bx-side,.screen.fading .bx-grid{visibility:hidden}
+.screen.active.soft{animation:screenSoft .5s ease both;position:relative;z-index:1}
+@keyframes screenFade{to{opacity:0}}
+@keyframes screenSoft{from{opacity:0}to{opacity:1}}
+.dev-phone.landing{animation:none;visibility:hidden;transform:rotate(4deg)}
 @keyframes screenIn{from{opacity:0;transform:translateX(46px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes screenOut{to{opacity:0;transform:translateX(-40px) scale(.985)}}
 
@@ -2681,6 +2688,19 @@ function go(id, opts={}){
   const from = document.getElementById(current);
   const to = document.getElementById(id);
   history.push(current);
+  if(opts.handoff){
+    // build → preview: the phone glides across, so the screens cross-fade in place instead of sliding
+    from.classList.add('fading');
+    to.classList.remove('prep');
+    to.classList.add('active','soft');
+    current = id;
+    setBar(id);
+    window.scrollTo({top:0,behavior:'instant'});
+    updateBack();
+    onEnter(id);
+    setTimeout(()=>{ from.classList.remove('active','fading'); }, 420);   // 'soft' stays: dropping it would replay the slide-in
+    return;
+  }
   from.classList.add('leaving');
   playWhoosh();
   setTimeout(()=>{
@@ -3433,7 +3453,7 @@ function startBuild(e){
 function startRealBuild(){
   if(!DS_LIVE) return;
   dsBuild = null; dsStatus = null; dsBuildError = null;
-  BX.realName = ''; clearTimeout(BX.nameTimer); BX.polling = false; setTimeout(()=>{ if(!BX.polling) bxPollName(); }, 1500);
+  BX.realName = ''; clearTimeout(BX.nameTimer); BX.polling = false;
   fetch(DS_API + '/build', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -3454,6 +3474,7 @@ function startRealBuild(){
   .then(j=>{
     if(j && j.ok){
       dsBuild = j;
+      if(!BX.polling) bxPollName();   // ask for the store's name right away
       // Survive the round trip through checkout — the page reloads when they
       // come back from Stripe, so the upsell screen needs this.
       try{ localStorage.setItem('ds_build', JSON.stringify(j)); }catch(err){}
@@ -3545,7 +3566,7 @@ function bxPollName(){
       try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
       return;
     }
-    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 1200);
+    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 700);
   }).catch(()=>{ if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 3000); });
 }
 
@@ -3890,8 +3911,8 @@ function bxFrame(now){
   bxTick();
   // naming gate: type the real name as soon as it is known (stand-in after 30 s), then start the build proper
   if(BX.base === null && BX.step === 0){
-    if(!BX.named && BX.ie > 700 && (BX.realName || BX.ie > 30000)) bxTypeName();
-    if(BX.named && BX.ie - BX.namedAt > 1300) BX.base = BX.ie;
+    if(!BX.named && BX.ie > 600 && (BX.realName || BX.ie > 30000)) bxTypeName();
+    if(BX.named && BX.ie - BX.namedAt > 1000) BX.base = BX.ie;
   }
   const T = 11300, te = BX.base === null ? 0 : BX.ie - BX.base;
   const pct = BX.hold ? Math.min(99, 94 + Math.floor((BX.ie - BX.holdAt) / 1800))
@@ -3984,6 +4005,7 @@ function buildFinish(){
   const sub = bxQ('bxSub'); if(sub) sub.textContent = 'Here it is. Opening your preview…';
   bxQ('bxSr').textContent = (realName || 'Your store') + ' is ready';
   playTada(); vibrate([20,80,20,80,30]);
+  try{ pvPrepare(); }catch(e){}
   bxAnim(bxQ('bxBurst'), [{opacity:.9,transform:'none'},{opacity:0,transform:'scale(1.3,1.14)'}], {duration:1000});
   const r = bxQ('bxPhone').getBoundingClientRect();
   const cx = r.left + r.width/2, cy = r.top + Math.min(r.height, innerHeight - r.top) * .35;
@@ -4009,18 +4031,28 @@ function bxHandoff(){
       ph.style.visibility = 'hidden';
     }
   }
-  go('s-preview');
-  if(!ghost) return;
-  const from = ghost.style.transform, t0 = performance.now();
+  if(!ghost){ go('s-preview'); return; }
+  // the real phone on the preview stays hidden (and skips its own entrance)
+  // until the glide lands on it
+  const dev = document.querySelector('#s-preview .dev-phone');
+  if(dev) dev.classList.add('landing');
+  go('s-preview', { handoff: true });
+  const w = ph.offsetWidth, h = ph.offsetHeight, r0 = ph.getBoundingClientRect();
+  ghost.style.transformOrigin = '50% 50%';
+  const from = 'translate(' + (r0.left + r0.width/2 - w/2).toFixed(1) + 'px,' + (r0.top + r0.height/2 - h/2).toFixed(1) + 'px) scale(' + (r0.width / w).toFixed(4) + ')';
+  ghost.style.transform = from;
+  const t0 = performance.now();
   (function seek(){
     const tgt = document.querySelector('#s-preview.active .dev-phone .ph-screen');
     const tr = tgt && tgt.getBoundingClientRect();
-    if(!tr || tr.width < 10){ if(performance.now() - t0 < 1400) return requestAnimationFrame(seek); ghost.remove(); return; }
-    const sc2 = tr.width / ghost.offsetWidth;
-    const to = 'translate(' + tr.left.toFixed(1) + 'px,' + tr.top.toFixed(1) + 'px) scale(' + sc2.toFixed(4) + ')';
+    if(!tr || tr.width < 10){ if(performance.now() - t0 < 1400) return requestAnimationFrame(seek); ghost.remove(); if(dev) dev.classList.remove('landing'); return; }
+    // the target sits at rotate(4deg); rotation keeps the centre, so aim the centres and match the unrotated width
+    const s2 = tgt.offsetWidth / (w - 12);
+    const to = 'translate(' + (tr.left + tr.width/2 - w/2).toFixed(1) + 'px,' + (tr.top + tr.height/2 - h/2).toFixed(1) + 'px) rotate(4deg) scale(' + s2.toFixed(4) + ')';
     let a = null;
-    try{ a = ghost.animate([{transform:from, opacity:1},{transform:to, opacity:1, offset:.84},{transform:to, opacity:0}], {duration:820, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards'}); }catch(e){}
-    if(a){ a.onfinish = ()=>ghost.remove(); a.oncancel = ()=>ghost.remove(); } else ghost.remove();
+    try{ a = ghost.animate([{transform:from},{transform:to}], {duration:900, easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards'}); }catch(e){}
+    const land = ()=>{ if(dev) dev.classList.remove('landing'); ghost.remove(); };
+    if(a){ a.onfinish = land; a.oncancel = land; } else land();
   })();
 }
 
@@ -4063,8 +4095,28 @@ function slugOf(name){
   return (name||'your-store').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 }
 
+/* Render the three device screens while the build screen is still up (the
+   preview section is laid out invisibly for a moment), so the hand-off has
+   no work left to do and nothing stutters. */
+let previewPrepped = false;
+function pvPrepare(){
+  if(previewPrepped) return; previewPrepped = true;
+  const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
+  const th = bxTheme(p);
+  const realName = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName;
+  const brand = realName || BX.brand || bxBrand(p.name);
+  document.getElementById('pvProdName').textContent = brand;
+  document.getElementById('pvUrl').textContent = slugOf(brand) + '.myshopify.com';
+  const sec = document.getElementById('s-preview');
+  sec.classList.add('prep');
+  mountScaledPanHtml(document.getElementById('scrMonitor'), bxDesktopHTML(p, brand, th), 1200);
+  mountScaledPanHtml(document.getElementById('scrTablet'), bxStoreHTML(p, brand, th, true, 'spt'), 768);
+  mountScaledPanHtml(document.getElementById('scrPhone'), bxStoreHTML(p, brand, th, true), 390);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(!sec.classList.contains('active')) sec.classList.remove('prep'); }));
+}
 function runPreview(){
   if(previewRan) return; previewRan = true;
+  pvPrepare();
   const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
   const th = bxTheme(p);
   const realName = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName;
@@ -4073,20 +4125,8 @@ function runPreview(){
   document.getElementById('pvProdName').textContent = brand;
   document.getElementById('pvUrl').textContent = slug + '.myshopify.com';
 
-  const mon = document.getElementById('scrMonitor');
-  const tab = document.getElementById('scrTablet');
-  const ph  = document.getElementById('scrPhone');
-  // Every device shows the store the buyer just watched being built (same
-  // theme, brand, copy): desktop layout on the monitor, tablet layout on the
-  // iPad, the phone page on the phone.
-  mountScaledPanHtml(mon, bxDesktopHTML(p, brand, th), 1200);
-  mountScaledPanHtml(tab, bxStoreHTML(p, brand, th, true, 'spt'), 768);
-  mountScaledPanHtml(ph, bxStoreHTML(p, brand, th, true), 390);
-
-  playTada();
-  confettiBurst(window.innerWidth/2, 130, 110);
-  coinCannon(window.innerWidth/2, window.innerHeight*0.35);
-  vibrate([16,60,16]);
+  // devices were rendered by pvPrepare(); the phone arrives by the glide
+  setTimeout(()=>{ playTada(); confettiBurst(window.innerWidth/2, 130, 110); coinCannon(window.innerWidth/2, window.innerHeight*0.35); vibrate([16,60,16]); }, BX.reduced ? 0 : 700);
 
   runGlam(p);
   dsApplyUnlimitedUi();
