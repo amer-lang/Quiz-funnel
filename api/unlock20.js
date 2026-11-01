@@ -329,6 +329,7 @@ module.exports = async (req, res) => {
       }
       if(!sess) return res.status(200).json({ ok:false, status:'no_paid_session' });
       const r = await dealfuel.sendForSession(sk, sess, { dry: true });
+      r.webhook_enabled = dealfuel.ENABLED;
       return res.status(200).json({ ok:true, has_token: !!process.env.DEALFUEL_LEADS_TOKEN, session: sess.id, paid: sess.payment_status === 'paid', result: r });
     }
 
@@ -428,7 +429,7 @@ module.exports = async (req, res) => {
     // }
 
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
-      Object.assign(utmFromBody(body), leadMeta(body)));
+      Object.assign({}, utmFromBody(body), leadMeta(body)));   // utmFromBody() is null for visitors without a UTM/waid: Object.assign(null, …) threw and broke their checkout
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
       ui: c.ui, custom_error: c.custom_error || '' });
   }catch(e){
