@@ -866,9 +866,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .spt .sp-card b{font-size:16px}.spt .sp-card p{font-size:14px}
 .spt .sp-foot{padding:34px 40px 70px}
 
-/* review build: preview without the built-in margin box */
-#s-preview .engine{display:none}
-
 /* desktop variant of the same store (monitor on the preview screen) */
 .spd{width:1200px}
 .spd-ann{background:var(--acc);color:#fff;text-align:center;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;padding:11px}
@@ -1201,50 +1198,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   animation:ribbonIn .6s cubic-bezier(.34,1.6,.64,1) .9s both;
 }
 @keyframes ribbonIn{from{transform:rotate(38deg) scale(2.2);opacity:0}to{transform:rotate(38deg) scale(1);opacity:1}}
-/* review build: preview without the built-in margin box */
-#s-preview .engine{display:none}
-
-/* ---- goal bar on the preview screen ---- */
-.gb{
-  position:relative;margin:4px 0 12px;padding:16px 16px 12px;border-radius:20px;
-  background:linear-gradient(180deg,rgba(255,201,60,.08),rgba(255,201,60,.02)),var(--card);
-  border:1px solid rgba(255,201,60,.28);box-shadow:0 20px 50px -30px rgba(255,201,60,.35);
-  text-align:center;
-}
-.gb-kicker{display:block;font-size:.62rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
-.gb-sales{font-size:1.05rem;font-weight:800;margin-top:4px;color:var(--text)}
-.gb-sales b{font-size:1.35rem;font-variant-numeric:tabular-nums;color:#fff}
-.gb-sub{font-size:.74rem;font-weight:700;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
-.gb-big{display:flex;align-items:baseline;justify-content:center;gap:4px;margin:8px 0 14px;line-height:1}
-.gb-big b{font-size:clamp(2.4rem,11vw,3.2rem);font-weight:900;letter-spacing:-.04em;font-variant-numeric:tabular-nums;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;transition:transform .25s cubic-bezier(.3,1.5,.5,1)}
-.gb.hit .gb-big b{background:linear-gradient(135deg,#7CF0A9,#22C55E);-webkit-background-clip:text;background-clip:text}
-.gb-cur{font-size:1.4rem;font-weight:800;color:var(--gold)}
-.gb.hit .gb-cur{color:#7CF0A9}
-.gb-per{font-size:.9rem;font-weight:700;color:var(--muted);margin-left:2px}
-.gb-track{position:relative;height:56px;margin:26px 6px 2px}
-.gb-rail{position:absolute;left:0;right:0;top:50%;height:14px;transform:translateY(-50%);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.gb-fill{height:100%;width:0;border-radius:99px;background:var(--grad-money);box-shadow:0 0 18px rgba(255,201,60,.6)}
-.gb.hit .gb-fill{background:linear-gradient(90deg,#FFC93C,#22C55E)}
-.gb-goal{position:absolute;top:0;bottom:0;left:60%;width:0;pointer-events:none}
-.gb-goal i{position:absolute;left:-1.5px;top:50%;width:3px;height:26px;transform:translateY(-50%);border-radius:2px;background:rgba(255,255,255,.55);box-shadow:0 0 0 3px rgba(7,11,21,.6)}
-.gb.hit .gb-goal i{background:#7CF0A9;box-shadow:0 0 0 3px rgba(7,11,21,.6),0 0 16px rgba(124,240,169,.9)}
-.gb-flag{position:absolute;bottom:calc(50% + 20px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.62rem;font-weight:800;letter-spacing:.04em;color:var(--muted);background:var(--card-2);border:1px solid var(--line-strong);padding:4px 8px;border-radius:8px}
-.gb-flag b{color:var(--text);margin-left:3px}
-.gb.hit .gb-flag{color:#7CF0A9;border-color:rgba(124,240,169,.5)}
-.gb-flag::after{content:'';position:absolute;left:50%;bottom:-5px;width:8px;height:8px;background:inherit;border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong);transform:translateX(-50%) rotate(45deg)}
-.gb-track.edge .gb-flag{transform:translateX(-86%)}
-.gb-track.edge .gb-flag::after{left:86%}
-.gb-thumb{position:absolute;top:50%;left:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE9A3,#FFC93C 55%,#F59E0B);box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 0 3px rgba(255,255,255,.14);pointer-events:none;transition:transform .15s}
-.gb-thumb::after{content:'';position:absolute;inset:9px;border-radius:50%;background:#241500;opacity:.5}
-.gb.drag .gb-thumb{transform:scale(1.15)}
-.gb-track input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;touch-action:none;-webkit-appearance:none;appearance:none}
-.gb-track input::-webkit-slider-thumb{-webkit-appearance:none;width:44px;height:56px}
-.gb-track input::-moz-range-thumb{width:44px;height:56px;opacity:0}
-.gb-status{min-height:1.3em;margin-top:6px;font-size:.84rem;font-weight:800;color:var(--text)}
-.gb.hit .gb-status{color:#7CF0A9}
-.gb-note{margin:8px auto 0;font-size:.62rem;line-height:1.4;color:var(--muted);max-width:340px}
-#s-preview .stack-line{margin-top:8px}
-
 .engine{
   margin:4px 0 9px;padding:11px 12px 9px;border-radius:16px;
   background:linear-gradient(180deg,rgba(255,201,60,.09),rgba(245,158,11,.04));
@@ -2298,24 +2251,7 @@ window.dsFire('PageView');
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
       </div>
 
-        <!-- goal bar: sales a month → monthly margin, with the buyer's own goal as the milestone -->
-      <div class="gb" id="gb" aria-live="polite">
-        <div class="gb-top">
-          <span class="gb-kicker">If this store does</span>
-          <div class="gb-sales"><b id="gbSales">0</b> sales a month</div>
-          <div class="gb-sub"><span id="gbDay">0</span> a day · <span id="gbMargin">$0.00</span> margin each</div>
-        </div>
-        <div class="gb-big"><span class="gb-cur">$</span><b id="gbTotal">0</b><span class="gb-per">/ month</span></div>
-        <div class="gb-track" id="gbTrack">
-          <div class="gb-rail"><div class="gb-fill" id="gbFill"></div></div>
-          <div class="gb-goal" id="gbGoal"><span class="gb-flag">Your goal <b id="gbGoalAmt">$10,000</b></span><i></i></div>
-          <div class="gb-thumb" id="gbThumb"></div>
-          <input type="range" id="gbRange" min="0" max="500" step="1" value="0" aria-label="Sales per month">
-        </div>
-        <div class="gb-status" id="gbStatus">Drag the bar to your goal →</div>
-        <p class="gb-note">An illustration based on this product's margin, not a prediction or a promise of earnings.</p>
-      </div>
-      <div class="engine">
+        <div class="engine">
         <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
         <div class="eq">
           <div class="eq-tile gold"><b id="eqProfit">$0.00</b><span>margin / sale</span></div>
@@ -3574,6 +3510,7 @@ function bxRename(name){
   const page = bxQ('bxPage'); if(!page) return;
   page.querySelectorAll('.sp-eye, .sp-foot > b').forEach(el=>{ el.textContent = name; });
   const pr = page.querySelector('.sp-promise b'); if(pr) pr.textContent = 'The ' + name + ' promise';
+  const eye = page.querySelector('.sp-eye'); if(eye && BX.secs && BX.secs.title && BX.secs.title.classList.contains('in')) bxAnim(eye, [{opacity:0},{opacity:1}], {duration:400});
   const w = page.querySelector('.sp-word');
   const g = (BX.typers || []).find(t=>t.key === 'name');
   if(BX.reduced || !w){ if(w) w.textContent = name; }
@@ -3584,7 +3521,7 @@ function bxRename(name){
     w.innerHTML = '<i class="sp-caret"></i>';
     BX.typers.push({ key:'rename', el:w, full:name, n:-1, t0:BX.ie, per:55, on:true, done:false });
   }
-  if(BX.step >= 7){ const line = bxQ('bxName'); if(line){ line.innerHTML = 'Store name: <b>' + bxEsc(name) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; } }
+  if(BX.named){ const line = bxQ('bxName'); if(line){ line.innerHTML = 'Store name: <b>' + bxEsc(name) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; } }
   bxQ('bxSr').textContent = 'Your store is named ' + name;
 }
 /* ask the builder for the name as soon as it exists (read-only status calls) */
@@ -3665,7 +3602,7 @@ function bxStoreHTML(p, brand, th, built, cls){
     <div class="sec sp-media" data-sec="media">${img}<span class="sp-count">1 / ${photos.length + 2}</span></div>
     <div class="sec sp-gal" data-sec="gallery"><span class="on">${shot(0)}</span><span>${shot(1 % photos.length)}</span><span class="zoom">${shot(0, '50% 35%')}</span><span class="zoom">${shot(1 % photos.length, '50% 70%')}</span><span class="more">+2</span></div>
     <div class="sp-body">
-      <div class="sec" data-sec="title"><span class="sp-eye">${bxEsc(brand)}</span><h1 class="sp-title" data-type="title">${bxEsc(p.name)}</h1><div class="sp-stars"><b>★★★★★</b>${rating} · 2,347 reviews</div></div>
+      <div class="sec" data-sec="title"><span class="sp-eye">${bxEsc(BX.realName ? brand : '')}</span><h1 class="sp-title" data-type="title">${bxEsc(p.name)}</h1><div class="sp-stars"><b>★★★★★</b>${rating} · 2,347 reviews</div></div>
       <div class="sec" data-sec="price"><div class="sp-price"><b class="sp-now">$${price.toFixed(2)}</b><s class="sp-was">$${wasP.toFixed(2)}</s><em class="sp-save">SAVE ${save}%</em></div><p class="sp-tax">Taxes and shipping calculated at checkout.</p></div>
       <div class="sec" data-sec="desc"><p class="sp-desc" data-type="desc">${bxEsc(bxDesc(p, th))}</p></div>
       <div class="sec" data-sec="bullets"><ul class="sp-bul">${th.bul.map(b=>`<li>${bxEsc(b)}</li>`).join('')}</ul></div>
@@ -3682,8 +3619,8 @@ function bxStoreHTML(p, brand, th, built, cls){
       <div class="sp-rcard"><div class="st">★★★★★</div><p>"Bought one for me and one as a gift. Both were a hit."</p><small>Darius K. · <b>✓ Verified buyer</b></small></div>
       <div class="sp-rcard"><div class="st">★★★★★</div><p>"This is my second order. Obsessed."</p><small>Amelia R. · <b>✓ Verified buyer</b></small></div></div>
     <div class="sec sp-faq" data-sec="faq"><h3 class="sp-h3">Questions</h3><div class="q">How long does shipping take?</div><div class="q">What if it's not for me?</div><div class="q">Is checkout secure?</div><div class="q">Do you ship to my country?</div><div class="q">Can I track my order?</div></div>
-    <div class="sec sp-promise" data-sec="promise"><span>🛡️</span><div><b>The ${bxEsc(brand)} promise</b><p>If it's not everything you hoped, send it back within 30 days for a full refund. We'll even cover the return label.</p></div></div>
-    <div class="sec sp-foot" data-sec="foot"><div class="sp-news"><b>Get 10% off your first order</b><span><i>you@email.com</i><em>Join</em></span></div><b>${bxEsc(brand)}</b>© ${new Date().getFullYear()} · Powered by Shopify<small>Shipping · Returns · Privacy · Terms · Contact</small></div>
+    <div class="sec sp-promise" data-sec="promise"><span>🛡️</span><div><b>${BX.realName ? 'The ' + bxEsc(brand) + ' promise' : 'Our promise'}</b><p>If it's not everything you hoped, send it back within 30 days for a full refund. We'll even cover the return label.</p></div></div>
+    <div class="sec sp-foot" data-sec="foot"><div class="sp-news"><b>Get 10% off your first order</b><span><i>you@email.com</i><em>Join</em></span></div><b>${bxEsc(BX.realName ? brand : '')}</b>© ${new Date().getFullYear()} · Powered by Shopify<small>Shipping · Returns · Privacy · Terms · Contact</small></div>
   </div>`;
   return built ? html.replace(/class="sec"/g, 'class="sec in"').replace(/class="sec /g, 'class="sec in ') : html;
 }
@@ -3909,11 +3846,22 @@ function bxTimeline(){
     // faq + policies
     [10100, ()=>{ bxStep(6); S('faq'); bxEach('.sp-faq .q', [{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}], 90); bxScrollTo(['faq'], 900); bxSel(['faq'], true); bxCam(['faq'], 'mid', 950); }],
     [11000, ()=>{ S('promise'); S('foot'); bxEach('.sp-promise, .sp-news', rise, 150); bxScrollTo(['promise','foot'], 900); bxSel(['promise'], true); bxCam(['promise','foot'], 'low', 950); }],
-    // naming: the builder has had ~12 s to answer with the store's name
-    [11900, ()=>{ bxStep(7); bxScrollTop(900); bxSel(['head'], true); bxCam(['head'], 'hi', 950); const w = bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); }],
-    [12500, ()=>{ bxType('name', 900, 32, 90); playPop(1.6); const line = bxQ('bxName'); if(line && BX.brand){ line.innerHTML = 'Store name: <b>' + bxEsc(BX.brand) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; } }],
-    [BX.holdAt, ()=>{ bxStep(8); bxTypeFinish(); bxSel(null); bxScrollTop(1000); bxCam(null, 'whole', 1000); bxScanSweep(250); bxFact(3); BX.hold = true; }]
+    // naming: camera on the header, then WAIT for the builder's real name
+    // (bxFrame types it the moment it is known and only then moves on)
+    [11900, ()=>{ bxStep(7); bxScrollTop(900); bxSel(['head'], true); bxCam(['head'], 'hi', 950); const w = bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); BX.namingAt = BX.ie; }]
   ];
+}
+/* type the real name into the header; the chip announces it */
+function bxTypeName(){
+  if(BX.named) return; BX.named = true; BX.namedAt = BX.ie;
+  const g = (BX.typers || []).find(t=>t.key === 'name'); if(g) g.full = BX.realName || BX.brand;
+  bxType('name', 900, 32, 90); try{ playPop(1.6); }catch(e){}
+  const line = bxQ('bxName'); if(line){ line.innerHTML = 'Store name: <b>' + bxEsc(BX.realName || BX.brand) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; }
+}
+/* final checks: pull back, scan, hold until the real store is ready */
+function bxFinalChecks(){
+  if(BX.hold) return; BX.hold = true; BX.holdAt = BX.ie;
+  bxStep(8); bxTypeFinish(); bxSel(null); bxScrollTop(1000); bxCam(null, 'whole', 1000); bxScanSweep(250); bxFact(3);
 }
 function bxFrame(now){
   BX.raf = 0; if(BX.done) return;
@@ -3921,8 +3869,13 @@ function bxFrame(now){
   const tl = BX.tl;
   while(BX.ti < tl.length && tl[BX.ti][0] <= BX.ie){ const fn = tl[BX.ti][1]; BX.ti++; try{ fn(); }catch(e){} if(BX.done) return; }
   bxTick();
-  const pct = BX.ie < BX.holdAt
-    ? Math.floor(94 * (1 - Math.pow(1 - BX.ie/BX.holdAt, 1.25)))
+  if(BX.step === 7 && !BX.hold){
+    if(!BX.named && (BX.realName || BX.ie - BX.namingAt > 30000)) bxTypeName();   // 30 s with no name: use the stand-in
+    if(BX.named && BX.ie - BX.namedAt > 1500) bxFinalChecks();
+  }
+  const T = 11900;
+  const pct = !BX.hold
+    ? (BX.ie < T ? Math.floor(90 * (1 - Math.pow(1 - BX.ie/T, 1.25))) : Math.min(93, 90 + Math.floor((BX.ie - T) / 1200)))
     : Math.min(99, 94 + Math.floor((BX.ie - BX.holdAt) / 1800));
   bxPct(pct);
   if(BX.hold){
@@ -3943,7 +3896,7 @@ function runBuild(){
   const known = BX.realName || (dsBuild && dsBuild.store_name) || (dsStatus && dsStatus.store_name) || '';
   const brand = known || bxLocalName(p, th);
   if(known) BX.realName = known;
-  Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
+  Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, named:false, namingAt:0, namedAt:0, finishWait:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
   BX.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const margin = Math.max(0, Number(p.price||0) - Number(p.cost||0)), pct = p.price > 0 ? Math.round(margin / p.price * 100) : 0;
   BX.margin = margin; BX.pct = pct;
@@ -3972,7 +3925,7 @@ function runBuild(){
   } else { BX.holdAt = 13600; BX.tl = bxTimeline(); }
   BX.t0 = performance.now(); BX.ie = 0;
   BX.raf = requestAnimationFrame(bxFrame);
-  if(!BX.demo && !BX.polling) bxPollName();
+  if(BX.demo) BX.nameTimer = setTimeout(()=>bxRename(bxLocalName(p, th)), 2600); else if(!BX.polling) bxPollName();
   try{ spLog('build_start'); }catch(e){}
   // The scripted part is done at ~8s; a real store takes a little longer,
   // so "Final checks" stretches until the backend says it's ready.
@@ -3982,7 +3935,18 @@ function runBuild(){
 /* The celebration + hand-off to the preview, fired only when the store can
    actually be shown (or the fallback path decides to proceed). */
 function buildFinish(){
-  if(buildFinished) return; buildFinished = true;
+  if(buildFinished) return;
+  // the store is ready but the name has not been typed yet: name it first (1.6 s), then finish
+  const nm = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || '';
+  if(nm && nm !== BX.realName) bxRename(nm);
+  if(!BX.done && !BX.named && !BX.reduced && BX.step >= 0 && !BX.finishWait){
+    BX.finishWait = true;
+    if(BX.step < 7){ BX.ti = (BX.tl || []).length; bxStep(7); bxScrollTop(900); bxSel(['head'], true); bxCam(['head'], 'hi', 950); const w = bxQ('bxPage') && bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); Object.keys(BX.secs || {}).forEach(bxShow); }
+    bxTypeName();
+    setTimeout(buildFinish, 1700);
+    return;
+  }
+  buildFinished = true;
   BX.done = true; if(BX.raf) cancelAnimationFrame(BX.raf); clearTimeout(BX.nameTimer);
   try{ BX.ro && BX.ro.disconnect(); }catch(e){}
   document.removeEventListener('visibilitychange', bxVis);
@@ -4131,65 +4095,6 @@ function dsApplyUnlimitedUi(){
         gold dust and coins dripping out of their own store ---- */
 let resvTick = null;
 /* ---- preview screen: live, scrollable store pages inside the devices ---- */
-/* ---- goal bar: sales a month → monthly margin, the buyer's own goal as the milestone ---- */
-function gbInit(p){
-  const root = document.getElementById('gb'); if(!root) return;
-  const margin = Math.max(0.5, Number(p.price) - Number(p.cost));
-  const goal = Math.max(500, Number(answers.rev || '10000') || 10000);
-  const goalSales = Math.max(1, Math.ceil(goal / margin));
-  const max = Math.max(60, Math.ceil(goalSales * 1.55 / 10) * 10);
-  const Q = id => document.getElementById(id);
-  const range = Q('gbRange'), fill = Q('gbFill'), thumb = Q('gbThumb'), goalEl = Q('gbGoal'), track = Q('gbTrack');
-  range.max = String(max);
-  Q('gbMargin').textContent = '$' + margin.toFixed(2);
-  Q('gbGoalAmt').textContent = '$' + goal.toLocaleString('en-US');
-  const gpct = goalSales / max * 100;
-  goalEl.style.left = gpct + '%';
-  track.classList.toggle('edge', gpct > 78);
-  let hit = false, lastCoin = 0, shown = -1;
-  function render(v, fromUser){
-    v = Math.max(0, Math.min(max, Math.round(v)));
-    const pct = v / max * 100;
-    fill.style.width = pct + '%'; thumb.style.left = pct + '%';
-    if(v !== shown){
-      shown = v;
-      Q('gbSales').textContent = v.toLocaleString('en-US');
-      Q('gbDay').textContent = v === 0 ? '0' : (v / 30 < 10 ? (v / 30).toFixed(1) : Math.round(v / 30).toString());
-      Q('gbTotal').textContent = Math.round(v * margin).toLocaleString('en-US');
-    }
-    const nowHit = v >= goalSales;
-    if(nowHit && !hit){
-      hit = true; root.classList.add('hit');
-      Q('gbStatus').textContent = '🎯 Goal reached at ' + goalSales.toLocaleString('en-US') + ' sales a month — about ' + (goalSales / 30 < 10 ? (goalSales / 30).toFixed(1) : Math.round(goalSales / 30)) + ' a day';
-      const r = thumb.getBoundingClientRect();
-      if(performance.now() - lastCoin > 1500){ lastCoin = performance.now(); try{ coinCannon(r.left + r.width/2, r.top); playCoin(); vibrate([12,40,12]); }catch(e){} }
-      const b = Q('gbTotal'); b.style.transform = 'scale(1.12)'; setTimeout(()=>{ b.style.transform = ''; }, 260);
-    } else if(!nowHit && hit){
-      hit = false; root.classList.remove('hit');
-    }
-    if(!nowHit){
-      const left = goalSales - v;
-      Q('gbStatus').textContent = v === 0 ? 'Drag the bar to your goal →' : left.toLocaleString('en-US') + ' more sales a month to reach your goal';
-    }
-  }
-  range.addEventListener('input', ()=>{ root.classList.add('drag'); auto = false; render(Number(range.value), true); });
-  range.addEventListener('change', ()=>root.classList.remove('drag'));
-  range.addEventListener('pointerup', ()=>root.classList.remove('drag'));
-  render(0);
-  // first impression: the bar rides up to their goal on its own, then it's theirs to drag
-  let auto = true;
-  setTimeout(()=>{
-    if(!auto) return;
-    const t0 = performance.now(), dur = 1900;
-    (function step(t){
-      if(!auto) return;
-      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-      const v = goalSales * e; range.value = String(Math.round(v)); render(v);
-      if(k < 1) requestAnimationFrame(step); else { range.value = String(goalSales); render(goalSales); }
-    })(t0);
-  }, 1500);
-}
-
 function runGlam(p){
   try{
     window.__ttP = { id: (p && (p.dsId || p.id || p.name)) || 'store', name: (p && p.name) || (chosen && chosen.name) || 'AI Store' };
@@ -4202,7 +4107,6 @@ function runGlam(p){
   // the store's unit margin — a product-pricing fact, never projected
   // into income (compliance: no computed monthly figures, no goal tie-in)
   const profit = Math.max(1, Number(p.price) - Number(p.cost));
-  try{ gbInit(p); }catch(e){}
   setTimeout(()=>{
     countUp(document.getElementById('eqProfit'), 0, profit, 900, v=>'$'+v.toFixed(2));
     setTimeout(()=>{ playCoin(); }, 950);
