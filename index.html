@@ -1280,6 +1280,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 @keyframes skel{to{background-position:-200% 0}}
 /* the monitor slowly pans through the full store — nobody has to scroll to see it all */
 .pan-layer{position:absolute;left:0;top:0;width:100%;will-change:transform;animation:screenPan 36s ease-in-out 1.8s infinite}
+@media (min-width:700px){ .pan-layer{animation:none} }
 .pan-layer img{width:100%;display:block}
 @keyframes screenPan{0%,14%{transform:translateY(0)}62%,72%{transform:translateY(var(--pan,0px))}96%,100%{transform:translateY(0)}}
 .cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
@@ -2203,7 +2204,7 @@ window.dsFire('PageView');
                 <b class="bx-pct" id="bxPct" aria-hidden="true">0%</b><span class="bx-ok" aria-hidden="true">✓</span>
               </div>
               <div class="bx-txt">
-                <p class="bx-step" id="bxStep"><span>Setting up your storefront</span></p>
+                <p class="bx-step" id="bxStep"><span>Naming your store</span></p>
                 <div class="bx-lines">
                   <p class="bx-line" id="bxF1">Built-in margin: <b id="bxF1v">$0.00</b> per sale</p>
                   <p class="bx-line" id="bxF2">That's <b id="bxF2v">0%</b> of the list price</p>
@@ -3477,7 +3478,7 @@ function startRealBuild(){
    ============================================================ */
 let buildRan = false, buildFinished = false;
 const BX = { holdAt: 13600, total: 14400 };
-const BX_STEPS = ['Setting up your storefront','Adding your photos','Writing your product page','Setting up checkout','Adding benefits','Adding reviews','Adding FAQ & policies','Naming your store','Final checks'];
+const BX_STEPS = ['Naming your store','Setting up your storefront','Adding your photos','Writing your product page','Setting up checkout','Adding benefits','Adding reviews','Adding FAQ & policies','Final checks'];
 const BX_HOLD_LINES = ['Connecting your supplier…','Setting prices & shipping…','Publishing your pages…','Checking every link…','Almost there…'];
 
 function bxQ(id){ return document.getElementById(id); }
@@ -3524,19 +3525,27 @@ function bxRename(name){
   if(BX.named){ const line = bxQ('bxName'); if(line){ line.innerHTML = 'Store name: <b>' + bxEsc(name) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; } }
   bxQ('bxSr').textContent = 'Your store is named ' + name;
 }
+/* "Home Goods Store", "Pet Store": the builder's placeholder before the AI
+   has named the store. Never shown; we wait for the real one. */
+function bxIsPlaceholderName(n){
+  const t = String(n || '').trim();
+  if(!t) return true;
+  const words = t.split(/\s+/);
+  return words.length <= 3 && /\b(store|shop|boutique|co)\.?$/i.test(t) && !/[&']/.test(t);
+}
 /* ask the builder for the name as soon as it exists (read-only status calls) */
 function bxPollName(){
   if(BX.done || BX.realName || !DS_LIVE || BX.demo) { BX.polling = false; return; }
   BX.polling = true;
   if(!dsBuild || !dsBuild.project_id){ BX.nameTimer = setTimeout(bxPollName, 800); return; }
   fetch(DS_API + '/status/' + encodeURIComponent(dsBuild.project_id)).then(r=>r.json()).then(j=>{
-    if(j && j.store_name){
+    if(j && j.store_name && !bxIsPlaceholderName(j.store_name)){
       bxRename(j.store_name);
       dsBuild.store_name = j.store_name;
       try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
       return;
     }
-    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 2000);
+    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 1200);
   }).catch(()=>{ if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 3000); });
 }
 
@@ -3806,13 +3815,17 @@ function bxTimeline(){
   const L = (names, level, selNames)=>{ bxScrollTo(names, 900); bxSel(selNames === undefined ? names : selNames, true); bxCam(names, level, 950); };
   const rise = [{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}];
   return [
-    [0,    ()=>bxStep(0)],
+    // 0: naming. The header is on screen, the camera on it, and nothing else
+    // happens until the builder's real name arrives (bxFrame types it, then
+    // sets BX.base and the rest of the build runs from there).
+    [0,    ()=>{ bxStep(0); BX.namingAt = 0; }],
     [200,  ()=>{ S('ann'); bxAnim(BX.secs.ann, [{opacity:0},{opacity:1}], {duration:400}); }],
     [380,  ()=>{ bxSel(['ann','head'], true); bxCam(['ann','head'], 'hi', 1000); }],
-    [500,  ()=>S('head')],
+    [500,  ()=>{ S('head'); const w = bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); }],
+    ['base', 0, ()=>bxStep(1)],
     // photos
-    [1500, ()=>{ bxStep(1); L(['media','gallery'], 'mid', ['media']); }],
-    [1580, ()=>{
+    ['base', 900, ()=>{ bxStep(2); L(['media','gallery'], 'mid', ['media']); }],
+    ['base', 980, ()=>{
       S('media'); playPop(1.1);
       const im = bxQ('bxPage').querySelector('.sp-media img, .sp-media .sp-ph');
       bxAnim(im, [{opacity:0,transform:'scale(1.18)'},{opacity:1,transform:'none'}], {duration:1100, easing:'cubic-bezier(.16,.84,.3,1)'});
@@ -3820,41 +3833,41 @@ function bxTimeline(){
       const a = bxAnim(f, [{transform:'translateX(-120%)'},{transform:'translateX(120%)'}], {duration:950, delay:300, easing:'ease-in-out', fill:'backwards'});
       if(a){ a.onfinish = ()=>f.remove(); a.oncancel = ()=>f.remove(); } else f.remove();
     }],
-    [2500, ()=>{ S('gallery'); bxEach('.sp-gal span', [{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'none'}], 90, {duration:380, easing:'cubic-bezier(.3,1.4,.5,1)'}); bxSel(['gallery'], true); }],
-    [2900, ()=>bxFact(1)],
+    ['base', 1900, ()=>{ S('gallery'); bxEach('.sp-gal span', [{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'none'}], 90, {duration:380, easing:'cubic-bezier(.3,1.4,.5,1)'}); bxSel(['gallery'], true); }],
+    ['base', 2300, ()=>bxFact(1)],
     // product page
-    [3300, ()=>{ bxStep(2); bxScrollTo(['title','price','desc','bullets'], 900); bxSel(['title','price'], true); bxCam(['title','price'], 'hi', 950); }],
-    [3380, ()=>{ S('title'); bxType('title', 650, 22, 48); }],
-    [4100, ()=>{
+    ['base', 2700, ()=>{ bxStep(3); bxScrollTo(['title','price','desc','bullets'], 900); bxSel(['title','price'], true); bxCam(['title','price'], 'hi', 950); }],
+    ['base', 2780, ()=>{ S('title'); bxType('title', 650, 22, 48); }],
+    ['base', 3500, ()=>{
       S('price'); playPop(1.3);
       bxEach('.sp-now', [{opacity:0,transform:'scale(1.4)'},{opacity:1,transform:'none'}], 0, {duration:520, easing:'cubic-bezier(.3,1.45,.5,1)'});
       bxEach('.sp-was,.sp-save,.sp-tax', [{opacity:0},{opacity:1}], 60, {duration:400, delay:140});
     }],
-    [4250, ()=>bxFact(2)],
-    [4450, ()=>{ S('desc'); bxType('desc', 900, 9, 24); bxSel(['desc','bullets'], false); bxCam(['desc','bullets'], 'hi', 900); }],
-    [5350, ()=>{ S('bullets'); bxEach('.sp-bul li', [{opacity:0,transform:'translateX(-16px)'},{opacity:1,transform:'none'}], 150); }],
+    ['base', 3650, ()=>bxFact(2)],
+    ['base', 3850, ()=>{ S('desc'); bxType('desc', 900, 9, 24); bxSel(['desc','bullets'], false); bxCam(['desc','bullets'], 'hi', 900); }],
+    ['base', 4750, ()=>{ S('bullets'); bxEach('.sp-bul li', [{opacity:0,transform:'translateX(-16px)'},{opacity:1,transform:'none'}], 150); }],
     // checkout
-    [5900, ()=>{ bxStep(3); L(['buy','trust'], 'mid'); }],
-    [5980, ()=>{ S('buy'); playPop(1.5); bxEach('.sp-btn', [{opacity:0,transform:'scale(.94)'},{opacity:1,transform:'none'}], 120, {duration:420, easing:'cubic-bezier(.3,1.4,.5,1)'}); }],
-    [6300, ()=>{ S('trust'); bxEach('.sp-trust li', [{opacity:0,transform:'scale(.8)'},{opacity:1,transform:'none'}], 120, {easing:'cubic-bezier(.3,1.4,.5,1)'}); }],
+    ['base', 5300, ()=>{ bxStep(4); L(['buy','trust'], 'mid'); }],
+    ['base', 5380, ()=>{ S('buy'); playPop(1.5); bxEach('.sp-btn', [{opacity:0,transform:'scale(.94)'},{opacity:1,transform:'none'}], 120, {duration:420, easing:'cubic-bezier(.3,1.4,.5,1)'}); }],
+    ['base', 5700, ()=>{ S('trust'); bxEach('.sp-trust li', [{opacity:0,transform:'scale(.8)'},{opacity:1,transform:'none'}], 120, {easing:'cubic-bezier(.3,1.4,.5,1)'}); }],
     // benefits
-    [6900, ()=>{ bxStep(4); S('why'); bxEach('.sp-why .sp-card', rise, 110); L(['why'], 'mid'); }],
-    [7500, ()=>{ S('life'); bxScrollTo(['life'], 900); bxSel(['life'], true); bxCam(['life'], 'low', 950); }],
-    [8000, ()=>{ S('how'); bxEach('.sp-how li', rise, 120); S('ship'); bxEach('.sp-ship>div', rise, 120, {delay:360}); bxScrollTo(['how','ship'], 900); bxSel(['how','ship'], true); bxCam(['how','ship'], 'low', 950); }],
+    ['base', 6300, ()=>{ bxStep(5); S('why'); bxEach('.sp-why .sp-card', rise, 110); L(['why'], 'mid'); }],
+    ['base', 6900, ()=>{ S('life'); bxScrollTo(['life'], 900); bxSel(['life'], true); bxCam(['life'], 'low', 950); }],
+    ['base', 7400, ()=>{ S('how'); bxEach('.sp-how li', rise, 120); S('ship'); bxEach('.sp-ship>div', rise, 120, {delay:360}); bxScrollTo(['how','ship'], 900); bxSel(['how','ship'], true); bxCam(['how','ship'], 'low', 950); }],
     // reviews
-    [8800, ()=>{ bxStep(5); S('rev'); bxScrollTo(['rev'], 900); bxSel(['rev'], true); bxCam(['rev'], 'mid', 950); bxEach('.sp-sum-bars em i', [{transform:'scaleX(0)'},{transform:'none'}], 90, {duration:700, delay:300, easing:'cubic-bezier(.2,.7,.2,1)'}); bxEach('.sp-rcard', rise, 160, {delay:500}); }],
+    ['base', 8200, ()=>{ bxStep(6); S('rev'); bxScrollTo(['rev'], 900); bxSel(['rev'], true); bxCam(['rev'], 'mid', 950); bxEach('.sp-sum-bars em i', [{transform:'scaleX(0)'},{transform:'none'}], 90, {duration:700, delay:300, easing:'cubic-bezier(.2,.7,.2,1)'}); bxEach('.sp-rcard', rise, 160, {delay:500}); }],
     // faq + policies
-    [10100, ()=>{ bxStep(6); S('faq'); bxEach('.sp-faq .q', [{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}], 90); bxScrollTo(['faq'], 900); bxSel(['faq'], true); bxCam(['faq'], 'mid', 950); }],
-    [11000, ()=>{ S('promise'); S('foot'); bxEach('.sp-promise, .sp-news', rise, 150); bxScrollTo(['promise','foot'], 900); bxSel(['promise'], true); bxCam(['promise','foot'], 'low', 950); }],
-    // naming: camera on the header, then WAIT for the builder's real name
-    // (bxFrame types it the moment it is known and only then moves on)
-    [11900, ()=>{ bxStep(7); bxScrollTop(900); bxSel(['head'], true); bxCam(['head'], 'hi', 950); const w = bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); BX.namingAt = BX.ie; }]
+    ['base', 9500, ()=>{ bxStep(7); S('faq'); bxEach('.sp-faq .q', [{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}], 90); bxScrollTo(['faq'], 900); bxSel(['faq'], true); bxCam(['faq'], 'mid', 950); }],
+    ['base', 10400, ()=>{ S('promise'); S('foot'); bxEach('.sp-promise, .sp-news', rise, 150); bxScrollTo(['promise','foot'], 900); bxSel(['promise'], true); bxCam(['promise','foot'], 'low', 950); }],
+    ['base', 11300, bxFinalChecks]
   ];
 }
 /* type the real name into the header; the chip announces it */
 function bxTypeName(){
   if(BX.named) return; BX.named = true; BX.namedAt = BX.ie;
-  const g = (BX.typers || []).find(t=>t.key === 'name'); if(g) g.full = BX.realName || BX.brand;
+  const name = BX.realName || BX.brand, page = bxQ('bxPage');
+  if(page){ page.querySelectorAll('.sp-eye, .sp-foot > b').forEach(el=>{ el.textContent = name; }); const pr = page.querySelector('.sp-promise b'); if(pr) pr.textContent = 'The ' + name + ' promise'; }
+  const g = (BX.typers || []).find(t=>t.key === 'name'); if(g) g.full = name;
   bxType('name', 900, 32, 90); try{ playPop(1.6); }catch(e){}
   const line = bxQ('bxName'); if(line){ line.innerHTML = 'Store name: <b>' + bxEsc(BX.realName || BX.brand) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; }
 }
@@ -3862,21 +3875,28 @@ function bxTypeName(){
 function bxFinalChecks(){
   if(BX.hold) return; BX.hold = true; BX.holdAt = BX.ie;
   bxStep(8); bxTypeFinish(); bxSel(null); bxScrollTop(1000); bxCam(null, 'whole', 1000); bxScanSweep(250); bxFact(3);
+  setTimeout(()=>dsWaitThenPreview(), 600);   // the real store is usually ready by now; if not, this phase stretches
 }
 function bxFrame(now){
   BX.raf = 0; if(BX.done) return;
   if(BX.pauseAt === null) BX.ie = now - BX.t0 - BX.paused;
   const tl = BX.tl;
-  while(BX.ti < tl.length && tl[BX.ti][0] <= BX.ie){ const fn = tl[BX.ti][1]; BX.ti++; try{ fn(); }catch(e){} if(BX.done) return; }
-  bxTick();
-  if(BX.step === 7 && !BX.hold){
-    if(!BX.named && (BX.realName || BX.ie - BX.namingAt > 30000)) bxTypeName();   // 30 s with no name: use the stand-in
-    if(BX.named && BX.ie - BX.namedAt > 1500) bxFinalChecks();
+  while(BX.ti < tl.length){
+    const e = tl[BX.ti];
+    if(e[0] === 'base'){ if(BX.base === null || e[1] > BX.ie - BX.base) break; BX.ti++; try{ e[2](); }catch(err){} }
+    else { if(e[0] > BX.ie) break; BX.ti++; try{ e[1](); }catch(err){} }
+    if(BX.done) return;
   }
-  const T = 11900;
-  const pct = !BX.hold
-    ? (BX.ie < T ? Math.floor(90 * (1 - Math.pow(1 - BX.ie/T, 1.25))) : Math.min(93, 90 + Math.floor((BX.ie - T) / 1200)))
-    : Math.min(99, 94 + Math.floor((BX.ie - BX.holdAt) / 1800));
+  bxTick();
+  // naming gate: type the real name as soon as it is known (stand-in after 30 s), then start the build proper
+  if(BX.base === null && BX.step === 0){
+    if(!BX.named && BX.ie > 700 && (BX.realName || BX.ie > 30000)) bxTypeName();
+    if(BX.named && BX.ie - BX.namedAt > 1300) BX.base = BX.ie;
+  }
+  const T = 11300, te = BX.base === null ? 0 : BX.ie - BX.base;
+  const pct = BX.hold ? Math.min(99, 94 + Math.floor((BX.ie - BX.holdAt) / 1800))
+    : BX.base === null ? Math.min(7, Math.floor(BX.ie / 500))
+    : Math.min(93, 7 + Math.floor(86 * (1 - Math.pow(1 - Math.min(1, te/T), 1.25))));
   bxPct(pct);
   if(BX.hold){
     if(BX.ie - BX.lastScan > 3400) bxScanSweep(0);
@@ -3893,10 +3913,11 @@ function runBuild(){
   if(buildRan) return; buildRan = true;
   const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
   const th = bxTheme(p);
-  const known = BX.realName || (dsBuild && dsBuild.store_name) || (dsStatus && dsStatus.store_name) || '';
+  const cand = BX.realName || (dsBuild && dsBuild.store_name) || (dsStatus && dsStatus.store_name) || '';
+  const known = cand && !bxIsPlaceholderName(cand) ? cand : '';
   const brand = known || bxLocalName(p, th);
   if(known) BX.realName = known;
-  Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, named:false, namingAt:0, namedAt:0, finishWait:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
+  Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, named:false, namingAt:0, namedAt:0, base:null, finishWait:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
   BX.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const margin = Math.max(0, Number(p.price||0) - Number(p.cost||0)), pct = p.price > 0 ? Math.round(margin / p.price * 100) : 0;
   BX.margin = margin; BX.pct = pct;
@@ -3916,20 +3937,20 @@ function runBuild(){
 
   if(BX.reduced){
     BX.holdAt = 3600;
+    BX.base = 0; BX.named = true;
     BX.tl = [
-      [0, ()=>{ Object.keys(BX.secs).forEach(bxShow); bxStep(0); }],
-      [1200, ()=>{ bxStep(2); bxFact(1); }],
-      [2400, ()=>{ bxStep(5); bxFact(2); }],
-      [3600, ()=>{ bxStep(8); bxFact(3); BX.hold = true; }]
+      [0, ()=>{ Object.keys(BX.secs).forEach(bxShow); bxStep(1); }],
+      [1200, ()=>{ bxStep(3); bxFact(1); }],
+      [2400, ()=>{ bxStep(6); bxFact(2); }],
+      [3600, bxFinalChecks]
     ];
-  } else { BX.holdAt = 13600; BX.tl = bxTimeline(); }
+  } else { BX.tl = bxTimeline(); }
   BX.t0 = performance.now(); BX.ie = 0;
   BX.raf = requestAnimationFrame(bxFrame);
-  if(BX.demo) BX.nameTimer = setTimeout(()=>bxRename(bxLocalName(p, th)), 2600); else if(!BX.polling) bxPollName();
+  if(BX.demo) BX.nameTimer = setTimeout(()=>bxRename(bxLocalName(p, th)), 1800); else if(!BX.polling) bxPollName();
   try{ spLog('build_start'); }catch(e){}
   // The scripted part is done at ~8s; a real store takes a little longer,
   // so "Final checks" stretches until the backend says it's ready.
-  setTimeout(()=>dsWaitThenPreview(), BX.reduced ? 4200 : BX.total + 400);
 }
 
 /* The celebration + hand-off to the preview, fired only when the store can
@@ -3941,7 +3962,7 @@ function buildFinish(){
   if(nm && nm !== BX.realName) bxRename(nm);
   if(!BX.done && !BX.named && !BX.reduced && BX.step >= 0 && !BX.finishWait){
     BX.finishWait = true;
-    if(BX.step < 7){ BX.ti = (BX.tl || []).length; bxStep(7); bxScrollTop(900); bxSel(['head'], true); bxCam(['head'], 'hi', 950); const w = bxQ('bxPage') && bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); Object.keys(BX.secs || {}).forEach(bxShow); }
+    Object.keys(BX.secs || {}).forEach(bxShow);
     bxTypeName();
     setTimeout(buildFinish, 1700);
     return;
