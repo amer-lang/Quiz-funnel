@@ -3,6 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* Early resume hop. An activation-email link (?resume=<id>) only needs /api/ds/status to mint the buyer's sign-in URL,
+   so ask for it from the very top of <head> instead of after the whole page has parsed (about 0.5s on a phone).
+   Any other visit (no ?resume, or a payment / upsell / pick / product param) returns at once and runs exactly as before.
+   dsResumeFromEmail() at boot reuses this answer and still handles every case this does not redirect. */
+(function(){
+  try{
+    var q = new URLSearchParams(location.search), pid = q.get('resume');
+    if(!pid || !/^\d+$/.test(pid)) return;
+    var other = ['upsold','upsold199','upsold49','paid20','paid','p','pick'];
+    for(var i=0;i<other.length;i++) if(q.has(other[i])) return;
+    window.__dsEarlyResume = fetch('/api/ds/status/' + encodeURIComponent(pid))
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j && j.ok && j.unlocked && j.resume_url){ window.__dsResumeGone = true; location.replace(j.resume_url); }
+        return j;
+      })
+      .catch(function(){ return null; });
+  }catch(e){}
+})();
+</script>
 <script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_FXze6GwnWnentH");whop.track("page");</script>
 <!-- TikTok Pixel Code Start -->
 <script>
@@ -578,6 +599,314 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 
 /* ============================================================
+   BUILD SCREEN — cinematic store assembly
+   A phone shows the buyer's real store page being built section by
+   section while a camera (one transformed container) follows the work.
+   Everything moves with transform/opacity only; no filters, no layout
+   animation. Prefix: .bx- (stage/chrome) and .sp- (the store page).
+   ============================================================ */
+.bx{
+  --bx-chip:86px;
+  display:flex;flex-direction:column;flex:1;
+  min-height:470px;
+  height:calc(100vh - 118px);
+}
+@supports (height:100svh){ .bx{height:calc(100svh - 118px)} }
+#s-build{justify-content:flex-start;padding-top:4px;padding-bottom:10px}
+#s-build.active{animation:screenIn .45s cubic-bezier(.22,1,.36,1)}
+.bx-head{flex:none;text-align:center;display:flex;flex-direction:column;align-items:center}
+.bx-head h2{margin-bottom:6px;font-size:clamp(1.35rem,5.8vw,1.75rem)}
+.bx-sub{font-size:.84rem;margin-bottom:6px;line-height:1.45}
+@media (max-height:760px){ .bx-sub{display:none} .bx-head .kicker{margin-bottom:8px} }
+@media (max-height:700px){ .bx-head h2{font-size:1.18rem;margin-bottom:2px} .bx-head .kicker{font-size:.62rem;padding:4px 10px;margin-bottom:6px} .bx{min-height:430px} }
+
+/* the stage: full-bleed, clips the camera */
+.bx-stage{position:relative;flex:1 1 auto;min-height:0;margin:0 -16px;overflow:hidden}
+.bx-grid{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.16) 1px,transparent 1.7px) 50% 0/18px 18px;
+  -webkit-mask-image:radial-gradient(ellipse closest-side at 50% 42%,#000 25%,rgba(0,0,0,.45) 62%,transparent 100%);
+  mask-image:radial-gradient(ellipse closest-side at 50% 42%,#000 25%,rgba(0,0,0,.45) 62%,transparent 100%);
+}
+.bx-grid::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse closest-side at 50% 44%,rgba(59,130,246,.22),rgba(34,197,94,.08) 55%,transparent 75%);
+}
+.bx-stage::before,.bx-stage::after{content:'';position:absolute;left:0;right:0;z-index:2;pointer-events:none}
+.bx-stage::before{top:0;height:16px;background:linear-gradient(180deg,var(--bg),rgba(7,11,21,0))}
+.bx-stage::after{bottom:0;height:calc(var(--bx-chip) + 48px);background:linear-gradient(180deg,rgba(7,11,21,0) 0%,rgba(7,11,21,.9) 48%,var(--bg) 74%)}
+
+/* camera */
+.bx-cam{
+  position:absolute;left:0;top:0;z-index:1;width:var(--bx-w,240px);
+  transform-origin:0 0;will-change:transform;
+  transition:transform .95s cubic-bezier(.55,0,.2,1);
+}
+.bx-device{position:relative}
+.bx-phone{
+  position:relative;z-index:1;padding:6px;border-radius:15.5%/7.4%;
+  background:linear-gradient(160deg,#1A2338,#0B1120 60%);
+  box-shadow:0 34px 80px -24px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.12),inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.bx-notch{position:absolute;top:5.2%;left:50%;transform:translateX(-50%);width:27%;height:3.1%;border-radius:99px;background:#000;z-index:6}
+.bx-screen{position:relative;overflow:hidden;border-radius:13%/6.2%;background:#fff;aspect-ratio:9/19.3;transform:translateZ(0)}
+.bx-scroll{position:absolute;left:0;top:0;width:100%;transition:transform .9s cubic-bezier(.55,0,.2,1);will-change:transform}
+.bx-page{width:390px;transform-origin:0 0}
+
+/* pulse rings around the phone while it's being built */
+.bx-pulse{
+  position:absolute;inset:0;border-radius:15.5%/7.4%;
+  border:1.5px solid rgba(255,201,60,.55);opacity:0;pointer-events:none;
+  animation:bxPulse 3.2s cubic-bezier(.2,.6,.3,1) infinite;
+}
+.bx-pulse+.bx-pulse{animation-delay:1.6s;border-color:rgba(59,130,246,.55)}
+.bx-pulse.bx-burst{animation:none;border-color:var(--gold)}
+.bx.is-done .bx-pulse{animation:none}
+@keyframes bxPulse{0%{opacity:.8;transform:none}to{opacity:0;transform:scale(1.16,1.08)}}
+
+/* selection box: "the AI is working on this part" */
+.bx-sel{
+  position:absolute;left:0;top:0;width:0;height:0;border-radius:6px;opacity:0;pointer-events:none;z-index:4;
+  box-shadow:0 0 0 1.5px var(--gold),0 0 0 3px rgba(255,255,255,.85);
+  transition:opacity .25s;
+}
+.bx-sel.is-on{opacity:1}
+.bx-sel-in{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
+.bx-sel-in i{position:absolute;top:-10%;bottom:-10%;left:0;width:34%;transform:translateX(-130%) skewX(-18deg);background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,230,150,.55),rgba(255,255,255,0))}
+.bx-sel b{position:absolute;width:6px;height:6px;border-radius:1.5px;background:#fff;box-shadow:0 0 0 1.5px var(--gold)}
+.bx-sel b:nth-of-type(1){left:-3px;top:-3px}.bx-sel b:nth-of-type(2){right:-3px;top:-3px}
+.bx-sel b:nth-of-type(3){left:-3px;bottom:-3px}.bx-sel b:nth-of-type(4){right:-3px;bottom:-3px}
+
+/* final-check scan line */
+.bx-scanline{
+  position:absolute;left:0;right:0;height:34%;top:0;z-index:5;opacity:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,201,60,0),rgba(255,201,60,.18) 45%,rgba(255,255,255,.55) 60%,rgba(255,201,60,0));
+  transform:translateY(-120%);
+}
+
+/* status chip */
+.bx-side{position:absolute;left:8px;right:8px;bottom:0;z-index:3;display:flex;justify-content:center;pointer-events:none}
+.bx-now{
+  width:100%;max-width:430px;display:flex;align-items:center;gap:12px;
+  padding:10px 14px 10px 10px;border-radius:22px;pointer-events:auto;
+  border:1px solid var(--line-strong);background:rgba(15,23,42,.94);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.bx-ring{position:relative;flex:none;width:50px;height:50px}
+.bx-ring>svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}
+.bx-ring circle{fill:none;stroke-width:4.5}
+.bx-rt{stroke:rgba(255,255,255,.1)}
+.bx-rp{stroke:url(#bxRg);stroke-linecap:round;transition:stroke-dashoffset .3s linear}
+.bx-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;letter-spacing:-.02em;color:var(--gold);font-variant-numeric:tabular-nums}
+.bx-ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.35rem;font-weight:900;color:#7CF0A9;opacity:0;transform:scale(.4)}
+.bx-ring.is-done .bx-pct{opacity:0;transition:opacity .2s}
+.bx-ring.is-done .bx-rp{stroke:#22C55E;transition:stroke .4s,stroke-dashoffset .3s linear}
+.bx-ring.is-done .bx-ok{opacity:1;transform:none;transition:opacity .25s ease,transform .5s cubic-bezier(.3,1.6,.5,1)}
+.bx-txt{min-width:0;flex:1;display:grid;gap:3px;text-align:left}
+.bx-step{font-size:.98rem;font-weight:800;line-height:1.3;color:var(--text);margin:0}
+.bx-step span{position:relative;display:inline-block;max-width:100%;vertical-align:top;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.bx-step span::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;transform:translateX(-110%);background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.22),rgba(255,255,255,0));animation:bxSheen 1.9s ease-in-out infinite}
+.bx.is-done .bx-step span::after{display:none}
+@keyframes bxSheen{60%,to{transform:translateX(260%)}}
+.bx-lines{min-height:1.35em}
+.bx-line{display:none;margin:0;font-size:.8rem;line-height:1.35;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.bx-line.is-in{display:block;animation:bxLine .45s cubic-bezier(.2,.7,.2,1) both}
+@keyframes bxLine{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bx-line b{color:var(--gold);font-weight:800;font-variant-numeric:tabular-nums}
+.bx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ghost phone that glides into the preview screen */
+.bx-ghost{position:fixed;z-index:120;pointer-events:none;transform-origin:0 0;will-change:transform,opacity}
+.bx-ghost .bx-pulse{display:none}
+
+@media (min-width:560px){
+  .bx-stage{margin:0}
+  .bx-head h2{font-size:1.9rem}
+}
+
+/* ---------- the store page inside the phone (light theme, 390px) ---------- */
+.sp{
+  --acc:#2563EB;--acc-soft:#E8EEFF;--acc-ink:#1E3A8A;
+  width:390px;background:#fff;color:#111827;font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  text-align:left;line-height:1.4;-webkit-font-smoothing:antialiased;
+}
+.sp *{box-sizing:border-box}
+.sp .sec{position:relative}
+.sp .sec:not(.in)>*{visibility:hidden}
+.sp .sec:not(.in)::before{
+  content:'';position:absolute;left:16px;right:16px;top:10px;bottom:10px;border-radius:8px;
+  background:repeating-linear-gradient(180deg,#EEF1F6 0 12px,transparent 12px 24px);
+  -webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent);
+}
+.sp .sec.sp-media:not(.in)::before{inset:0;left:0;right:0;top:0;bottom:0;border-radius:0;background:#EEF1F6;-webkit-mask-image:none;mask-image:none}
+.sp-status{display:flex;justify-content:space-between;align-items:center;height:46px;padding:12px 24px 0;background:var(--acc);color:#fff;font-size:15px;font-weight:700}
+.sp-status i{display:inline-block;width:22px;height:11px;border:1.5px solid #fff;border-radius:3px;position:relative;vertical-align:-1px;margin-left:6px}
+.sp-status i::after{content:'';position:absolute;left:2px;top:2px;bottom:2px;width:14px;background:#fff;border-radius:1px}
+.sp-ann{background:var(--acc);color:#fff;text-align:center;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:9px 12px}
+.sp-nav{display:flex;align-items:center;justify-content:space-between;height:58px;padding:0 18px;border-bottom:1px solid #EEF1F6}
+.sp-nav .sp-ic{font-size:20px;color:#111827;width:26px;text-align:center}
+.sp-word{font-size:21px;font-weight:800;letter-spacing:-.02em;color:#111827;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.sp-media{position:relative;aspect-ratio:4/3;background:#F3F4F6;overflow:hidden}
+.sp-media img{width:100%;height:100%;object-fit:cover;display:block;transform-origin:50% 50%}
+.sp-media .sp-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:92px;background:linear-gradient(135deg,var(--acc-soft),#fff)}
+.sp-count{position:absolute;right:14px;bottom:14px;background:rgba(17,24,39,.72);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px}
+.sp-dots{position:absolute;left:0;right:0;bottom:-18px;display:flex;justify-content:center;gap:6px}
+.sp-dots i{width:6px;height:6px;border-radius:99px;background:#D1D5DB}.sp-dots i.on{width:22px;background:#111827}
+.sp-body{padding:30px 18px 6px}
+.sp-eye{display:block;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:8px}
+.sp h1,.sp h3,.sp p,.sp ul{text-align:left;max-width:none}
+.sp-title{font-size:27px;font-weight:800;letter-spacing:-.025em;line-height:1.15;margin:0 0 8px;color:#111827;text-align:left}
+.sp-stars{font-size:13px;color:#4B5563;font-weight:600;margin-bottom:14px}
+.sp-stars b{color:#F59E0B;letter-spacing:1px;margin-right:4px}
+.sp-price{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.sp-now{font-size:26px;font-weight:800;letter-spacing:-.02em;color:#111827;display:inline-block;transform-origin:0 70%}
+.sp-was{font-size:15px;color:#9CA3AF}
+.sp-save{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--acc-ink);background:var(--acc-soft);padding:4px 8px;border-radius:99px;font-style:normal}
+.sp-tax{font-size:12px;color:#6B7280;margin:0 0 14px}
+.sp-desc{font-size:15px;line-height:1.55;color:#374151;margin:0 0 14px;min-height:3.1em}
+.sp-bul{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:8px}
+.sp-bul li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#1F2937;font-weight:600}
+.sp-bul li::before{content:'✓';flex:none;width:20px;height:20px;border-radius:50%;background:var(--acc-soft);color:var(--acc-ink);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.sp-buy{display:grid;gap:10px;margin-bottom:14px}
+.sp-btn{height:50px;border-radius:13px;background:var(--acc);color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;letter-spacing:-.01em}
+.sp-btn.alt{background:#fff;color:#111827;border:1.5px solid #D1D5DB}
+.sp-pay{display:flex;justify-content:center;gap:6px;font-size:11.5px;color:#6B7280;font-weight:600}
+.sp-trust{list-style:none;margin:0;padding:0 0 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sp-trust li{border:1px solid #E5E7EB;border-radius:12px;padding:10px 6px;text-align:center;font-size:11.5px;font-weight:700;color:#374151;line-height:1.25;display:flex;flex-direction:column;align-items:center;gap:5px;transform-origin:50% 50%}
+.sp-trust li span{font-size:18px}
+.sp-why{padding:26px 18px 10px;background:#F9FAFB}
+.sp-h3{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;color:#111827}
+.sp-h3::before{content:'';display:block;width:34px;height:4px;border-radius:99px;background:var(--acc);margin-bottom:10px}
+.sp-card{display:flex;gap:12px;background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 0 rgba(17,24,39,.05)}
+.sp-card .ic{flex:none;width:40px;height:40px;border-radius:50%;background:var(--acc-soft);display:flex;align-items:center;justify-content:center;font-size:19px}
+.sp-card b{display:block;font-size:14.5px;color:#111827;margin-bottom:3px}
+.sp-card p{margin:0;font-size:13px;line-height:1.45;color:#4B5563}
+.sp-life{padding:26px 18px 8px}
+.sp-lifeimg{aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#F3F4F6;margin-bottom:14px}
+.sp-lifeimg img{width:100%;height:100%;object-fit:cover;object-position:50% 70%;display:block;transform:scale(1.25)}
+.sp-lifeimg .sp-ph{height:100%;display:flex;align-items:center;justify-content:center;font-size:72px;background:linear-gradient(135deg,var(--acc-soft),#fff)}
+.sp-life p{font-size:14px;line-height:1.55;color:#4B5563;margin:0}
+.sp-rev{padding:26px 18px 8px;background:#F9FAFB}
+.sp-rcard{background:#fff;border-radius:14px;padding:14px;margin-bottom:10px}
+.sp-rcard .st{color:#F59E0B;font-size:13px;letter-spacing:1px;margin-bottom:6px}
+.sp-rcard p{margin:0 0 8px;font-size:14px;line-height:1.5;color:#1F2937}
+.sp-rcard small{font-size:12px;color:#6B7280;font-weight:600}
+.sp-rcard small b{color:#15803D}
+.sp-faq{padding:26px 18px 10px}
+.sp-faq .q{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #E5E7EB;font-size:14.5px;font-weight:700;color:#111827}
+.sp-faq .q::after{content:'+';font-size:20px;color:#9CA3AF;font-weight:400}
+.sp-foot{padding:28px 18px 60px;text-align:center;font-size:12px;color:#6B7280;font-weight:600;background:#F3F4F6}
+.sp-foot b{display:block;font-size:15px;color:#111827;margin-bottom:6px}
+.sp-gal{display:flex;gap:8px;padding:12px 18px 0}
+.sp-gal span{flex:1;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#F3F4F6;border:2px solid transparent}
+.sp-gal span.on{border-color:var(--acc)}
+.sp-gal span img{width:100%;height:100%;object-fit:cover;display:block}
+.sp-gal span.zoom img{transform:scale(1.6)}
+.sp-gal span .sp-ph{height:100%;display:flex;align-items:center;justify-content:center;font-size:28px}
+.sp-gal span.more{display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#6B7280;background:#F3F4F6}
+.sp-how{padding:26px 18px 10px}
+.sp-how ol{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.sp-how li{display:flex;gap:12px;align-items:flex-start}
+.sp-how li b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sp-how strong{display:block;font-size:14.5px;color:#111827}
+.sp-how li span{display:block;font-size:13px;color:#4B5563;line-height:1.4}
+.sp-ship{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 18px 24px}
+.sp-ship>div{border:1px solid #E5E7EB;border-radius:14px;padding:14px}
+.sp-ship span{display:block;font-size:22px;margin-bottom:6px}
+.sp-ship b{display:block;font-size:14px;color:#111827;margin-bottom:2px}
+.sp-ship p{margin:0;font-size:12.5px;color:#4B5563;line-height:1.4}
+.sp-sum{display:flex;gap:16px;align-items:center;background:#fff;border-radius:14px;padding:14px;margin-bottom:10px}
+.sp-sum-big b{display:block;font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#111827}
+.sp-sum-big span{display:block;font-size:11.5px;color:#6B7280;font-weight:600;margin-top:4px}
+.sp-sum-big i{display:block;font-style:normal;color:#F59E0B;font-size:12px;letter-spacing:1px}
+.sp-sum-bars{flex:1;display:grid;gap:5px}
+.sp-sum-bars>div{display:flex;align-items:center;gap:8px;font-size:11px;color:#6B7280;font-weight:700}
+.sp-sum-bars em{flex:1;height:6px;border-radius:99px;background:#E5E7EB;overflow:hidden;font-style:normal}
+.sp-sum-bars em i{display:block;height:100%;background:#F59E0B;border-radius:99px;transform-origin:0 50%}
+.sp-promise{display:flex;gap:14px;margin:0 18px 10px;padding:16px;border-radius:16px;background:var(--acc-soft);border:1px solid rgba(0,0,0,.04)}
+.sp-promise span{font-size:26px;flex:none}
+.sp-promise b{display:block;font-size:14.5px;color:#111827;margin-bottom:4px}
+.sp-promise p{margin:0;font-size:13px;line-height:1.5;color:#374151}
+.sp-news{background:#fff;border-radius:14px;padding:14px;margin-bottom:22px;text-align:left}
+.sp-news b{display:block;font-size:14px;color:#111827;margin-bottom:8px}
+.sp-news span{display:flex;gap:8px}
+.sp-news i{flex:1;font-style:normal;border:1px solid #D1D5DB;border-radius:10px;padding:9px 12px;font-size:13px;color:#9CA3AF;text-align:left}
+.sp-news em{font-style:normal;background:#111827;color:#fff;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800}
+.sp-foot small{display:block;margin-top:10px;font-size:11px;color:#9CA3AF}
+.sp-caret{display:inline-block;width:2px;height:.95em;background:#111827;vertical-align:-.12em;margin-left:1px;animation:bxCaret 1s steps(2) infinite}
+@keyframes bxCaret{50%{opacity:0}}
+.sp-ghost{color:transparent}
+.sp-word .sp-caret{opacity:0}
+.sp-word.is-naming .sp-caret{opacity:1}
+.sp-flash{position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.75),rgba(255,255,255,0) 70%)}
+
+/* tablet variant (iPad on the preview screen) */
+.spt{width:768px}
+.spt .sp-status{height:40px;padding:10px 28px 0;font-size:14px}
+.spt .sp-ann{font-size:12px;padding:10px}
+.spt .sp-nav{height:70px;padding:0 32px}
+.spt .sp-word{font-size:24px}
+.spt .sp-media{aspect-ratio:16/10}
+.spt .sp-body{padding:36px 40px 10px}
+.spt .sp-eye{font-size:12px}
+.spt .sp-title{font-size:38px;margin-bottom:10px}
+.spt .sp-stars{font-size:14px}
+.spt .sp-now{font-size:32px}
+.spt .sp-was{font-size:17px}
+.spt .sp-desc{font-size:18px;min-height:0}
+.spt .sp-bul li{font-size:16px}
+.spt .sp-buy{grid-template-columns:1fr 1fr}
+.spt .sp-buy .sp-pay{grid-column:1/-1}
+.spt .sp-btn{height:54px;font-size:17px}
+.spt .sp-trust li{font-size:13.5px;padding:14px 8px}
+.spt .sp-trust li span{font-size:22px}
+.spt .sp-why,.spt .sp-rev,.spt .sp-faq,.spt .sp-life{padding:34px 40px 14px}
+.spt .sp-h3{font-size:24px}
+.spt .sp-card{padding:18px}
+.spt .sp-card b{font-size:16px}.spt .sp-card p{font-size:14px}
+.spt .sp-foot{padding:34px 40px 70px}
+
+/* review build: preview without the built-in margin box */
+#s-preview .engine{display:none}
+
+/* desktop variant of the same store (monitor on the preview screen) */
+.spd{width:1200px}
+.spd-ann{background:var(--acc);color:#fff;text-align:center;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;padding:11px}
+.spd-nav{display:flex;align-items:center;justify-content:space-between;height:76px;padding:0 48px;border-bottom:1px solid #EEF1F6;font-size:15px;color:#4B5563;font-weight:600}
+.spd-word{font-size:27px;font-weight:800;letter-spacing:-.02em;color:#111827}
+.spd-hero{display:grid;grid-template-columns:560px 1fr;gap:56px;padding:48px;align-items:start}
+.spd-media{position:relative;aspect-ratio:1/1;border-radius:22px;overflow:hidden;background:#F3F4F6}
+.spd-media img{width:100%;height:100%;object-fit:cover;display:block}
+.spd-media .sp-ph{height:100%;display:flex;align-items:center;justify-content:center;font-size:140px;background:linear-gradient(135deg,var(--acc-soft),#fff)}
+.spd-title{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.08;margin:0 0 12px;color:#111827;text-align:left}
+.spd .sp-price{margin:18px 0 6px}
+.spd .sp-now{font-size:34px}
+.spd-desc{font-size:17px;line-height:1.6;color:#374151;margin:0 0 18px;text-align:left}
+.spd .sp-bul li{font-size:15px}
+.spd-buy{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 10px}
+.spd .sp-btn{height:56px;font-size:17px}
+.spd .sp-pay{justify-content:flex-start;font-size:12.5px}
+.spd-trust{list-style:none;margin:0;padding:0 48px 44px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.spd-trust li{border:1px solid #E5E7EB;border-radius:16px;padding:18px 20px;display:flex;gap:14px;align-items:center;font-size:15px;font-weight:700;color:#374151}
+.spd-trust li span{font-size:26px}
+.spd-why{padding:44px 48px;background:#F9FAFB}
+.spd-rev{padding:44px 48px;background:#fff}
+.spd-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.spd-rev .spd-cards{grid-template-columns:1fr 1fr}
+.spd .sp-card{margin:0;flex-direction:column;gap:12px;padding:22px;box-shadow:0 1px 0 rgba(17,24,39,.06),0 10px 28px -18px rgba(17,24,39,.25)}
+.spd .sp-card b{font-size:16px}
+.spd .sp-card p{font-size:14px}
+.spd .sp-rcard{margin:0;border:1px solid #EEF1F6;padding:20px}
+.spd .sp-rcard p{font-size:15px}
+.spd .sp-h3{font-size:26px}
+.spd .sp-foot{padding:36px 48px 64px}
+
+@media (prefers-reduced-motion:reduce){
+  .bx-cam,.bx-scroll,.bx-sel{transition:none}
+  .bx-pulse,.bx-step span::after,.sp-caret{animation:none}
+}
+
+/* ============================================================
    PRODUCT PICKER — the real deal
    ============================================================ */
 .pick-count{
@@ -872,6 +1201,50 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   animation:ribbonIn .6s cubic-bezier(.34,1.6,.64,1) .9s both;
 }
 @keyframes ribbonIn{from{transform:rotate(38deg) scale(2.2);opacity:0}to{transform:rotate(38deg) scale(1);opacity:1}}
+/* review build: preview without the built-in margin box */
+#s-preview .engine{display:none}
+
+/* ---- goal bar on the preview screen ---- */
+.gb{
+  position:relative;margin:4px 0 12px;padding:16px 16px 12px;border-radius:20px;
+  background:linear-gradient(180deg,rgba(255,201,60,.08),rgba(255,201,60,.02)),var(--card);
+  border:1px solid rgba(255,201,60,.28);box-shadow:0 20px 50px -30px rgba(255,201,60,.35);
+  text-align:center;
+}
+.gb-kicker{display:block;font-size:.62rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.gb-sales{font-size:1.05rem;font-weight:800;margin-top:4px;color:var(--text)}
+.gb-sales b{font-size:1.35rem;font-variant-numeric:tabular-nums;color:#fff}
+.gb-sub{font-size:.74rem;font-weight:700;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.gb-big{display:flex;align-items:baseline;justify-content:center;gap:4px;margin:8px 0 14px;line-height:1}
+.gb-big b{font-size:clamp(2.4rem,11vw,3.2rem);font-weight:900;letter-spacing:-.04em;font-variant-numeric:tabular-nums;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;transition:transform .25s cubic-bezier(.3,1.5,.5,1)}
+.gb.hit .gb-big b{background:linear-gradient(135deg,#7CF0A9,#22C55E);-webkit-background-clip:text;background-clip:text}
+.gb-cur{font-size:1.4rem;font-weight:800;color:var(--gold)}
+.gb.hit .gb-cur{color:#7CF0A9}
+.gb-per{font-size:.9rem;font-weight:700;color:var(--muted);margin-left:2px}
+.gb-track{position:relative;height:56px;margin:26px 6px 2px}
+.gb-rail{position:absolute;left:0;right:0;top:50%;height:14px;transform:translateY(-50%);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.gb-fill{height:100%;width:0;border-radius:99px;background:var(--grad-money);box-shadow:0 0 18px rgba(255,201,60,.6)}
+.gb.hit .gb-fill{background:linear-gradient(90deg,#FFC93C,#22C55E)}
+.gb-goal{position:absolute;top:0;bottom:0;left:60%;width:0;pointer-events:none}
+.gb-goal i{position:absolute;left:-1.5px;top:50%;width:3px;height:26px;transform:translateY(-50%);border-radius:2px;background:rgba(255,255,255,.55);box-shadow:0 0 0 3px rgba(7,11,21,.6)}
+.gb.hit .gb-goal i{background:#7CF0A9;box-shadow:0 0 0 3px rgba(7,11,21,.6),0 0 16px rgba(124,240,169,.9)}
+.gb-flag{position:absolute;bottom:calc(50% + 20px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.62rem;font-weight:800;letter-spacing:.04em;color:var(--muted);background:var(--card-2);border:1px solid var(--line-strong);padding:4px 8px;border-radius:8px}
+.gb-flag b{color:var(--text);margin-left:3px}
+.gb.hit .gb-flag{color:#7CF0A9;border-color:rgba(124,240,169,.5)}
+.gb-flag::after{content:'';position:absolute;left:50%;bottom:-5px;width:8px;height:8px;background:inherit;border-right:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong);transform:translateX(-50%) rotate(45deg)}
+.gb-track.edge .gb-flag{transform:translateX(-86%)}
+.gb-track.edge .gb-flag::after{left:86%}
+.gb-thumb{position:absolute;top:50%;left:0;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE9A3,#FFC93C 55%,#F59E0B);box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 0 3px rgba(255,255,255,.14);pointer-events:none;transition:transform .15s}
+.gb-thumb::after{content:'';position:absolute;inset:9px;border-radius:50%;background:#241500;opacity:.5}
+.gb.drag .gb-thumb{transform:scale(1.15)}
+.gb-track input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;touch-action:none;-webkit-appearance:none;appearance:none}
+.gb-track input::-webkit-slider-thumb{-webkit-appearance:none;width:44px;height:56px}
+.gb-track input::-moz-range-thumb{width:44px;height:56px;opacity:0}
+.gb-status{min-height:1.3em;margin-top:6px;font-size:.84rem;font-weight:800;color:var(--text)}
+.gb.hit .gb-status{color:#7CF0A9}
+.gb-note{margin:8px auto 0;font-size:.62rem;line-height:1.4;color:var(--muted);max-width:340px}
+#s-preview .stack-line{margin-top:8px}
+
 .engine{
   margin:4px 0 9px;padding:11px 12px 9px;border-radius:16px;
   background:linear-gradient(180deg,rgba(255,201,60,.09),rgba(245,158,11,.04));
@@ -1841,37 +2214,63 @@ window.dsFire('PageView');
 
     <!-- ======================= 12 · BUILDING STORE ======================= -->
     <section class="screen" id="s-build">
-      <div class="scan-wrap">
-        <div class="ai-orb gold" id="buildOrb">🔨</div>
-        <div class="odometer gold-o" id="buildTitle">Building your store</div>
-        <div class="odometer-label" id="buildLabel">warming up the AI…</div>
-        <div class="scan-bar"><div class="scan-fill gold-f" id="buildFill"></div></div>
-
-        <div class="store-frame">
-          <div class="store-urlbar">
-            <span class="store-dots"><i></i><i></i><i></i></span>
-            <span class="store-url" id="storeUrl">yourstore.myshopify.com</span>
-          </div>
-          <div class="store-body">
-            <div class="store-el store-hero" id="se1"><span id="seEmoji">🌅</span></div>
-            <div class="store-el store-title" id="se2"></div>
-            <div class="store-el store-line" id="se3"></div>
-            <div class="store-el store-line short" id="se4"></div>
-            <div class="store-el store-price" id="se5"></div>
-            <div class="store-el store-buy" id="se6">ADD TO CART</div>
-          </div>
+      <div class="bx" id="bx">
+        <div class="bx-head">
+          <div class="kicker gold" style="align-self:center"><span class="dot"></span> <span id="bxKick">AI BUILD IN PROGRESS</span></div>
+          <h2 id="buildTitle">Building your <span class="grad-text" id="bxProd">new</span> store…</h2>
+          <p class="sub bx-sub" id="bxSub">Real product. Real supplier. Watch it come together.</p>
         </div>
 
-        <div class="scan-log" style="min-height:150px">
-          <div class="scan-line" id="bl0"><span class="st">✓</span><span>Locking your product &amp; connecting the supplier…</span></div>
-          <div class="scan-line" id="bl1"><span class="st">✓</span><span>Designing your one-product storefront…</span></div>
-          <div class="scan-line" id="bl2"><span class="st">✓</span><span>Writing high-converting product copy…</span></div>
-          <div class="scan-line" id="bl3"><span class="st">✓</span><span>Setting up secure checkout &amp; fulfillment…</span></div>
+        <div class="bx-stage" id="bxStage">
+          <span class="bx-grid" aria-hidden="true"></span>
+          <div class="bx-cam" id="bxCam">
+            <div class="bx-device">
+              <span class="bx-pulse" aria-hidden="true"></span><span class="bx-pulse" aria-hidden="true"></span><span class="bx-pulse bx-burst" id="bxBurst" aria-hidden="true"></span>
+              <div class="bx-phone" id="bxPhone" role="img" aria-label="Your store being built, shown on a phone">
+                <span class="bx-notch" aria-hidden="true"></span>
+                <div class="bx-screen" id="bxScreen">
+                  <div class="bx-scroll" id="bxScroll">
+                    <div class="bx-page" id="bxPage"></div>
+                    <div class="bx-sel" id="bxSel" aria-hidden="true"><span class="bx-sel-in"><i></i></span><b></b><b></b><b></b><b></b></div>
+                  </div>
+                  <i class="bx-scanline" id="bxScan" aria-hidden="true"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bx-side">
+            <div class="bx-now">
+              <div class="bx-ring" id="bxRing" role="progressbar" aria-label="Building your store" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <svg viewBox="0 0 60 60" aria-hidden="true">
+                  <defs><linearGradient id="bxRg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE9A3"/><stop offset=".55" stop-color="#FFC93C"/><stop offset="1" stop-color="#F59E0B"/></linearGradient></defs>
+                  <circle class="bx-rt" cx="30" cy="30" r="26"></circle>
+                  <circle class="bx-rp" id="bxRp" cx="30" cy="30" r="26" stroke-dasharray="163.36" stroke-dashoffset="163.36"></circle>
+                </svg>
+                <b class="bx-pct" id="bxPct" aria-hidden="true">0%</b><span class="bx-ok" aria-hidden="true">✓</span>
+              </div>
+              <div class="bx-txt">
+                <p class="bx-step" id="bxStep"><span>Setting up your storefront</span></p>
+                <div class="bx-lines">
+                  <p class="bx-line" id="bxF1">Built-in margin: <b id="bxF1v">$0.00</b> per sale</p>
+                  <p class="bx-line" id="bxF2">That's <b id="bxF2v">0%</b> of the list price</p>
+                  <p class="bx-line" id="bxF3">Picked from <b id="bxF3v">0</b> products</p>
+                  <p class="bx-line" id="bxName"></p>
+                  <p class="bx-line" id="bxHold"></p>
+                  <p class="bx-line" id="buildLabel"></p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+        <p class="bx-sr" aria-live="polite" id="bxSr"></p>
       </div>
     </section>
 
     <!-- ======================= 13 · STORE PREVIEW + $1 CLAIM ======================= -->
+    <!-- The build screen completes in place: same phone, same position, now
+         scrollable. The progress chip becomes the claim button (fixed bar
+         below). Everything else lives under the fold. -->
     <section class="screen" id="s-preview" style="padding-bottom:235px">
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> Build complete · Store #<span id="buildNo">2,417</span></div>
       <h2><span class="grad-text" id="pvProdName">Your store</span> isn't a mockup.<br>It's <span class="gold-text">built — and it's yours.</span></h2>
@@ -1899,6 +2298,23 @@ window.dsFire('PageView');
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
       </div>
 
+        <!-- goal bar: sales a month → monthly margin, with the buyer's own goal as the milestone -->
+      <div class="gb" id="gb" aria-live="polite">
+        <div class="gb-top">
+          <span class="gb-kicker">If this store does</span>
+          <div class="gb-sales"><b id="gbSales">0</b> sales a month</div>
+          <div class="gb-sub"><span id="gbDay">0</span> a day · <span id="gbMargin">$0.00</span> margin each</div>
+        </div>
+        <div class="gb-big"><span class="gb-cur">$</span><b id="gbTotal">0</b><span class="gb-per">/ month</span></div>
+        <div class="gb-track" id="gbTrack">
+          <div class="gb-rail"><div class="gb-fill" id="gbFill"></div></div>
+          <div class="gb-goal" id="gbGoal"><span class="gb-flag">Your goal <b id="gbGoalAmt">$10,000</b></span><i></i></div>
+          <div class="gb-thumb" id="gbThumb"></div>
+          <input type="range" id="gbRange" min="0" max="500" step="1" value="0" aria-label="Sales per month">
+        </div>
+        <div class="gb-status" id="gbStatus">Drag the bar to your goal →</div>
+        <p class="gb-note">An illustration based on this product's margin, not a prediction or a promise of earnings.</p>
+      </div>
       <div class="engine">
         <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
         <div class="eq">
@@ -2202,7 +2618,8 @@ if(PRICE20){ document.addEventListener('DOMContentLoaded', function(){
   // test-lane cosmetics: price on the claim CTAs (full static copy sweep
   // happens at the real flip, not here)
   document.querySelectorAll('[onclick*="claimStore"]').forEach(function(b){
-    b.textContent = b.textContent.replace(/\$1\b/, '$20');
+    const t = b.querySelector('.cb-title') || b;
+    t.textContent = t.textContent.replace(/\$1\b/, '$20');
   });
 }); }
 let upsellPreviewMode = false;
@@ -2645,9 +3062,11 @@ function dsLoadProducts(){
         // shows (the raw `image` is a square thumbnail that crops badly on tall
         // products). Fall back to the thumbnail only if a card lacks a hero.
         image:    p.image_card || p.image,
+        thumb:    p.image && p.image !== p.image_card ? p.image : '',
         cost:     Number(p.cost || 0),
         price:    Number(p.price || 0),
-        rating:   p.rating || 4.8
+        rating:   p.rating || 4.8,
+        desc:     p.desc || ''
       }));
     });
 }
@@ -2850,7 +3269,7 @@ function pickChoose(e){
   // upsell's ad mockups need the product's photo, name & price back
   try{ localStorage.setItem('spai_chosen', JSON.stringify({
     name: chosen.name, image: chosen.image || '', emoji: chosen.emoji || '📦',
-    price: chosen.price, cost: chosen.cost, category: chosen.category || ''
+    price: chosen.price, cost: chosen.cost, category: chosen.category || '', desc: chosen.desc || '', thumb: chosen.thumb || ''
   })); }catch(err){}
   // warm the AI pack-shot for this product now (generated once per product,
   // cached forever) so it's ready by the time the upsell shows
@@ -3077,6 +3496,7 @@ function startBuild(e){
 function startRealBuild(){
   if(!DS_LIVE) return;
   dsBuild = null; dsStatus = null; dsBuildError = null;
+  BX.realName = ''; clearTimeout(BX.nameTimer); BX.polling = false; setTimeout(()=>{ if(!BX.polling) bxPollName(); }, 1500);
   fetch(DS_API + '/build', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -3109,88 +3529,518 @@ function startRealBuild(){
 /* ============================================================
    BUILDING YOUR STORE
    ============================================================ */
-let buildRan = false;
+/* ============================================================
+   BUILDING YOUR STORE — cinematic assembly
+   A phone shows the buyer's own store page being built section by
+   section. One container (the "camera") pans and zooms with a single
+   transform; a selection box marks the part being worked on; the store
+   name, title and description type themselves out; a ring in the chip
+   tracks progress. The scripted part lasts ~8s, then "Final checks"
+   stretches until the real DropStart build is ready (dsWaitThenPreview
+   → buildFinish), so the reveal never opens an empty preview.
+   ============================================================ */
+let buildRan = false, buildFinished = false;
+const BX = { holdAt: 13600, total: 14400 };
+const BX_STEPS = ['Setting up your storefront','Adding your photos','Writing your product page','Setting up checkout','Adding benefits','Adding reviews','Adding FAQ & policies','Naming your store','Final checks'];
+const BX_HOLD_LINES = ['Connecting your supplier…','Setting prices & shipping…','Publishing your pages…','Checking every link…','Almost there…'];
+
+function bxQ(id){ return document.getElementById(id); }
+function bxEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function bxAnim(el, kf, opt){
+  if(!el || BX.reduced || !el.animate) return null;
+  try{ return el.animate(kf, Object.assign({ easing:'cubic-bezier(.2,.7,.2,1)', fill:'none' }, opt||{})); }catch(e){ return null; }
+}
+
+/* The store's name comes from DropStart (it names every store it builds).
+   Until that name arrives the wordmark is the product itself. */
+function bxBrand(name){ return String(name || 'Your store').trim().slice(0, 40); }
+function bxKeyword(name){
+  const stop = /^(the|a|an|led|mini|portable|electric|smart|pro|kit|set|3d|usb|rechargeable|wireless|automatic|adjustable|foldable|digital|new|premium|luxury|multi|ultra|heavy|duty|large|small|with|for|and|of|to|in|on)$/i;
+  const words = String(name||'').replace(/[^A-Za-z0-9 ]/g,' ').split(/\s+/).filter(w=>w && !stop.test(w) && !/^\d+$/.test(w));
+  const w = words[0] || 'Your'; return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+}
+/* review link only (no real build): a stand-in for the DropStart name so the
+   naming moment can be seen */
+function bxLocalName(p, th){
+  const k = bxKeyword(p.name);
+  const by = { '#B4532A':'Haven', '#D2652A':'Paws', '#2F6F4E':'Kitchen', '#B4468A':'Glow', '#1F6FEB':'Motion', '#D9901A':'Play', '#2563EB':'Studio' };
+  return k + ' ' + (by[th.acc] || 'Studio');
+}
+/* DropStart has named the store: retype the wordmark, update the page, tell the chip */
+function bxRename(name){
+  name = String(name || '').trim().slice(0, 40);
+  if(!name || name === BX.realName) return;
+  BX.realName = name; BX.brand = name;
+  const page = bxQ('bxPage'); if(!page) return;
+  page.querySelectorAll('.sp-eye, .sp-foot > b').forEach(el=>{ el.textContent = name; });
+  const pr = page.querySelector('.sp-promise b'); if(pr) pr.textContent = 'The ' + name + ' promise';
+  const w = page.querySelector('.sp-word');
+  const g = (BX.typers || []).find(t=>t.key === 'name');
+  if(BX.reduced || !w){ if(w) w.textContent = name; }
+  else if(g && !g.on){ g.full = name; }                                   // not typed yet: type the real name
+  else if(g && g.on && !g.done){ g.full = name; g.n = -1; g.t0 = BX.ie; } // mid-typing: start over with the real name
+  else {                                                                   // already typed: retype
+    if(g) g.done = true;
+    w.innerHTML = '<i class="sp-caret"></i>';
+    BX.typers.push({ key:'rename', el:w, full:name, n:-1, t0:BX.ie, per:55, on:true, done:false });
+  }
+  if(BX.step >= 7){ const line = bxQ('bxName'); if(line){ line.innerHTML = 'Store name: <b>' + bxEsc(name) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; } }
+  bxQ('bxSr').textContent = 'Your store is named ' + name;
+}
+/* ask the builder for the name as soon as it exists (read-only status calls) */
+function bxPollName(){
+  if(BX.done || BX.realName || !DS_LIVE || BX.demo) { BX.polling = false; return; }
+  BX.polling = true;
+  if(!dsBuild || !dsBuild.project_id){ BX.nameTimer = setTimeout(bxPollName, 800); return; }
+  fetch(DS_API + '/status/' + encodeURIComponent(dsBuild.project_id)).then(r=>r.json()).then(j=>{
+    if(j && j.store_name){
+      bxRename(j.store_name);
+      dsBuild.store_name = j.store_name;
+      try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
+      return;
+    }
+    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 2000);
+  }).catch(()=>{ if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 3000); });
+}
+
+/* page copy + accent by category / name keywords (the real store gets its
+   own AI copy — this is the page the buyer watches being assembled) */
+const BX_THEMES = [
+  { re:/light|lamp|neon|projector|glow|candle|home|decor|vibe|room|wall|shelf|plant|humidif|clock|frame/i, acc:'#B4532A', soft:'#FBE9E2', ink:'#7C2D12',
+    desc:'Soft, warm light that turns any corner into the cosiest spot in the house. Plug in, switch on, and the room changes.',
+    bul:['Sets up in under a minute','Made to brighten any space','A gift people actually keep'],
+    why:[['🏡','Made for real homes','Looks like it belongs the moment you place it.'],['⚡','Easy from day one','No manual needed. Plug in and enjoy.'],['🎁','A thoughtful gift','Housewarmings, birthdays or just because.']],
+    life:['Your space, instantly warmer','Evenings feel different with the right light. This is the piece guests ask about.'] },
+  { re:/pet|dog|cat|puppy|kitten|paw|feeder|leash|groom|aquarium|bird/i, acc:'#D2652A', soft:'#FCEBE1', ink:'#7C2D12',
+    desc:'Made for pets and the people who love them. Less mess, less fuss, more good moments together.',
+    bul:['Built for daily use','Gentle on paws and fur','Loved by pet parents'],
+    why:[['🐾','Made for pet parents','Designed around how pets actually behave.'],['⚡','Easy to use','Simple from the very first try.'],['🎁','A gift for pet lovers','For birthdays, holidays or just because.']],
+    life:['Happier pets, calmer days','Small routines get easier, and your pet notices.'] },
+  { re:/kitchen|chef|chop|grater|peeler|opener|coffee|mug|grind|fryer|cook|bbq|grill|sealer|steamer|cutter|spiral|garlic/i, acc:'#2F6F4E', soft:'#E3F3EA', ink:'#14532D',
+    desc:'The small kitchen upgrade you will reach for every single day. Faster prep, less cleanup, better dinners.',
+    bul:['Prep in half the time','Rinses clean in seconds','Built to last'],
+    why:[['🍳','Made for busy kitchens','Does one job and does it well.'],['⚡','Fast and simple','No setup, no learning curve.'],['🎁','The gift that gets used','For hosts, foodies and new homes.']],
+    life:['Dinner, done faster','Less time prepping means more time at the table.'] },
+  { re:/skin|face|facial|beauty|lash|hair|nail|massag|roller|pore|cleans|mister|ice globe/i, acc:'#B4468A', soft:'#F9E6F1', ink:'#831843',
+    desc:'A few minutes a day for skin that looks rested and bright. Simple, gentle and made for real routines.',
+    bul:['Gentle enough for daily use','Results you can see','Fits in any bag'],
+    why:[['✨','Made for real routines','Fits into the five minutes you actually have.'],['🌿','Gentle by design','Kind to sensitive skin.'],['🎁','A self-care gift','Treat yourself or someone who deserves it.']],
+    life:['Your five-minute ritual','The small routine that becomes the favourite part of the day.'] },
+  { re:/fit|gym|yoga|band|jump|trainer|balance|workout|muscle|posture|run|sport|soccer|basketball|golf/i, acc:'#1F6FEB', soft:'#E6EEFF', ink:'#1E3A8A',
+    desc:'Play anywhere, any time. Compact, tough and ready whenever you are.',
+    bul:['Ready in seconds','Packs flat for travel','Built for every level'],
+    why:[['💪','Made for progress','Scales with you as you get better.'],['⚡','Zero setup','Unpack, start, done.'],['🎁','A gift that gets used','For anyone who loves to move.']],
+    life:['Your game, anywhere','No commute, no queue, no excuses.'] },
+  { re:/kid|toy|game|puzzle|play|baby|learn|stem|craft|plush|dino|unicorn|fidget|sensory/i, acc:'#D9901A', soft:'#FDF0DA', ink:'#78350F',
+    desc:'Fun to play with and easy to give. Made for play time at home or on the go.',
+    bul:['Fun from the first try','Screen-free play','Built to survive kids'],
+    why:[['🧩','Made for play time','Fun at home or on the go.'],['⚡','Easy to use','Simple from the very first try.'],['🎁','A gift they will use','For birthdays, holidays or just because.']],
+    life:['Hours of screen-free fun','The toy that comes out again and again.'] },
+  { re:/./, acc:'#2563EB', soft:'#E8EEFF', ink:'#1E3A8A',
+    desc:'Made to do one job brilliantly, so it earns its spot the first day it arrives. Simple to use, hard to put down.',
+    bul:['Easy from day one','Built to last','A gift people keep'],
+    why:[['⚡','Easy from day one','No manual needed. Open the box and go.'],['✅','Made to last','Quality you can feel in your hands.'],['🎁','A thoughtful gift','For birthdays, holidays or just because.']],
+    life:['A small upgrade you feel every day','The kind of thing you wonder how you managed without.'] }
+];
+function bxTheme(p){ const key = ((p&&p.category)||'') + ' ' + ((p&&p.name)||''); return BX_THEMES.find(t=>t.re.test(key)) || BX_THEMES[BX_THEMES.length-1]; }
+
+function bxDesc(p, th){ const d = String(p.desc||'').trim(); return d ? (d.length > 170 ? d.slice(0, 168).replace(/\s+\S*$/, '') + '…' : d) : th.desc; }
+/* every distinct product photo we have: DropStart's 3:2 hero and its square
+   thumbnail today; more angles slot in here when the catalogue carries them */
+function bxPhotos(p){
+  const out = [];
+  [p.image, p.thumb].concat(Array.isArray(p.images) ? p.images : []).forEach(u=>{ if(u && out.indexOf(u) === -1) out.push(u); });
+  return out;
+}
+function bxStoreHTML(p, brand, th, built, cls){
+  const price = Number(p.price||0), wasP = Math.ceil(price*1.6)-0.01, save = price>0 ? Math.round((1-price/wasP)*100) : 0;
+  const img = p.image ? `<img src="${bxEsc(p.image)}" alt="">` : `<div class="sp-ph">${p.emoji||'📦'}</div>`;
+  const photos = bxPhotos(p);
+  const shot = (i, pos)=> photos[i] ? `<img src="${bxEsc(photos[i])}" alt="" style="object-position:${pos||'50% 50%'}">` : `<div class="sp-ph">${p.emoji||'📦'}</div>`;
+  const rating = Number(p.rating||4.8).toFixed(1);
+  const html = `<div class="sp ${cls||''}" style="--acc:${th.acc};--acc-soft:${th.soft};--acc-ink:${th.ink}">
+    <div class="sp-status"><span>9:41</span><span>●●● <i></i></span></div>
+    <div class="sec sp-ann" data-sec="ann">Free shipping · 30-day guarantee</div>
+    <div class="sec sp-nav" data-sec="head"><span class="sp-ic">≡</span><span class="sp-word" data-type="name">${bxEsc(brand)}</span><span class="sp-ic">🛍</span></div>
+    <div class="sec sp-media" data-sec="media">${img}<span class="sp-count">1 / ${photos.length + 2}</span></div>
+    <div class="sec sp-gal" data-sec="gallery"><span class="on">${shot(0)}</span><span>${shot(1 % photos.length)}</span><span class="zoom">${shot(0, '50% 35%')}</span><span class="zoom">${shot(1 % photos.length, '50% 70%')}</span><span class="more">+2</span></div>
+    <div class="sp-body">
+      <div class="sec" data-sec="title"><span class="sp-eye">${bxEsc(brand)}</span><h1 class="sp-title" data-type="title">${bxEsc(p.name)}</h1><div class="sp-stars"><b>★★★★★</b>${rating} · 2,347 reviews</div></div>
+      <div class="sec" data-sec="price"><div class="sp-price"><b class="sp-now">$${price.toFixed(2)}</b><s class="sp-was">$${wasP.toFixed(2)}</s><em class="sp-save">SAVE ${save}%</em></div><p class="sp-tax">Taxes and shipping calculated at checkout.</p></div>
+      <div class="sec" data-sec="desc"><p class="sp-desc" data-type="desc">${bxEsc(bxDesc(p, th))}</p></div>
+      <div class="sec" data-sec="bullets"><ul class="sp-bul">${th.bul.map(b=>`<li>${bxEsc(b)}</li>`).join('')}</ul></div>
+      <div class="sec" data-sec="buy"><div class="sp-buy"><span class="sp-btn">Add to cart</span><span class="sp-btn alt">Buy it now</span><span class="sp-pay">🔒 Secure checkout · Apple Pay · Visa · Mastercard</span></div></div>
+      <div class="sec" data-sec="trust"><ul class="sp-trust"><li><span>🚚</span>Tracked shipping</li><li><span>↩️</span>30-day returns</li><li><span>🔒</span>Secure checkout</li></ul></div>
+    </div>
+    <div class="sec sp-why" data-sec="why"><h3 class="sp-h3">Why people love it</h3>${th.why.map(w=>`<div class="sp-card"><span class="ic">${w[0]}</span><div><b>${bxEsc(w[1])}</b><p>${bxEsc(w[2])}</p></div></div>`).join('')}</div>
+    <div class="sec sp-life" data-sec="life"><div class="sp-lifeimg">${shot(photos.length > 1 ? 1 : 0, '50% 60%')}</div><h3 class="sp-h3">${bxEsc(th.life[0])}</h3><p>${bxEsc(th.life[1])}</p></div>
+    <div class="sec sp-how" data-sec="how"><h3 class="sp-h3">How it works</h3><ol><li><b>1</b><div><strong>Order today</strong><span>Checkout takes under a minute.</span></div></li><li><b>2</b><div><strong>We ship it tracked</strong><span>Tracking number in your inbox within 24 hours.</span></div></li><li><b>3</b><div><strong>Love it or send it back</strong><span>30 days, no questions asked.</span></div></li></ol></div>
+    <div class="sec sp-ship" data-sec="ship"><div><span>🚚</span><b>Shipping</b><p>Free, tracked, 5–9 business days.</p></div><div><span>↩️</span><b>Returns</b><p>30-day money-back guarantee.</p></div></div>
+    <div class="sec sp-rev" data-sec="rev"><h3 class="sp-h3">What customers say</h3>
+      <div class="sp-sum"><div class="sp-sum-big"><b>${rating}</b><span><i>★★★★★</i>2,347 reviews</span></div><div class="sp-sum-bars"><div><span>5</span><em><i style="width:86%"></i></em></div><div><span>4</span><em><i style="width:10%"></i></em></div><div><span>3</span><em><i style="width:3%"></i></em></div><div><span>2</span><em><i style="width:1%"></i></em></div><div><span>1</span><em><i style="width:0%"></i></em></div></div></div>
+      <div class="sp-rcard"><div class="st">★★★★★</div><p>"Ordered Monday, arrived Thursday. Quality is honestly better than I expected."</p><small>Jessica M. · <b>✓ Verified buyer</b></small></div>
+      <div class="sp-rcard"><div class="st">★★★★★</div><p>"Bought one for me and one as a gift. Both were a hit."</p><small>Darius K. · <b>✓ Verified buyer</b></small></div>
+      <div class="sp-rcard"><div class="st">★★★★★</div><p>"This is my second order. Obsessed."</p><small>Amelia R. · <b>✓ Verified buyer</b></small></div></div>
+    <div class="sec sp-faq" data-sec="faq"><h3 class="sp-h3">Questions</h3><div class="q">How long does shipping take?</div><div class="q">What if it's not for me?</div><div class="q">Is checkout secure?</div><div class="q">Do you ship to my country?</div><div class="q">Can I track my order?</div></div>
+    <div class="sec sp-promise" data-sec="promise"><span>🛡️</span><div><b>The ${bxEsc(brand)} promise</b><p>If it's not everything you hoped, send it back within 30 days for a full refund. We'll even cover the return label.</p></div></div>
+    <div class="sec sp-foot" data-sec="foot"><div class="sp-news"><b>Get 10% off your first order</b><span><i>you@email.com</i><em>Join</em></span></div><b>${bxEsc(brand)}</b>© ${new Date().getFullYear()} · Powered by Shopify<small>Shipping · Returns · Privacy · Terms · Contact</small></div>
+  </div>`;
+  return built ? html.replace(/class="sec"/g, 'class="sec in"').replace(/class="sec /g, 'class="sec in ') : html;
+}
+
+/* the same store at desktop width, for the monitor on the preview screen */
+function bxDesktopHTML(p, brand, th){
+  const price = Number(p.price||0), wasP = Math.ceil(price*1.6)-0.01, save = price>0 ? Math.round((1-price/wasP)*100) : 0;
+  const img = p.image ? `<img src="${bxEsc(p.image)}" alt="">` : `<div class="sp-ph">${p.emoji||'📦'}</div>`;
+  const rating = Number(p.rating||4.8).toFixed(1);
+  return `<div class="sp spd" style="--acc:${th.acc};--acc-soft:${th.soft};--acc-ink:${th.ink}">
+    <div class="spd-ann">Free shipping on every order · 30-day guarantee</div>
+    <div class="spd-nav"><span class="spd-links">Shop &nbsp;·&nbsp; Benefits &nbsp;·&nbsp; FAQ &nbsp;·&nbsp; Contact</span><span class="spd-word">${bxEsc(brand)}</span><span class="spd-icons">🔍 &nbsp; 👤 &nbsp; 🛍</span></div>
+    <div class="spd-hero">
+      <div class="spd-media">${img}<span class="sp-count">1 / 6</span></div>
+      <div class="spd-copy"><span class="sp-eye">${bxEsc(brand)}</span><h1 class="spd-title">${bxEsc(p.name)}</h1><div class="sp-stars"><b>★★★★★</b>${rating} · 2,347 reviews</div>
+        <div class="sp-price"><b class="sp-now">$${price.toFixed(2)}</b><s class="sp-was">$${wasP.toFixed(2)}</s><em class="sp-save">SAVE ${save}%</em></div><p class="sp-tax">Taxes and shipping calculated at checkout.</p>
+        <p class="spd-desc">${bxEsc(bxDesc(p, th))}</p>
+        <ul class="sp-bul">${th.bul.map(b=>`<li>${bxEsc(b)}</li>`).join('')}</ul>
+        <div class="spd-buy"><span class="sp-btn">Add to cart</span><span class="sp-btn alt">Buy it now</span></div><span class="sp-pay">🔒 Secure checkout · Apple Pay · Visa · Mastercard</span></div>
+    </div>
+    <ul class="spd-trust"><li><span>🚚</span>Tracked shipping on every order</li><li><span>↩️</span>30-day returns, no questions</li><li><span>🔒</span>Secure encrypted checkout</li></ul>
+    <div class="spd-why"><h3 class="sp-h3">Why people love it</h3><div class="spd-cards">${th.why.map(w=>`<div class="sp-card"><span class="ic">${w[0]}</span><div><b>${bxEsc(w[1])}</b><p>${bxEsc(w[2])}</p></div></div>`).join('')}</div></div>
+    <div class="spd-rev"><h3 class="sp-h3">What customers say</h3><div class="spd-cards">
+      <div class="sp-rcard"><div class="st">★★★★★</div><p>"Ordered Monday, arrived Thursday. Quality is honestly better than I expected."</p><small>Jessica M. · <b>✓ Verified buyer</b></small></div>
+      <div class="sp-rcard"><div class="st">★★★★★</div><p>"Bought one for me and one as a gift. Both were a hit."</p><small>Darius K. · <b>✓ Verified buyer</b></small></div></div></div>
+    <div class="sp-foot"><b>${bxEsc(brand)}</b>© ${new Date().getFullYear()} · Powered by Shopify</div>
+  </div>`;
+}
+
+/* ---- geometry: stage, phone, camera, scroll, selection ---- */
+function bxLayout(keep){
+  const bx = bxQ('bx'), stage = bxQ('bxStage'), cam = bxQ('bxCam');
+  if(!bx || !stage) return;
+  const top0 = bx.getBoundingClientRect().top;
+  bx.style.height = Math.max(470, Math.round(innerHeight - top0 - 12)) + 'px';
+  const sw = stage.clientWidth, sh = stage.clientHeight; if(!sw || !sh) return;
+  const chip = (stage.querySelector('.bx-now') || {}).offsetHeight || 86;
+  bx.style.setProperty('--bx-chip', chip + 'px');
+  const top = 18, bottom = sh - chip - 14;
+  const W = Math.round(Math.max(150, Math.min(300, sw - 56, (bottom - top) / 2.2)));
+  cam.style.width = W + 'px';
+  const screenW = W - 12, s = screenW / 390;
+  bxQ('bxPage').style.transform = 'scale(' + s + ')';
+  const screenH = bxQ('bxScreen').clientHeight, dh = bxQ('bxPhone').offsetHeight;
+  const zHi = Math.max(1, Math.min(.92 * sw / W, 2.4));
+  BX.N = { sw, sh, top, bottom, W, s, screenW, screenH, dh, zHi, zMid: 1 + (zHi-1)*.62, zLow: 1 + (zHi-1)*.3 };
+  if(keep){
+    const sc = bxQ('bxScroll'); sc.style.transition = 'none'; sc.style.transform = 'translateY(' + (-(BX.scrollY||0)*s) + 'px)';
+    if(BX.focus) bxCam(BX.focus.names, BX.focus.level, 0);
+    if(BX.selNames) bxSel(BX.selNames, false);
+  }
+}
+/* bounding box of sections in page units (the page is 390 wide) */
+function bxBox(names){
+  const root = bxQ('bxPage').getBoundingClientRect(); const sc = root.width / 390 || 1;
+  let t = Infinity, b = -Infinity, l = Infinity, r = -Infinity;
+  (names||[]).forEach(n=>{
+    const el = BX.secs[n]; if(!el) return; const q = el.getBoundingClientRect(); if(!q.height) return;
+    t = Math.min(t, (q.top-root.top)/sc); b = Math.max(b, (q.bottom-root.top)/sc);
+    l = Math.min(l, (q.left-root.left)/sc); r = Math.max(r, (q.right-root.left)/sc);
+  });
+  return t < b ? { top:t, h:b-t, left:l, w:r-l } : null;
+}
+function bxScrollTo(names, ms){
+  const N = BX.N, box = bxBox(names); if(!N || !box) return;
+  const vis = N.screenH / N.s, maxY = Math.max(0, bxQ('bxPage').offsetHeight - vis);
+  const cur = BX.scrollY || 0;
+  const head = 60; // status bar + notch
+  const y = Math.max(0, Math.min(maxY, box.top - head));
+  if(Math.abs(y - cur) < 2) return;
+  BX.scrollY = y;
+  const sc = bxQ('bxScroll');
+  sc.style.transition = ms && !BX.reduced ? 'transform ' + ms + 'ms cubic-bezier(.55,0,.2,1)' : 'none';
+  sc.style.transform = 'translateY(' + (-y*N.s).toFixed(1) + 'px)';
+}
+function bxScrollTop(ms){
+  BX.scrollY = 0; const sc = bxQ('bxScroll');
+  sc.style.transition = ms && !BX.reduced ? 'transform ' + ms + 'ms cubic-bezier(.55,0,.2,1)' : 'none';
+  sc.style.transform = 'translateY(0px)';
+}
+function bxCam(names, level, ms){
+  const N = BX.N, cam = bxQ('bxCam'); if(!N || !cam) return;
+  BX.focus = { names, level };
+  const z = BX.reduced ? 1 : level==='hi' ? N.zHi : level==='mid' ? N.zMid : level==='low' ? N.zLow : 1;
+  const tx = (N.sw - z*N.W) / 2;
+  let ty = N.top;
+  const box = names && z > 1 ? bxBox(names) : null;
+  if(box){
+    const pad = 6, y0 = BX.scrollY || 0;
+    const bt = pad + (box.top - y0)*N.s, bb = pad + (box.top + box.h - y0)*N.s;
+    const avail = N.bottom - N.top;
+    ty = N.top + avail*.12 - z*bt;
+    if(z*bb + ty > N.bottom) ty = Math.max(N.bottom - z*bb, N.top + 8 - z*bt);
+    ty = Math.min(ty, N.top + avail*.28);
+    ty = Math.max(ty, N.bottom + 40 - z*N.dh);
+  }
+  cam.style.transition = ms && !BX.reduced ? 'transform ' + ms + 'ms cubic-bezier(.55,0,.2,1)' : 'none';
+  cam.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + z.toFixed(4) + ')';
+}
+function bxSel(names, animate){
+  const N = BX.N, J = bxQ('bxSel'); if(!J) return;
+  const box = names && N ? bxBox(names) : null; BX.selNames = box ? names : null;
+  if(!box){ J.classList.remove('is-on'); return; }
+  const l = Math.max(1, (box.left-8)*N.s), r = Math.min(N.screenW-1, (box.left+box.w+8)*N.s);
+  J.style.left = Math.round(l) + 'px'; J.style.width = Math.round(r-l) + 'px';
+  J.style.top = (Math.round(box.top*N.s) - 3) + 'px'; J.style.height = (Math.round(box.h*N.s) + 6) + 'px';
+  J.classList.add('is-on');
+  if(animate){
+    bxAnim(J, [{opacity:0,transform:'scale(1.035)'},{opacity:1,transform:'none'}], {duration:360, delay:420, fill:'backwards'});
+    bxAnim(J.firstElementChild.firstElementChild, [{transform:'translateX(-130%) skewX(-18deg)'},{transform:'translateX(330%) skewX(-18deg)'}], {duration:1100,delay:140,easing:'cubic-bezier(.45,0,.35,1)'});
+  }
+}
+
+/* ---- sections, typing, chip ---- */
+function bxShow(name){ const el = BX.secs && BX.secs[name]; if(el && !el.classList.contains('in')) el.classList.add('in'); }
+function bxEach(sel, kf, each, opt){
+  bxQ('bxPage').querySelectorAll(sel).forEach((el,i)=>bxAnim(el, kf, Object.assign({duration:440, delay:i*each, fill:'backwards'}, opt||{})));
+}
+function bxPrepTypers(){
+  BX.typers = [];
+  if(BX.reduced) return;
+  [['name','.sp-word'],['title','.sp-title'],['desc','.sp-desc']].forEach(([key,sel])=>{
+    const el = bxQ('bxPage').querySelector(sel); if(!el) return;
+    const full = el.textContent;
+    el.innerHTML = '<i class="sp-caret"></i><span class="sp-ghost">' + bxEsc(full) + '</span>';
+    BX.typers.push({ key, el, full, n:-1, t0:0, per:40, on:false, done:false });
+  });
+}
+function bxType(key, totalMs, minPer, maxPer){
+  BX.typers.forEach(g=>{ if(g.key !== key) return; g.per = Math.max(minPer, Math.min(maxPer, totalMs/Math.max(1,g.full.length))); g.t0 = BX.ie; g.on = true; });
+}
+function bxTick(){
+  BX.typers.forEach(g=>{
+    if(!g.on || g.done) return;
+    const c = Math.min(g.full.length, Math.floor((BX.ie - g.t0)/g.per) + 1);
+    if(c !== g.n){
+      g.n = c;
+      g.el.innerHTML = bxEsc(g.full.slice(0,c)) + '<i class="sp-caret"></i>' + (c < g.full.length ? '<span class="sp-ghost">' + bxEsc(g.full.slice(c)) + '</span>' : '');
+    }
+    if(c >= g.full.length && BX.ie - g.t0 > g.full.length*g.per + 650){ g.done = true; g.el.textContent = g.full; }
+  });
+}
+function bxTypeFinish(){ (BX.typers||[]).forEach(g=>{ if(!g.done){ g.done = true; g.el.textContent = g.full; } }); }
+function bxStep(i){
+  if(i === BX.step) return;
+  if(BX.step >= 0){ playDing(); vibrate(8); }
+  BX.step = i;
+  const k = bxQ('bxStep'); k.innerHTML = '<span>' + bxEsc(BX_STEPS[i]) + '</span>';
+  bxAnim(k.firstElementChild, [{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}], {duration:320});
+  bxQ('bxSr').textContent = BX_STEPS[i];
+}
+function bxPct(v){
+  if(v === BX.pctShown) return; BX.pctShown = v;
+  bxQ('bxPct').textContent = v + '%';
+  bxQ('bxRp').style.strokeDashoffset = String(163.36 * (1 - v/100));
+  if(v % 10 === 0 || v === 100) bxQ('bxRing').setAttribute('aria-valuenow', String(v));
+}
+function bxLine(id){ const el = bxQ(id); if(!el) return; document.querySelectorAll('#bx .bx-line').forEach(c=>c.classList.toggle('is-in', c === el)); }
+function bxFact(n){
+  const el = bxQ('bxF'+n); if(!el || el.classList.contains('is-in')) return;
+  bxLine('bxF'+n); const v = bxQ('bxF'+n+'v');
+  const dur = BX.reduced ? 1 : 900;
+  if(n === 1){ countUp(v, 0, BX.margin, dur, x=>'$'+x.toFixed(2)); playCoin(); }
+  if(n === 2){ countUp(v, 0, BX.pct, dur, x=>Math.round(x)+'%'); }
+  if(n === 3){ countUp(v, 0, 10000000, BX.reduced ? 1 : 760, x=>Math.round(x).toLocaleString('en-US')); }
+}
+function bxScanSweep(delay){
+  BX.lastScan = BX.ie; const sc = bxQ('bxScan'), h = bxQ('bxScreen').clientHeight;
+  bxAnim(sc, [{transform:'translateY(-120%)',opacity:1},{transform:'translateY(' + h + 'px)',opacity:1}], {duration:1000, delay:delay||0, easing:'cubic-bezier(.45,0,.4,1)'});
+}
+function bxHoldLine(){
+  BX.lastLine = BX.ie;
+  const lbl = bxQ('buildLabel'), txt = (lbl.textContent || '').trim();
+  if(txt && txt !== BX.shownStatus){ BX.shownStatus = txt; bxLine('buildLabel'); return; }   // the real builder's own status
+  BX.hi = ((BX.hi||0) + 1) % (BX_HOLD_LINES.length + 1);
+  if(BX.hi === 0){ bxLine('bxF3'); return; }
+  bxQ('bxHold').textContent = BX_HOLD_LINES[BX.hi-1]; bxLine('bxHold');
+}
+
+/* ---- the script ---- */
+function bxTimeline(){
+  const S = bxShow;
+  const L = (names, level, selNames)=>{ bxScrollTo(names, 900); bxSel(selNames === undefined ? names : selNames, true); bxCam(names, level, 950); };
+  const rise = [{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}];
+  return [
+    [0,    ()=>bxStep(0)],
+    [200,  ()=>{ S('ann'); bxAnim(BX.secs.ann, [{opacity:0},{opacity:1}], {duration:400}); }],
+    [380,  ()=>{ bxSel(['ann','head'], true); bxCam(['ann','head'], 'hi', 1000); }],
+    [500,  ()=>S('head')],
+    // photos
+    [1500, ()=>{ bxStep(1); L(['media','gallery'], 'mid', ['media']); }],
+    [1580, ()=>{
+      S('media'); playPop(1.1);
+      const im = bxQ('bxPage').querySelector('.sp-media img, .sp-media .sp-ph');
+      bxAnim(im, [{opacity:0,transform:'scale(1.18)'},{opacity:1,transform:'none'}], {duration:1100, easing:'cubic-bezier(.16,.84,.3,1)'});
+      const f = document.createElement('i'); f.className = 'sp-flash'; BX.secs.media.appendChild(f);
+      const a = bxAnim(f, [{transform:'translateX(-120%)'},{transform:'translateX(120%)'}], {duration:950, delay:300, easing:'ease-in-out', fill:'backwards'});
+      if(a){ a.onfinish = ()=>f.remove(); a.oncancel = ()=>f.remove(); } else f.remove();
+    }],
+    [2500, ()=>{ S('gallery'); bxEach('.sp-gal span', [{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'none'}], 90, {duration:380, easing:'cubic-bezier(.3,1.4,.5,1)'}); bxSel(['gallery'], true); }],
+    [2900, ()=>bxFact(1)],
+    // product page
+    [3300, ()=>{ bxStep(2); bxScrollTo(['title','price','desc','bullets'], 900); bxSel(['title','price'], true); bxCam(['title','price'], 'hi', 950); }],
+    [3380, ()=>{ S('title'); bxType('title', 650, 22, 48); }],
+    [4100, ()=>{
+      S('price'); playPop(1.3);
+      bxEach('.sp-now', [{opacity:0,transform:'scale(1.4)'},{opacity:1,transform:'none'}], 0, {duration:520, easing:'cubic-bezier(.3,1.45,.5,1)'});
+      bxEach('.sp-was,.sp-save,.sp-tax', [{opacity:0},{opacity:1}], 60, {duration:400, delay:140});
+    }],
+    [4250, ()=>bxFact(2)],
+    [4450, ()=>{ S('desc'); bxType('desc', 900, 9, 24); bxSel(['desc','bullets'], false); bxCam(['desc','bullets'], 'hi', 900); }],
+    [5350, ()=>{ S('bullets'); bxEach('.sp-bul li', [{opacity:0,transform:'translateX(-16px)'},{opacity:1,transform:'none'}], 150); }],
+    // checkout
+    [5900, ()=>{ bxStep(3); L(['buy','trust'], 'mid'); }],
+    [5980, ()=>{ S('buy'); playPop(1.5); bxEach('.sp-btn', [{opacity:0,transform:'scale(.94)'},{opacity:1,transform:'none'}], 120, {duration:420, easing:'cubic-bezier(.3,1.4,.5,1)'}); }],
+    [6300, ()=>{ S('trust'); bxEach('.sp-trust li', [{opacity:0,transform:'scale(.8)'},{opacity:1,transform:'none'}], 120, {easing:'cubic-bezier(.3,1.4,.5,1)'}); }],
+    // benefits
+    [6900, ()=>{ bxStep(4); S('why'); bxEach('.sp-why .sp-card', rise, 110); L(['why'], 'mid'); }],
+    [7500, ()=>{ S('life'); bxScrollTo(['life'], 900); bxSel(['life'], true); bxCam(['life'], 'low', 950); }],
+    [8000, ()=>{ S('how'); bxEach('.sp-how li', rise, 120); S('ship'); bxEach('.sp-ship>div', rise, 120, {delay:360}); bxScrollTo(['how','ship'], 900); bxSel(['how','ship'], true); bxCam(['how','ship'], 'low', 950); }],
+    // reviews
+    [8800, ()=>{ bxStep(5); S('rev'); bxScrollTo(['rev'], 900); bxSel(['rev'], true); bxCam(['rev'], 'mid', 950); bxEach('.sp-sum-bars em i', [{transform:'scaleX(0)'},{transform:'none'}], 90, {duration:700, delay:300, easing:'cubic-bezier(.2,.7,.2,1)'}); bxEach('.sp-rcard', rise, 160, {delay:500}); }],
+    // faq + policies
+    [10100, ()=>{ bxStep(6); S('faq'); bxEach('.sp-faq .q', [{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}], 90); bxScrollTo(['faq'], 900); bxSel(['faq'], true); bxCam(['faq'], 'mid', 950); }],
+    [11000, ()=>{ S('promise'); S('foot'); bxEach('.sp-promise, .sp-news', rise, 150); bxScrollTo(['promise','foot'], 900); bxSel(['promise'], true); bxCam(['promise','foot'], 'low', 950); }],
+    // naming: the builder has had ~12 s to answer with the store's name
+    [11900, ()=>{ bxStep(7); bxScrollTop(900); bxSel(['head'], true); bxCam(['head'], 'hi', 950); const w = bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming'); }],
+    [12500, ()=>{ bxType('name', 900, 32, 90); playPop(1.6); const line = bxQ('bxName'); if(line && BX.brand){ line.innerHTML = 'Store name: <b>' + bxEsc(BX.brand) + '</b>'; bxLine('bxName'); BX.lastLine = BX.ie; } }],
+    [BX.holdAt, ()=>{ bxStep(8); bxTypeFinish(); bxSel(null); bxScrollTop(1000); bxCam(null, 'whole', 1000); bxScanSweep(250); bxFact(3); BX.hold = true; }]
+  ];
+}
+function bxFrame(now){
+  BX.raf = 0; if(BX.done) return;
+  if(BX.pauseAt === null) BX.ie = now - BX.t0 - BX.paused;
+  const tl = BX.tl;
+  while(BX.ti < tl.length && tl[BX.ti][0] <= BX.ie){ const fn = tl[BX.ti][1]; BX.ti++; try{ fn(); }catch(e){} if(BX.done) return; }
+  bxTick();
+  const pct = BX.ie < BX.holdAt
+    ? Math.floor(94 * (1 - Math.pow(1 - BX.ie/BX.holdAt, 1.25)))
+    : Math.min(99, 94 + Math.floor((BX.ie - BX.holdAt) / 1800));
+  bxPct(pct);
+  if(BX.hold){
+    if(BX.ie - BX.lastScan > 3400) bxScanSweep(0);
+    if(BX.ie - BX.holdAt > 3600 && BX.ie - (BX.lastLine || BX.holdAt) > 3200) bxHoldLine();
+  }
+  BX.raf = requestAnimationFrame(bxFrame);
+}
+function bxVis(){
+  if(document.hidden){ if(BX.pauseAt === null) BX.pauseAt = performance.now(); }
+  else if(BX.pauseAt !== null){ BX.paused += performance.now() - BX.pauseAt; BX.pauseAt = null; }
+}
+
 function runBuild(){
   if(buildRan) return; buildRan = true;
-  const fill = document.getElementById('buildFill');
-  const label = document.getElementById('buildLabel');
-  const lines = [0,1,2,3].map(i=>document.getElementById('bl'+i));
+  const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
+  const th = bxTheme(p);
+  const known = BX.realName || (dsBuild && dsBuild.store_name) || (dsStatus && dsStatus.store_name) || '';
+  const brand = known || bxLocalName(p, th);
+  if(known) BX.realName = known;
+  Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
+  BX.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const margin = Math.max(0, Number(p.price||0) - Number(p.cost||0)), pct = p.price > 0 ? Math.round(margin / p.price * 100) : 0;
+  BX.margin = margin; BX.pct = pct;
+  if(!(margin > 0)) bxQ('bxF1').remove();
+  if(!(pct > 0 && pct < 100)) bxQ('bxF2').remove();
 
-  // store mockup personalization
-  const slug = (chosen? chosen.name : 'your-store').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  document.getElementById('storeUrl').textContent = slug+'.myshopify.com';
-  const heroBox = document.getElementById('se1');
-  if(chosen && chosen.image){
-    heroBox.innerHTML = '<img src="'+chosen.image+'" alt="">';
-  } else {
-    document.getElementById('seEmoji').textContent = chosen ? (chosen.emoji||'📦') : '📦';
-  }
+  BX.shortName = p.name && p.name.length > 30 ? p.name.slice(0, 28).replace(/\s+\S*$/, '') + '…' : (p.name || '');
+  bxQ('bxProd').textContent = BX.shortName || 'new';
+  if(!p.name) bxQ('buildTitle').innerHTML = 'Building <span class="grad-text">your store</span>…';
+  bxQ('bxPage').innerHTML = bxStoreHTML(p, brand, th);
+  bxQ('bxPage').querySelectorAll('[data-sec]').forEach(el=>{ BX.secs[el.dataset.sec] = el; });
+  bxPrepTypers();
+  bxLayout();
+  bxCam(null, 'whole', 0);
+  try{ BX.ro = new ResizeObserver(()=>bxLayout(true)); BX.ro.observe(bxQ('bxStage')); }catch(e){}
+  document.addEventListener('visibilitychange', bxVis);
 
-  const seq = [
-    {at:200,  bar:12, line:0, mode:'doing', label:'locking supplier…'},
-    {at:1500, bar:26, line:0, mode:'ok', ding:true, el:'se1'},
-    {at:1900, bar:38, line:1, mode:'doing', label:'designing your storefront…'},
-    {at:3300, bar:52, line:1, mode:'ok', ding:true, el:'se2'},
-    {at:3700, bar:60, line:2, mode:'doing', label:'writing copy that sells…', el:'se3'},
-    {at:4900, bar:74, line:2, mode:'ok', ding:true, el:'se4'},
-    {at:5300, bar:82, line:3, mode:'doing', label:'wiring checkout & fulfillment…', el:'se5'},
-    {at:6700, bar:94, line:3, mode:'ok', ding:true, el:'se6'},
-    {at:7300, bar:96, label:'final polish…'}
-  ];
-
-  seq.forEach(s=>{
-    setTimeout(()=>{
-      if(s.bar!==undefined) fill.style.width = s.bar+'%';
-      if(s.label) label.textContent = s.label;
-      if(s.line!==undefined){
-        const L = lines[s.line];
-        L.classList.add('in');
-        L.classList.remove('doing');
-        L.classList.add(s.mode);
-        if(s.mode==='ok' && s.ding){ playDing(); vibrate(8); }
-      }
-      if(s.el){ document.getElementById(s.el).classList.add('on'); playPop(1.2); }
-    }, s.at);
-  });
-
-  // Hold at ~96% and creep toward 99% while the real build finishes in the
-  // backend — the "Store ready!" celebration only fires from buildFinish(),
-  // once the preview is genuinely ready to show.
-  setTimeout(()=>{
-    let creep = 96;
-    const iv = setInterval(()=>{
-      if(buildFinished){ clearInterval(iv); return; }
-      creep = Math.min(creep + 0.5, 99.5);
-      fill.style.width = creep+'%';
-    }, 1200);
-  }, 8200);
-  // The sequence above runs ~9.7s; a real store takes a bit longer than that,
-  // so hold here until it's genuinely ready rather than opening an empty
-  // preview. Falls through to the mock if the build failed or takes too long.
-  setTimeout(()=>dsWaitThenPreview(), 9700);
+  if(BX.reduced){
+    BX.holdAt = 3600;
+    BX.tl = [
+      [0, ()=>{ Object.keys(BX.secs).forEach(bxShow); bxStep(0); }],
+      [1200, ()=>{ bxStep(2); bxFact(1); }],
+      [2400, ()=>{ bxStep(5); bxFact(2); }],
+      [3600, ()=>{ bxStep(8); bxFact(3); BX.hold = true; }]
+    ];
+  } else { BX.holdAt = 13600; BX.tl = bxTimeline(); }
+  BX.t0 = performance.now(); BX.ie = 0;
+  BX.raf = requestAnimationFrame(bxFrame);
+  if(!BX.demo && !BX.polling) bxPollName();
+  try{ spLog('build_start'); }catch(e){}
+  // The scripted part is done at ~8s; a real store takes a little longer,
+  // so "Final checks" stretches until the backend says it's ready.
+  setTimeout(()=>dsWaitThenPreview(), BX.reduced ? 4200 : BX.total + 400);
 }
 
 /* The celebration + hand-off to the preview, fired only when the store can
    actually be shown (or the fallback path decides to proceed). */
-let buildFinished = false;
 function buildFinish(){
   if(buildFinished) return; buildFinished = true;
-  const fill = document.getElementById('buildFill');
-  const orb = document.getElementById('buildOrb');
-  if(fill) fill.style.width = '100%';
-  if(orb){ orb.classList.remove('gold'); orb.classList.add('done'); orb.textContent = '✓'; }
-  document.getElementById('buildTitle').textContent = 'Store ready!';
-  const lbl = document.getElementById('buildLabel');
-  if(lbl) lbl.textContent = 'opening your preview…';
-  playTada();
-  confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 130);
-  coinRain(1200);
-  vibrate([20,80,20,80,30]);
-  setTimeout(()=>go('s-preview'), 1500);
+  BX.done = true; if(BX.raf) cancelAnimationFrame(BX.raf); clearTimeout(BX.nameTimer);
+  try{ BX.ro && BX.ro.disconnect(); }catch(e){}
+  document.removeEventListener('visibilitychange', bxVis);
+  const brand = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.brand || 'Your store';
+  Object.keys(BX.secs || {}).forEach(bxShow); bxTypeFinish(); bxSel(null);
+  bxPct(100); bxQ('bxRing').classList.add('is-done'); bxQ('bx').classList.add('is-done');
+  const realName = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName || BX.brand;
+  bxQ('bxStep').innerHTML = '<span>' + bxEsc(realName && realName.length <= 22 ? realName + ' is ready' : 'Your store is ready') + '</span>';
+  const f3 = bxQ('bxF3v'); if(f3) f3.textContent = '10,000,000+'; bxLine('bxF3');
+  bxQ('bxKick').textContent = 'BUILD COMPLETE';
+  bxQ('buildTitle').innerHTML = realName
+    ? '<span class="grad-text">' + bxEsc(realName) + '</span> is built.'
+    : 'Your <span class="grad-text">' + bxEsc(BX.shortName || 'store') + '</span> store is built.';
+  const sub = bxQ('bxSub'); if(sub) sub.textContent = 'Here it is. Opening your preview…';
+  bxQ('bxSr').textContent = (realName || 'Your store') + ' is ready';
+  playTada(); vibrate([20,80,20,80,30]);
+  bxAnim(bxQ('bxBurst'), [{opacity:.9,transform:'none'},{opacity:0,transform:'scale(1.3,1.14)'}], {duration:1000});
+  const r = bxQ('bxPhone').getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + Math.min(r.height, innerHeight - r.top) * .35;
+  coinCannon(cx, cy); confettiBurst(cx, Math.max(60, r.top + r.height*.25), 110);
+  setTimeout(bxHandoff, BX.reduced ? 300 : 1350);
+}
+
+/* The phone glides from the build stage into its place on the preview
+   screen (a fixed clone follows the real element's position), so the two
+   screens read as one continuous moment instead of a cut. */
+function bxHandoff(){
+  const ph = bxQ('bxPhone');
+  let ghost = null;
+  if(!BX.reduced && ph){
+    const r = ph.getBoundingClientRect();
+    if(r.width > 0 && r.height > 0){
+      ghost = ph.cloneNode(true);
+      ghost.removeAttribute('id'); ghost.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+      ghost.classList.add('bx-ghost');
+      const w = ph.offsetWidth, sc = r.width / w;
+      ghost.style.cssText = 'left:0;top:0;width:' + w + 'px;transform:translate(' + r.left.toFixed(1) + 'px,' + r.top.toFixed(1) + 'px) scale(' + sc.toFixed(4) + ')';
+      document.body.appendChild(ghost);
+      ph.style.visibility = 'hidden';
+    }
+  }
+  go('s-preview');
+  if(!ghost) return;
+  const from = ghost.style.transform, t0 = performance.now();
+  (function seek(){
+    const tgt = document.querySelector('#s-preview.active .dev-phone .ph-screen');
+    const tr = tgt && tgt.getBoundingClientRect();
+    if(!tr || tr.width < 10){ if(performance.now() - t0 < 1400) return requestAnimationFrame(seek); ghost.remove(); return; }
+    const sc2 = tr.width / ghost.offsetWidth;
+    const to = 'translate(' + tr.left.toFixed(1) + 'px,' + tr.top.toFixed(1) + 'px) scale(' + sc2.toFixed(4) + ')';
+    let a = null;
+    try{ a = ghost.animate([{transform:from, opacity:1},{transform:to, opacity:1, offset:.84},{transform:to, opacity:0}], {duration:820, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards'}); }catch(e){}
+    if(a){ a.onfinish = ()=>ghost.remove(); a.oncancel = ()=>ghost.remove(); } else ghost.remove();
+  })();
 }
 
 function dsWaitThenPreview(startedAt){
-  if(!DS_LIVE || dsBuildError || dsStatus) return buildFinish();
+  if(!DS_LIVE || dsBuildError || dsStatus || BX.demo) return buildFinish();
   startedAt = startedAt || Date.now();
 
   // build request still in flight
@@ -3231,9 +4081,9 @@ function slugOf(name){
 function runPreview(){
   if(previewRan) return; previewRan = true;
   const p = chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0];
-  // Once a real store exists, use its AI-generated brand name for the header
-  // and URL rather than a slug of the product.
-  const brand = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || p.name;
+  const th = bxTheme(p);
+  const realName = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName;
+  const brand = realName || BX.brand || bxBrand(p.name);
   const slug = slugOf(brand);
   document.getElementById('pvProdName').textContent = brand;
   document.getElementById('pvUrl').textContent = slug + '.myshopify.com';
@@ -3241,24 +4091,12 @@ function runPreview(){
   const mon = document.getElementById('scrMonitor');
   const tab = document.getElementById('scrTablet');
   const ph  = document.getElementById('scrPhone');
-
-  const src = dsStatus && dsStatus.preview_image;
-  // The monitor always shows a DESIGNED desktop storefront generated from the
-  // product photo + brand at true 1200px proportions, slowly scrolling.
-  // (DropStart screenshots are mobile captures — they'd look stretched here.)
-  mountScaledPanHtml(mon, desktopStore(p, brand), 1200);
-  if(src){
-    // The real store on the devices it was captured for.
-    mountCoverImage(tab, src);
-    mountPanImage(ph, src, brand);
-  } else if(PREVIEW_URL){
-    const url = PREVIEW_URL.replace('{{PRODUCT}}', encodeURIComponent(slug));
-    mountScaledIframe(tab, url, 768);
-    mountScaledIframe(ph, url, 390);
-  } else {
-    mountScaledHtml(tab, mockStore(p), 420);
-    mountScaledHtml(ph, mockStore(p), 375);
-  }
+  // Every device shows the store the buyer just watched being built (same
+  // theme, brand, copy): desktop layout on the monitor, tablet layout on the
+  // iPad, the phone page on the phone.
+  mountScaledPanHtml(mon, bxDesktopHTML(p, brand, th), 1200);
+  mountScaledPanHtml(tab, bxStoreHTML(p, brand, th, true, 'spt'), 768);
+  mountScaledPanHtml(ph, bxStoreHTML(p, brand, th, true), 390);
 
   playTada();
   confettiBurst(window.innerWidth/2, 130, 110);
@@ -3292,6 +4130,66 @@ function dsApplyUnlimitedUi(){
 /* ---- the FOMO layer: personalized dream math, reservation timer,
         gold dust and coins dripping out of their own store ---- */
 let resvTick = null;
+/* ---- preview screen: live, scrollable store pages inside the devices ---- */
+/* ---- goal bar: sales a month → monthly margin, the buyer's own goal as the milestone ---- */
+function gbInit(p){
+  const root = document.getElementById('gb'); if(!root) return;
+  const margin = Math.max(0.5, Number(p.price) - Number(p.cost));
+  const goal = Math.max(500, Number(answers.rev || '10000') || 10000);
+  const goalSales = Math.max(1, Math.ceil(goal / margin));
+  const max = Math.max(60, Math.ceil(goalSales * 1.55 / 10) * 10);
+  const Q = id => document.getElementById(id);
+  const range = Q('gbRange'), fill = Q('gbFill'), thumb = Q('gbThumb'), goalEl = Q('gbGoal'), track = Q('gbTrack');
+  range.max = String(max);
+  Q('gbMargin').textContent = '$' + margin.toFixed(2);
+  Q('gbGoalAmt').textContent = '$' + goal.toLocaleString('en-US');
+  const gpct = goalSales / max * 100;
+  goalEl.style.left = gpct + '%';
+  track.classList.toggle('edge', gpct > 78);
+  let hit = false, lastCoin = 0, shown = -1;
+  function render(v, fromUser){
+    v = Math.max(0, Math.min(max, Math.round(v)));
+    const pct = v / max * 100;
+    fill.style.width = pct + '%'; thumb.style.left = pct + '%';
+    if(v !== shown){
+      shown = v;
+      Q('gbSales').textContent = v.toLocaleString('en-US');
+      Q('gbDay').textContent = v === 0 ? '0' : (v / 30 < 10 ? (v / 30).toFixed(1) : Math.round(v / 30).toString());
+      Q('gbTotal').textContent = Math.round(v * margin).toLocaleString('en-US');
+    }
+    const nowHit = v >= goalSales;
+    if(nowHit && !hit){
+      hit = true; root.classList.add('hit');
+      Q('gbStatus').textContent = '🎯 Goal reached at ' + goalSales.toLocaleString('en-US') + ' sales a month — about ' + (goalSales / 30 < 10 ? (goalSales / 30).toFixed(1) : Math.round(goalSales / 30)) + ' a day';
+      const r = thumb.getBoundingClientRect();
+      if(performance.now() - lastCoin > 1500){ lastCoin = performance.now(); try{ coinCannon(r.left + r.width/2, r.top); playCoin(); vibrate([12,40,12]); }catch(e){} }
+      const b = Q('gbTotal'); b.style.transform = 'scale(1.12)'; setTimeout(()=>{ b.style.transform = ''; }, 260);
+    } else if(!nowHit && hit){
+      hit = false; root.classList.remove('hit');
+    }
+    if(!nowHit){
+      const left = goalSales - v;
+      Q('gbStatus').textContent = v === 0 ? 'Drag the bar to your goal →' : left.toLocaleString('en-US') + ' more sales a month to reach your goal';
+    }
+  }
+  range.addEventListener('input', ()=>{ root.classList.add('drag'); auto = false; render(Number(range.value), true); });
+  range.addEventListener('change', ()=>root.classList.remove('drag'));
+  range.addEventListener('pointerup', ()=>root.classList.remove('drag'));
+  render(0);
+  // first impression: the bar rides up to their goal on its own, then it's theirs to drag
+  let auto = true;
+  setTimeout(()=>{
+    if(!auto) return;
+    const t0 = performance.now(), dur = 1900;
+    (function step(t){
+      if(!auto) return;
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      const v = goalSales * e; range.value = String(Math.round(v)); render(v);
+      if(k < 1) requestAnimationFrame(step); else { range.value = String(goalSales); render(goalSales); }
+    })(t0);
+  }, 1500);
+}
+
 function runGlam(p){
   try{
     window.__ttP = { id: (p && (p.dsId || p.id || p.name)) || 'store', name: (p && p.name) || (chosen && chosen.name) || 'AI Store' };
@@ -3304,6 +4202,7 @@ function runGlam(p){
   // the store's unit margin — a product-pricing fact, never projected
   // into income (compliance: no computed monthly figures, no goal tie-in)
   const profit = Math.max(1, Number(p.price) - Number(p.cost));
+  try{ gbInit(p); }catch(e){}
   setTimeout(()=>{
     countUp(document.getElementById('eqProfit'), 0, profit, 900, v=>'$'+v.toFixed(2));
     setTimeout(()=>{ playCoin(); }, 950);
@@ -4594,11 +5493,12 @@ function dsResumeFromEmail(){
   const pid = q.get('resume');
   if(!pid || !/^\d+$/.test(pid)) return false;
 
-  fetch(DS_API + '/status/' + encodeURIComponent(pid))
-    .then(r=>r.json())
+  const fresh = () => fetch(DS_API + '/status/' + encodeURIComponent(pid)).then(r=>r.json());
+  // the <head> script already asked (and redirects an unlocked store itself); reuse its answer
+  (window.__dsEarlyResume || fresh())
     .then(j=>{
       if(!j || !j.ok) return;                 // unknown store — leave the quiz as-is
-      if(j.unlocked && j.resume_url){ window.location.href = j.resume_url; return; }
+      if(j.unlocked && j.resume_url){ if(!window.__dsResumeGone) window.location.href = j.resume_url; return; }
       dsBuild  = { ok:true, project_id: Number(pid) };
       dsStatus = { ready:true, store_name: j.store_name, preview_image: j.preview_image };
       try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
@@ -4847,6 +5747,21 @@ if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell199() && !dsResumeAfterUpsell49
    SMS opt-in step, so a carrier/A2P reviewer can see the real consent form
    without taking the quiz. Display only; nothing else about the flow changes. */
 try{
+  if(new URLSearchParams(location.search).get('step') === 'build'){
+    /* Design review link: opens the build screen with the first catalogue
+       product and no real backend build (BX.demo), then the normal preview. */
+    document.addEventListener('DOMContentLoaded', () => {
+      const t0 = Date.now();
+      (function wait(){
+        const live = PRODUCTS.some(p => p && p.dsId);
+        if(live || Date.now() - t0 > 3500){
+          chosen = PRODUCTS[0] || FALLBACK_PRODUCTS[0]; BX.demo = true;
+          try{ initAudio(); }catch(e){}
+          go('s-build');
+        } else setTimeout(wait, 150);
+      })();
+    });
+  }
   if(new URLSearchParams(location.search).get('step') === 'email'){
     document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
       try{ const n = document.getElementById('cName'); if(n) n.textContent = 'Your AI-picked product'; const pr = document.getElementById('cProfit'); if(pr) pr.textContent = '🔒 reserved while you build'; }catch(e){}
