@@ -217,6 +217,11 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .cta.pulse{animation:ctaPulse 1.9s ease infinite}
 @keyframes ctaPulse{0%,100%{box-shadow:var(--shadow-pop),0 0 0 0 rgba(255,224,138,.5)}55%{box-shadow:var(--shadow-pop),0 0 0 16px rgba(255,224,138,0)}}
 .cta:disabled{opacity:.45;cursor:not-allowed;transform:none;animation:none}
+/* Landing page only: the first button is the one cool-toned object on a
+   gold page, so it reads as THE button. Every other CTA stays gold. */
+#s-landing .cta{background:linear-gradient(135deg,#60A5FA,#2563EB);color:#fff;box-shadow:0 0 0 3px rgba(96,165,250,.22),0 22px 60px -14px rgba(37,99,235,.8);animation:ctaPulseBlue 1.9s ease infinite}
+@keyframes ctaPulseBlue{0%,100%{box-shadow:0 0 0 3px rgba(96,165,250,.22),0 22px 60px -14px rgba(37,99,235,.8),0 0 0 0 rgba(96,165,250,.5)}55%{box-shadow:0 0 0 3px rgba(96,165,250,.22),0 22px 60px -14px rgba(37,99,235,.8),0 0 0 16px rgba(96,165,250,0)}}
+
 .cta-note{margin-top:13px;text-align:center;font-size:.8rem;color:var(--muted)}
 .disclaim{margin-top:10px;text-align:center;font-size:.6rem;line-height:1.5;color:var(--muted);opacity:.85;max-width:460px;align-self:center}
 .cta-note b{color:#FFE08A}
