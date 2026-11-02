@@ -25,7 +25,9 @@
    Session-backed PIs carry no metadata.type, so nothing double-counts.
    Refunds are matched to this funnel's own PaymentIntents in the range. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const ADDON_PRICES = { seo_boost: 2900, unlimited_stores: 3900, profit_emails: 2900, video_ad_1: 3900 };
 const MAX_PAGES = 40;   // per shape PER DAY — 4,000 objects/day headroom
 const SCHEMA = 4;       // bump to invalidate cached day records (v4 = Pacific days)

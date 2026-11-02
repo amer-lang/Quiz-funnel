@@ -20,7 +20,9 @@
    READ_KEY is sha256('read:' + dashboard password) — the dashboard derives it
    from the password at unlock, so it never appears in public page source. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const LEGACY_JB = 'https://jsonblob.com/api/jsonBlob';
 const LEGACY_INDEX = '019fec64-66e4-7f84-a403-a0ee20137ede';
 
