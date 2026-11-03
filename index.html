@@ -2735,7 +2735,7 @@ function updateBack(){
 }
 
 function onEnter(id){
-  if(id==='s-intro') litDots();
+  if(id==='s-intro'){ litDots(); perfTapEnd(); }
   if(id==='s-dropship') runDropship();
   if(id==='s-reality') runReality();
   if(id==='s-blueprint') runBlueprint();
@@ -2757,7 +2757,24 @@ function onEnter(id){
 /* ============================================================
    LANDING
    ============================================================ */
+let PERF = null;
+function perfTapStart(){
+  PERF = { t0: performance.now(), longs: 0, worst: 0 };
+  try{ PERF.obs = new PerformanceObserver(l=>{ for(const en of l.getEntries()){ PERF.longs++; PERF.worst = Math.max(PERF.worst, Math.round(en.duration)); } }); PERF.obs.observe({ entryTypes:['longtask'] }); }catch(e){}
+}
+function perfTapEnd(){
+  if(!PERF) return; const p = PERF; PERF = null;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    try{ p.obs && p.obs.disconnect(); }catch(e){}
+    const ms = Math.round(performance.now() - p.t0);
+    const ua = /iPhone|iPad/.test(navigator.userAgent) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop';
+    const conn = (navigator.connection && navigator.connection.effectiveType) || '';
+    const mem = navigator.deviceMemory || '';
+    spLog('perf_tap', ms + '|' + p.longs + '|' + p.worst + '|' + ua + '|' + conn + '|' + mem);
+  }));
+}
 function fromLanding(e){
+  perfTapStart();
   initAudio(); playCoin();
   coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6, 16);
   flashPulse();
@@ -3127,8 +3144,11 @@ function dsPreloadImages(list){
     im.decoding = 'async';
     im.src = p.image;
   };
-  list.slice(0, 8).forEach(warm);
-  setTimeout(()=>list.slice(8).forEach(warm), 1500);
+  list.slice(0, 6).forEach(warm);
+}
+/* the picker warms the next few photos as the buyer swipes, instead of all 185 at boot */
+function dsWarmAhead(i){
+  for(let k = i + 1; k <= i + 3; k++){ const p = PRODUCTS[k]; if(p && p.image){ const im = new Image(); im.decoding = 'async'; im.src = p.image; } }
 }
 
 /* Fisher-Yates — randomise the deck on load so the same products don't always
@@ -3202,6 +3222,7 @@ function stars(r){ const f=Math.round(r||4.8); return '★★★★★'.slice(0,
 function fillPick(p, i){
   pickShown = p;
   spLog('product_view', p.name);
+  try{ dsWarmAhead(i); }catch(e){}
   const box = document.getElementById('pImgBox');
   const old = box.querySelector('img'); if(old) old.remove();
   const em = document.getElementById('pEmoji');

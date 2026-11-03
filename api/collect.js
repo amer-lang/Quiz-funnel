@@ -310,6 +310,20 @@ module.exports = async (req, res) => {
         return res.status(200).json(liveCache);
       }
 
+      /* ?perf=KEY&days=N — landing tap → next screen painted, on real devices.
+         v = ms|longTasks|worstLongTaskMs|device|connection|deviceMemory */
+      if(q.perf === READ_KEY){
+        const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 1));
+        const evs = (await readRange(days, true)).filter(e => e && e.e === 'perf_tap' && e.sid !== 'selftest');
+        const rows = evs.map(e => { const [ms, longs, worst, dev, conn, mem] = String(e.v || '').split('|'); return { t: e.t, ms: +ms || 0, longs: +longs || 0, worst: +worst || 0, dev, conn, mem }; });
+        const pct = (arr, p) => { if(!arr.length) return null; const s = arr.slice().sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
+        const by = {};
+        for(const r of rows){ (by[r.dev || '?'] = by[r.dev || '?'] || []).push(r.ms); }
+        const summary = {};
+        for(const k of Object.keys(by)) summary[k] = { n: by[k].length, p50: pct(by[k], .5), p90: pct(by[k], .9), max: Math.max(...by[k]), over3s: by[k].filter(v => v > 3000).length };
+        return res.status(200).json({ ok: true, days, n: rows.length, summary, slowest: rows.sort((a, b) => b.ms - a.ms).slice(0, 25) });
+      }
+
       /* per-Pacific-day step funnel — for day-vs-day drop diagnosis */
       if(q.funnel === READ_KEY){
         const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 3));
