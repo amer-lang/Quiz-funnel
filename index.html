@@ -89,7 +89,7 @@ body::before,body::after{
 body::before{width:520px;height:520px;top:-180px;left:-160px;background:rgba(255,201,60,.11)}
 body::after{width:520px;height:520px;bottom:-200px;right:-160px;background:rgba(255,255,255,.045)}
 
-button{font-family:inherit}
+button{font-family:inherit;touch-action:manipulation}
 input{font-family:inherit}
 
 .shell{
@@ -2689,6 +2689,7 @@ function go(id, opts={}){
   const from = document.getElementById(current);
   const to = document.getElementById(id);
   document.body.classList.toggle('landing', id === 's-landing');   // the landing page shows one logo: the hero; the banner returns with the quiz
+  if(id === 's-landing') landed = false;
   history.push(current);
   if(opts.handoff){
     // build → preview: the phone glides across, so the screens cross-fade in place instead of sliding
@@ -2724,6 +2725,7 @@ function goBack(){
   document.getElementById(current).classList.remove('active');
   document.getElementById(prev).classList.add('active');
   current = prev;
+  if(prev === 's-landing'){ landed = false; document.body.classList.add('landing'); }
   setBar(prev);
   updateBack();
 }
@@ -2757,9 +2759,10 @@ function onEnter(id){
 /* ============================================================
    LANDING
    ============================================================ */
-let PERF = null;
-function perfTapStart(){
-  PERF = { t0: performance.now(), longs: 0, worst: 0 };
+let PERF = null, PERF_TS = 0, landed = false;
+function perfTapStart(e){
+  const now = performance.now();
+  PERF = { t0: now, longs: 0, worst: 0, lag: e && e.timeStamp ? Math.round(now - e.timeStamp) : -1, touch: PERF_TS ? Math.round(now - PERF_TS) : -1, sinceLoad: Math.round(now), ready: document.readyState.charAt(0), via: (e && e.via) || 'click' };
   try{ PERF.obs = new PerformanceObserver(l=>{ for(const en of l.getEntries()){ PERF.longs++; PERF.worst = Math.max(PERF.worst, Math.round(en.duration)); } }); PERF.obs.observe({ entryTypes:['longtask'] }); }catch(e){}
 }
 function perfTapEnd(){
@@ -2770,11 +2773,12 @@ function perfTapEnd(){
     const ua = /iPhone|iPad/.test(navigator.userAgent) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop';
     const conn = (navigator.connection && navigator.connection.effectiveType) || '';
     const mem = navigator.deviceMemory || '';
-    spLog('perf_tap', ms + '|' + p.longs + '|' + p.worst + '|' + ua + '|' + conn + '|' + mem);
+    spLog('perf_tap', ms + '|' + p.longs + '|' + p.worst + '|' + ua + '|' + conn + '|' + mem + '|' + p.lag + '|' + p.touch + '|' + p.sinceLoad + '|' + p.ready + '|' + p.via);
   }));
 }
 function fromLanding(e){
-  perfTapStart();
+  if(landed) return; landed = true;
+  perfTapStart(e);
   initAudio(); playCoin();
   coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6, 16);
   flashPulse();
@@ -5812,6 +5816,16 @@ function playCoin(){ tone(988,.09,'square',.07); tone(1319,.24,'square',.07,.08)
 function playWhoosh(){ tone(180,.16,'sine',.05,0,120); }
 function playTada(){ [523,659,784,1047].forEach((f,i)=>tone(f,.32,'triangle',.12,i*.09)); }
 function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40,.05,'square',.05,i*step/1000); }
+
+/* The first button answers on finger-up. Mobile browsers can hold a synthetic
+   click for gesture detection; a real tap (no movement) should not wait. */
+(function(){
+  const b = document.querySelector('#s-landing .cta'); if(!b) return;
+  let sx = 0, sy = 0, moved = false;
+  b.addEventListener('touchstart', e=>{ const t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; moved = false; PERF_TS = performance.now(); }, { passive:true });
+  b.addEventListener('touchmove', e=>{ const t = e.changedTouches[0]; if(Math.hypot(t.clientX - sx, t.clientY - sy) > 12) moved = true; }, { passive:true });
+  b.addEventListener('touchend', e=>{ if(moved || landed) return; const t = e.changedTouches[0]; e.preventDefault(); fromLanding({ clientX: t.clientX, clientY: t.clientY, timeStamp: e.timeStamp, via: 'touch' }); }, { passive:false });
+})();
 
 /* boot */
 setBar('s-landing');

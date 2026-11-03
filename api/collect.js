@@ -317,13 +317,15 @@ module.exports = async (req, res) => {
       if(q.perf === READ_KEY){
         const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 1));
         const evs = (await readRange(days, true)).filter(e => e && e.e === 'perf_tap' && e.sid !== 'selftest');
-        const rows = evs.map(e => { const [ms, longs, worst, dev, conn, mem] = String(e.v || '').split('|'); return { t: e.t, ms: +ms || 0, longs: +longs || 0, worst: +worst || 0, dev, conn, mem }; });
+        const rows = evs.map(e => { const [ms, longs, worst, dev, conn, mem, lag, touch, sinceLoad, ready, via] = String(e.v || '').split('|'); return { t: e.t, ms: +ms || 0, longs: +longs || 0, worst: +worst || 0, dev, conn, mem, lag: lag == null ? null : +lag, touch: touch == null ? null : +touch, sinceLoad: sinceLoad == null ? null : +sinceLoad, ready, via }; });
         const pct = (arr, p) => { if(!arr.length) return null; const s = arr.slice().sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
         const by = {};
         for(const r of rows){ (by[r.dev || '?'] = by[r.dev || '?'] || []).push(r.ms); }
         const summary = {};
         for(const k of Object.keys(by)) summary[k] = { n: by[k].length, p50: pct(by[k], .5), p90: pct(by[k], .9), max: Math.max(...by[k]), over3s: by[k].filter(v => v > 3000).length };
-        return res.status(200).json({ ok: true, days, n: rows.length, summary, slowest: rows.sort((a, b) => b.ms - a.ms).slice(0, 25) });
+        const lagRows = rows.filter(r => r.lag != null && r.lag >= 0);
+        const lagSummary = { n: lagRows.length, p50: pct(lagRows.map(r => r.lag), .5), p90: pct(lagRows.map(r => r.lag), .9), max: lagRows.length ? Math.max(...lagRows.map(r => r.lag)) : null, over1s: lagRows.filter(r => r.lag > 1000).length };
+        return res.status(200).json({ ok: true, days, n: rows.length, summary, lag: lagSummary, slowestLag: lagRows.sort((a, b) => b.lag - a.lag).slice(0, 10), slowest: rows.sort((a, b) => b.ms - a.ms).slice(0, 15), latest: rows.sort((a, b) => b.t - a.t).slice(0, 15) });
       }
 
       /* per-Pacific-day step funnel — for day-vs-day drop diagnosis */
