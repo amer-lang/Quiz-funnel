@@ -5762,7 +5762,20 @@ function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40
 /* boot */
 setBar('s-landing');
 updateBack();
-if(!/paid=1|upsold=1|resume=|[?&]p=/.test(location.search)) spLog('screen', 's-landing');
+if(!/paid=1|upsold=1|resume=|[?&]p=/.test(location.search)){
+  // Count the landing only once the page is actually on screen. Ad platforms
+  // and browsers prefetch the page hidden; those loads used to count as
+  // visitors who never tapped, which made the tap rate look like it collapsed.
+  if(document.visibilityState === 'visible') spLog('screen', 's-landing');
+  else {
+    spLog('hidden_load', document.visibilityState);
+    document.addEventListener('visibilitychange', function onVis(){
+      if(document.visibilityState !== 'visible') return;
+      document.removeEventListener('visibilitychange', onVis);
+      spLog('screen', 's-landing');
+    });
+  }
+}
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
 if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell199() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsSellFromEmail() && !dsPickFromEmail()) dsResumeFromEmail();
