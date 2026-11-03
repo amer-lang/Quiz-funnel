@@ -217,6 +217,12 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .cta.pulse{animation:ctaPulse 1.9s ease infinite}
 @keyframes ctaPulse{0%,100%{box-shadow:var(--shadow-pop),0 0 0 0 rgba(255,224,138,.5)}55%{box-shadow:var(--shadow-pop),0 0 0 16px rgba(255,224,138,0)}}
 .cta:disabled{opacity:.45;cursor:not-allowed;transform:none;animation:none}
+body.landing .topbar{display:none}
+body.landing .logo-hero{margin-top:26px}
+/* Landing page only: the first button is the one cool-toned object on a gold
+   page, so it reads as THE button. Static shadow, no shadow animation: the
+   animated version made the first tap wait on iPhone. */
+#s-landing .cta{background:linear-gradient(135deg,#60A5FA,#2563EB);color:#fff;box-shadow:0 0 0 3px rgba(96,165,250,.22),0 18px 40px -14px rgba(37,99,235,.7);animation:none}
 .cta-note{margin-top:13px;text-align:center;font-size:.8rem;color:var(--muted)}
 .disclaim{margin-top:10px;text-align:center;font-size:.6rem;line-height:1.5;color:var(--muted);opacity:.85;max-width:460px;align-self:center}
 .cta-note b{color:#FFE08A}
@@ -1717,7 +1723,7 @@ window.dsFire('PageView');
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
 </head>
-<body>
+<body class="landing">
 
 <canvas id="fx"></canvas>
 <div class="flash" id="flash"></div>
@@ -1762,7 +1768,7 @@ window.dsFire('PageView');
 
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> AI store builder · live now</div>
       <h1>Are You Ready To <span class="grad-text">Sell Products Online?</span></h1>
-      <p class="sub">Sell a product people are already buying. Our AI finds it out of <strong>10,000,000+ products</strong>, locks in the supplier, and builds the <strong>one-product store</strong> that sells it, so all you do is launch. You see it <span class="hl">before you pay a cent</span>.</p>
+      <p class="sub">Pick a product people are already buying. Our AI builds your online store around it, <strong>completely done for you</strong>, in about two minutes. You see the whole store <span class="hl">before you pay anything</span>.</p>
 
       <div class="proof-row">
         <div class="proof"><b class="blue">10M+</b><span>products scanned</span></div>
@@ -1770,7 +1776,7 @@ window.dsFire('PageView');
         <div class="proof"><b class="gold">$20</b><span>to go live</span></div>
       </div>
 
-      <button class="cta pulse" onclick="fromLanding(event)">Let's Get To Work 💰</button>
+      <button class="cta pulse" onclick="fromLanding(event)">Click Here To Get Started 💰</button>
       <p class="cta-note">Takes <b>under 60 seconds</b> · no card needed to see your store</p>
 
       <div class="avatars">
@@ -2681,6 +2687,7 @@ function go(id, opts={}){
   if(id === current) return;
   const from = document.getElementById(current);
   const to = document.getElementById(id);
+  document.body.classList.toggle('landing', id === 's-landing');   // the landing page shows one logo: the hero; the banner returns with the quiz
   history.push(current);
   if(opts.handoff){
     // build → preview: the phone glides across, so the screens cross-fade in place instead of sliding
