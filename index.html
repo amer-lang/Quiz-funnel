@@ -2754,6 +2754,7 @@ function onEnter(id){
    LANDING
    ============================================================ */
 function fromLanding(e){
+  spLog('tap_landing', e && e.type);   // first instant of the tap, before any effect: shows taps that never reach the next screen
   initAudio(); playCoin();
   coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6);
   flashPulse();
@@ -5788,6 +5789,8 @@ try{
   const ref = (document.referrer || '').replace(/^https?:\/\//, '').split('/')[0].slice(0, 20);
   spLog('land_meta', [dev, app, click, utm, ref, navigator.webdriver ? 'wd' : '', screen.width + 'x' + screen.height].join('|'));
 }catch(e){}
+/* Dwell pings: how long a visitor who never taps actually stays on the landing. */
+[3, 10, 30].forEach(sec => setTimeout(() => { if(current === 's-landing' && document.visibilityState === 'visible') spLog('dwell', sec); }, sec * 1000));
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
 if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell199() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsSellFromEmail() && !dsPickFromEmail()) dsResumeFromEmail();
