@@ -328,6 +328,32 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, days, n: rows.length, summary, lag: lagSummary, slowestLag: lagRows.sort((a, b) => b.lag - a.lag).slice(0, 10), slowest: rows.sort((a, b) => b.ms - a.ms).slice(0, 15), latest: rows.sort((a, b) => b.t - a.t).slice(0, 15) });
       }
 
+      /* per-UTC-hour landing funnel — traffic-quality diagnosis: how many
+         sessions land, how many tap through, how many pay, and how many send
+         exactly one event and leave. */
+      if(q.hourly === READ_KEY){
+        const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 3));
+        const per = {};
+        for(const d of lastNDayKeys(days)){
+          const evs = (await readDay(d, true).catch(() => [])).filter(e => e && e.t && e.sid !== 'selftest');
+          const first = {}, count = {};
+          for(const e of evs){ count[e.sid] = (count[e.sid] || 0) + 1; if(!first[e.sid] || e.t < first[e.sid]) first[e.sid] = e.t; }
+          const hourOf = sid => new Date(first[sid]).toISOString().slice(0, 13).replace('T', ' ');
+          const seen = {};
+          for(const e of evs){
+            const h = hourOf(e.sid); const row = per[h] || (per[h] = { sids: new Set(), landing: new Set(), intro: new Set(), pick: new Set(), paid: new Set(), one: 0 });
+            row.sids.add(e.sid);
+            if(e.e === 'screen' && e.v === 's-landing') row.landing.add(e.sid);
+            if(e.e === 'screen' && e.v === 's-intro') row.intro.add(e.sid);
+            if(e.e === 'screen' && e.v === 's-pick') row.pick.add(e.sid);
+            if(e.e === 'paid_20') row.paid.add(e.sid);
+            if(!seen[e.sid]){ seen[e.sid] = 1; if(count[e.sid] === 1) row.one++; }
+          }
+        }
+        const rows = Object.keys(per).sort().map(h => { const r = per[h]; return { hour: h, sids: r.sids.size, landing: r.landing.size, intro: r.intro.size, pick: r.pick.size, paid: r.paid.size, oneEvent: r.one, tapPct: r.landing.size ? Math.round(1000 * r.intro.size / r.landing.size) / 10 : null }; });
+        return res.status(200).json({ ok: true, days, rows });
+      }
+
       /* per-Pacific-day step funnel — for day-vs-day drop diagnosis */
       if(q.funnel === READ_KEY){
         const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 3));
