@@ -2759,10 +2759,10 @@ function onEnter(id){
    ============================================================ */
 function fromLanding(e){
   initAudio(); playCoin();
-  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6);
+  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6, 16);
   flashPulse();
   vibrate(18);
-  setTimeout(()=>go('s-intro'),420);
+  setTimeout(()=>go('s-intro'),160);
 }
 
 /* ============================================================
@@ -5628,7 +5628,42 @@ function countUp(el, from, to, dur, fmt){
 const cvs = document.getElementById('fx');
 const ctx = cvs.getContext('2d');
 let parts = [];
-function fit(){ cvs.width = innerWidth*devicePixelRatio; cvs.height = innerHeight*devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+const FX_DPR = Math.min(window.devicePixelRatio || 1, 2);
+function fit(){ cvs.width = Math.round(innerWidth*FX_DPR); cvs.height = Math.round(innerHeight*FX_DPR); ctx.setTransform(FX_DPR,0,0,FX_DPR,0,0); }
+/* Pre-rendered sprites: a coin, a glow or an emoji is drawn ONCE to a small
+   offscreen canvas and then stamped with drawImage. Drawing gradients and text
+   per particle per frame was the single biggest source of jank on phones. */
+const FX_SPR = new Map();
+function fxSprite(key, size, draw){
+  let c = FX_SPR.get(key);
+  if(c) return c;
+  c = document.createElement('canvas'); const px = Math.ceil(size * FX_DPR);
+  c.width = px; c.height = px; c.style.width = size + 'px';
+  const g = c.getContext('2d'); g.setTransform(FX_DPR, 0, 0, FX_DPR, 0, 0); g.translate(size / 2, size / 2);
+  draw(g); FX_SPR.set(key, c); return c;
+}
+function fxCoin(r){
+  r = Math.round(r);
+  return fxSprite('coin' + r, r * 2 + 4, g=>{
+    const gr = g.createRadialGradient(-r*.3,-r*.3,1,0,0,r);
+    gr.addColorStop(0,'#FFE9A3'); gr.addColorStop(.55,'#FFC93C'); gr.addColorStop(1,'#C77E06');
+    g.fillStyle = gr; g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.fill();
+    g.strokeStyle = '#8A5A04'; g.lineWidth = 1.4; g.stroke();
+    g.fillStyle = '#8A5A04'; g.font = 'bold ' + (r*1.1) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('$', 0, 1);
+  });
+}
+function fxGlow(r){
+  r = Math.round(r);
+  return fxSprite('glow' + r, r * 2 + 2, g=>{
+    const gr = g.createRadialGradient(0,0,0,0,0,r);
+    gr.addColorStop(0,'rgba(255,220,120,.9)'); gr.addColorStop(1,'rgba(255,201,60,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.fill();
+  });
+}
+function fxEmoji(ch, size){
+  size = Math.round(size);
+  return fxSprite('em' + ch + size, size * 1.4, g=>{ g.font = size + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 0, 0); });
+}
 fit(); addEventListener('resize', fit);
 
 const CONF_COLORS = ['#FFC93C','#FFE08A','#F59E0B','#FFF1B8','#fff','#fff','#B45309'];
@@ -5645,8 +5680,8 @@ function confettiBurst(x,y,n=80){
     life:1, decay:.008+Math.random()*.008
   }));
 }
-function coinCannon(x,y){
-  spawn(26, ()=>({
+function coinCannon(x,y,n){
+  spawn(n || 26, ()=>({
     type:'coin', x, y,
     vx:(Math.random()-.5)*11, vy:-Math.random()*14-5,
     g:.42, r:7+Math.random()*7, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.5,
@@ -5698,12 +5733,8 @@ function loopFx(){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
         const sq = Math.abs(Math.cos(p.rot*2))*.65+.35;
         ctx.scale(sq,1);
-        const g = ctx.createRadialGradient(-p.r*.3,-p.r*.3,1,0,0,p.r);
-        g.addColorStop(0,'#FFE9A3'); g.addColorStop(.55,'#FFC93C'); g.addColorStop(1,'#C77E06');
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#8A5A04'; ctx.lineWidth=1.4; ctx.stroke();
-        ctx.fillStyle='#8A5A04'; ctx.font='bold '+p.r*1.1+'px sans-serif';
-        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,1);
+        const sp = fxCoin(p.r), sw = sp.width / FX_DPR;
+        ctx.drawImage(sp, -sw/2, -sw/2, sw, sw);
         ctx.restore();
       } else if(p.type==='spark'){
         ctx.strokeStyle=p.color; ctx.lineWidth=2.2; ctx.lineCap='round';
@@ -5714,14 +5745,12 @@ function loopFx(){
         p.tw += .12;
         const a = Math.max(0, Math.min(1, p.life)) * (0.45 + 0.55*Math.abs(Math.sin(p.tw)));
         ctx.globalAlpha = a;
-        const g2 = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
-        g2.addColorStop(0,'rgba(255,220,120,.9)'); g2.addColorStop(1,'rgba(255,201,60,0)');
-        ctx.fillStyle = g2;
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r*3,0,Math.PI*2); ctx.fill();
+        const sp2 = fxGlow(p.r*3), sw2 = sp2.width / FX_DPR;
+        ctx.drawImage(sp2, p.x - sw2/2, p.y - sw2/2, sw2, sw2);
       } else if(p.type==='emoji'){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        ctx.font=p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(p.ch,0,0); ctx.restore();
+        const sp3 = fxEmoji(p.ch, p.size), sw3 = sp3.width / FX_DPR;
+        ctx.drawImage(sp3, -sw3/2, -sw3/2, sw3, sw3); ctx.restore();
       }
     }
     ctx.globalAlpha = 1;
