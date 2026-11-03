@@ -4,6 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
+/* Third-party scripts (pixels, Whop) start 3 s after load, or 1.8 s after the
+   first tap if that comes sooner. On iPhone they used to arrive and compile
+   in the same 1–3 s window a visitor taps the first button, and the screen
+   change waited behind them. Their stubs queue PageView etc. until the
+   libraries load. */
+window.SP_DEFER = [];
+window.spStartThirdParty = function(){
+  if(window.__spTP) return; window.__spTP = true;
+  var q = window.SP_DEFER || []; window.SP_DEFER = { push: function(f){ try{ f(); }catch(e){} } };
+  for(var i = 0; i < q.length; i++){ try{ q[i](); }catch(e){} }
+};
+window.spDeferThirdParty = function(ms){ clearTimeout(window.__spTPTimer); window.__spTPTimer = setTimeout(window.spStartThirdParty, ms); };
+window.addEventListener('load', function(){ window.spDeferThirdParty(3000); });
+</script>
+<script>
 /* Early resume hop. An activation-email link (?resume=<id>) only needs /api/ds/status to mint the buyer's sign-in URL,
    so ask for it from the very top of <head> instead of after the whole page has parsed (about 0.5s on a phone).
    Any other visit (no ?resume, or a payment / upsell / pick / product param) returns at once and runs exactly as before.
@@ -24,7 +39,7 @@
   }catch(e){}
 })();
 </script>
-<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_FXze6GwnWnentH");whop.track("page");</script>
+<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};(w.SP_DEFER=w.SP_DEFER||[]).push(function(){b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])})}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_FXze6GwnWnentH");whop.track("page");</script>
 <!-- TikTok Pixel Code Start -->
 <script>
 !function (w, d, t) {
@@ -33,8 +48,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
 
 
-  ttq.load('DAQ54CBC77U88MSO3G70');
   ttq.page();
+  (w.SP_DEFER = w.SP_DEFER || []).push(function(){ ttq.load('DAQ54CBC77U88MSO3G70'); });
 }(window, document, 'ttq');
 </script>
 <!-- TikTok Pixel Code End -->
@@ -1659,7 +1674,7 @@ body.landing .logo-hero{margin-top:26px}
 <!-- Meta Pixel (sellproducts.ai). Mirrors DropStart's dsFire so this funnel and
      the /store page dedupe: same pixel id + eventID 'ds_<onceKey>'. -->
 <script>
-(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];(f.SP_DEFER=f.SP_DEFER||[]).push(function(){t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
 fbq('init', window.DS_PIXEL_ID);
 // Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
@@ -2778,6 +2793,7 @@ function perfTapEnd(){
 }
 function fromLanding(e){
   if(landed) return; landed = true;
+  try{ if(!window.__spTP) window.spDeferThirdParty(1800); }catch(err){}
   perfTapStart(e);
   initAudio(); playCoin();
   coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6, 16);
@@ -3207,7 +3223,7 @@ function dsRetryCatalog(silent){
 
 // Expose a "catalogue is loaded" promise so the "Sell this one" deep-link can fill
 // in the real product name once the live catalogue arrives (it loads after boot). TG13325.
-let dsCatalogReady = dsLoadProductsRetry(2)
+let dsCatalogReady = new Promise(r=>setTimeout(r, 2200)).then(()=>dsLoadProductsRetry(2))
   .catch(dsLoadProductsJson)
   .then(list=>{
     // Once real catalogue cards are in PRODUCTS (e.g. a retry beat this boot load), never overwrite them with
@@ -5862,7 +5878,7 @@ try{
       const t0 = Date.now();
       (function wait(){
         const live = PRODUCTS.some(p => p && p.dsId);
-        if(live || Date.now() - t0 > 3500){
+        if(live || Date.now() - t0 > 7000){
           chosen = PRODUCTS[0] || FALLBACK_PRODUCTS[0]; BX.demo = true;
           try{ initAudio(); }catch(e){}
           go('s-build');
