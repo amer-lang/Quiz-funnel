@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* Third-party scripts (pixels, Whop) start 3 s after load, or 1.8 s after the
-   first tap if that comes sooner. On iPhone they used to arrive and compile
-   in the same 1–3 s window a visitor taps the first button, and the screen
-   change waited behind them. Their stubs queue PageView etc. until the
-   libraries load. */
-window.SP_DEFER = [];
-window.spStartThirdParty = function(){
-  if(window.__spTP) return; window.__spTP = true;
-  var q = window.SP_DEFER || []; window.SP_DEFER = { push: function(f){ try{ f(); }catch(e){} } };
-  for(var i = 0; i < q.length; i++){ try{ q[i](); }catch(e){} }
-};
-window.spDeferThirdParty = function(ms){ clearTimeout(window.__spTPTimer); window.__spTPTimer = setTimeout(window.spStartThirdParty, ms); };
-window.addEventListener('load', function(){ window.spDeferThirdParty(3000); });
-</script>
-<script>
 /* Early resume hop. An activation-email link (?resume=<id>) only needs /api/ds/status to mint the buyer's sign-in URL,
    so ask for it from the very top of <head> instead of after the whole page has parsed (about 0.5s on a phone).
    Any other visit (no ?resume, or a payment / upsell / pick / product param) returns at once and runs exactly as before.
@@ -39,7 +24,7 @@ window.addEventListener('load', function(){ window.spDeferThirdParty(3000); });
   }catch(e){}
 })();
 </script>
-<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};(w.SP_DEFER=w.SP_DEFER||[]).push(function(){b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])})}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_FXze6GwnWnentH");whop.track("page");</script>
+<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_FXze6GwnWnentH");whop.track("page");</script>
 <!-- TikTok Pixel Code Start -->
 <script>
 !function (w, d, t) {
@@ -48,8 +33,8 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
 
 
+  ttq.load('DAQ54CBC77U88MSO3G70');
   ttq.page();
-  (w.SP_DEFER = w.SP_DEFER || []).push(function(){ ttq.load('DAQ54CBC77U88MSO3G70'); });
 }(window, document, 'ttq');
 </script>
 <!-- TikTok Pixel Code End -->
@@ -104,7 +89,7 @@ body::before,body::after{
 body::before{width:520px;height:520px;top:-180px;left:-160px;background:rgba(255,201,60,.11)}
 body::after{width:520px;height:520px;bottom:-200px;right:-160px;background:rgba(255,255,255,.045)}
 
-button{font-family:inherit;touch-action:manipulation}
+button{font-family:inherit}
 input{font-family:inherit}
 
 .shell{
@@ -232,13 +217,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .cta.pulse{animation:ctaPulse 1.9s ease infinite}
 @keyframes ctaPulse{0%,100%{box-shadow:var(--shadow-pop),0 0 0 0 rgba(255,224,138,.5)}55%{box-shadow:var(--shadow-pop),0 0 0 16px rgba(255,224,138,0)}}
 .cta:disabled{opacity:.45;cursor:not-allowed;transform:none;animation:none}
-body.landing .topbar{display:none}
-body.landing .logo-hero{margin-top:26px}
-/* Landing page only: the first button is the one cool-toned object on a
-   gold page, so it reads as THE button. Every other CTA stays gold. */
-#s-landing .cta{background:linear-gradient(135deg,#60A5FA,#2563EB);color:#fff;box-shadow:0 0 0 3px rgba(96,165,250,.22),0 22px 60px -14px rgba(37,99,235,.8);animation:ctaPulseBlue 1.9s ease infinite}
-@keyframes ctaPulseBlue{0%,100%{box-shadow:0 0 0 3px rgba(96,165,250,.22),0 22px 60px -14px rgba(37,99,235,.8),0 0 0 0 rgba(96,165,250,.5)}55%{box-shadow:0 0 0 3px rgba(96,165,250,.22),0 22px 60px -14px rgba(37,99,235,.8),0 0 0 16px rgba(96,165,250,0)}}
-
 .cta-note{margin-top:13px;text-align:center;font-size:.8rem;color:var(--muted)}
 .disclaim{margin-top:10px;text-align:center;font-size:.6rem;line-height:1.5;color:var(--muted);opacity:.85;max-width:460px;align-self:center}
 .cta-note b{color:#FFE08A}
@@ -1674,7 +1652,7 @@ body.landing .logo-hero{margin-top:26px}
 <!-- Meta Pixel (sellproducts.ai). Mirrors DropStart's dsFire so this funnel and
      the /store page dedupe: same pixel id + eventID 'ds_<onceKey>'. -->
 <script>
-(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];(f.SP_DEFER=f.SP_DEFER||[]).push(function(){t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
 fbq('init', window.DS_PIXEL_ID);
 // Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
@@ -1739,7 +1717,7 @@ window.dsFire('PageView');
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
 </head>
-<body class="landing">
+<body>
 
 <canvas id="fx"></canvas>
 <div class="flash" id="flash"></div>
@@ -1784,7 +1762,7 @@ window.dsFire('PageView');
 
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> AI store builder · live now</div>
       <h1>Are You Ready To <span class="grad-text">Sell Products Online?</span></h1>
-      <p class="sub">Pick a product people are already buying. Our AI builds your online store around it, <strong>completely done for you</strong>, in about two minutes. You see the whole store <span class="hl">before you pay anything</span>.</p>
+      <p class="sub">Sell a product people are already buying. Our AI finds it out of <strong>10,000,000+ products</strong>, locks in the supplier, and builds the <strong>one-product store</strong> that sells it, so all you do is launch. You see it <span class="hl">before you pay a cent</span>.</p>
 
       <div class="proof-row">
         <div class="proof"><b class="blue">10M+</b><span>products scanned</span></div>
@@ -1792,7 +1770,7 @@ window.dsFire('PageView');
         <div class="proof"><b class="gold">$20</b><span>to go live</span></div>
       </div>
 
-      <button class="cta pulse" onclick="fromLanding(event)">Click Here To Get Started 💰</button>
+      <button class="cta pulse" onclick="fromLanding(event)">Let's Get To Work 💰</button>
       <p class="cta-note">Takes <b>under 60 seconds</b> · no card needed to see your store</p>
 
       <div class="avatars">
@@ -2703,8 +2681,6 @@ function go(id, opts={}){
   if(id === current) return;
   const from = document.getElementById(current);
   const to = document.getElementById(id);
-  document.body.classList.toggle('landing', id === 's-landing');   // the landing page shows one logo: the hero; the banner returns with the quiz
-  if(id === 's-landing') landed = false;
   history.push(current);
   if(opts.handoff){
     // build → preview: the phone glides across, so the screens cross-fade in place instead of sliding
@@ -2740,7 +2716,6 @@ function goBack(){
   document.getElementById(current).classList.remove('active');
   document.getElementById(prev).classList.add('active');
   current = prev;
-  if(prev === 's-landing'){ landed = false; document.body.classList.add('landing'); }
   setBar(prev);
   updateBack();
 }
@@ -2752,7 +2727,7 @@ function updateBack(){
 }
 
 function onEnter(id){
-  if(id==='s-intro'){ litDots(); perfTapEnd(); }
+  if(id==='s-intro') litDots();
   if(id==='s-dropship') runDropship();
   if(id==='s-reality') runReality();
   if(id==='s-blueprint') runBlueprint();
@@ -2774,32 +2749,12 @@ function onEnter(id){
 /* ============================================================
    LANDING
    ============================================================ */
-let PERF = null, PERF_TS = 0, landed = false;
-function perfTapStart(e){
-  const now = performance.now();
-  PERF = { t0: now, longs: 0, worst: 0, lag: e && e.timeStamp ? Math.round(now - e.timeStamp) : -1, touch: PERF_TS ? Math.round(now - PERF_TS) : -1, sinceLoad: Math.round(now), ready: document.readyState.charAt(0), via: (e && e.via) || 'click' };
-  try{ PERF.obs = new PerformanceObserver(l=>{ for(const en of l.getEntries()){ PERF.longs++; PERF.worst = Math.max(PERF.worst, Math.round(en.duration)); } }); PERF.obs.observe({ entryTypes:['longtask'] }); }catch(e){}
-}
-function perfTapEnd(){
-  if(!PERF) return; const p = PERF; PERF = null;
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    try{ p.obs && p.obs.disconnect(); }catch(e){}
-    const ms = Math.round(performance.now() - p.t0);
-    const ua = /iPhone|iPad/.test(navigator.userAgent) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop';
-    const conn = (navigator.connection && navigator.connection.effectiveType) || '';
-    const mem = navigator.deviceMemory || '';
-    spLog('perf_tap', ms + '|' + p.longs + '|' + p.worst + '|' + ua + '|' + conn + '|' + mem + '|' + p.lag + '|' + p.touch + '|' + p.sinceLoad + '|' + p.ready + '|' + p.via);
-  }));
-}
 function fromLanding(e){
-  if(landed) return; landed = true;
-  try{ if(!window.__spTP) window.spDeferThirdParty(1800); }catch(err){}
-  perfTapStart(e);
   initAudio(); playCoin();
-  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6, 16);
+  coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6);
   flashPulse();
   vibrate(18);
-  setTimeout(()=>go('s-intro'),160);
+  setTimeout(()=>go('s-intro'),420);
 }
 
 /* ============================================================
@@ -3164,11 +3119,8 @@ function dsPreloadImages(list){
     im.decoding = 'async';
     im.src = p.image;
   };
-  list.slice(0, 6).forEach(warm);
-}
-/* the picker warms the next few photos as the buyer swipes, instead of all 185 at boot */
-function dsWarmAhead(i){
-  for(let k = i + 1; k <= i + 3; k++){ const p = PRODUCTS[k]; if(p && p.image){ const im = new Image(); im.decoding = 'async'; im.src = p.image; } }
+  list.slice(0, 8).forEach(warm);
+  setTimeout(()=>list.slice(8).forEach(warm), 1500);
 }
 
 /* Fisher-Yates — randomise the deck on load so the same products don't always
@@ -3223,7 +3175,7 @@ function dsRetryCatalog(silent){
 
 // Expose a "catalogue is loaded" promise so the "Sell this one" deep-link can fill
 // in the real product name once the live catalogue arrives (it loads after boot). TG13325.
-let dsCatalogReady = new Promise(r=>setTimeout(r, 2200)).then(()=>dsLoadProductsRetry(2))
+let dsCatalogReady = dsLoadProductsRetry(2)
   .catch(dsLoadProductsJson)
   .then(list=>{
     // Once real catalogue cards are in PRODUCTS (e.g. a retry beat this boot load), never overwrite them with
@@ -3242,7 +3194,6 @@ function stars(r){ const f=Math.round(r||4.8); return '★★★★★'.slice(0,
 function fillPick(p, i){
   pickShown = p;
   spLog('product_view', p.name);
-  try{ dsWarmAhead(i); }catch(e){}
   const box = document.getElementById('pImgBox');
   const old = box.querySelector('img'); if(old) old.remove();
   const em = document.getElementById('pEmoji');
@@ -5669,42 +5620,7 @@ function countUp(el, from, to, dur, fmt){
 const cvs = document.getElementById('fx');
 const ctx = cvs.getContext('2d');
 let parts = [];
-const FX_DPR = Math.min(window.devicePixelRatio || 1, 2);
-function fit(){ cvs.width = Math.round(innerWidth*FX_DPR); cvs.height = Math.round(innerHeight*FX_DPR); ctx.setTransform(FX_DPR,0,0,FX_DPR,0,0); }
-/* Pre-rendered sprites: a coin, a glow or an emoji is drawn ONCE to a small
-   offscreen canvas and then stamped with drawImage. Drawing gradients and text
-   per particle per frame was the single biggest source of jank on phones. */
-const FX_SPR = new Map();
-function fxSprite(key, size, draw){
-  let c = FX_SPR.get(key);
-  if(c) return c;
-  c = document.createElement('canvas'); const px = Math.ceil(size * FX_DPR);
-  c.width = px; c.height = px; c.style.width = size + 'px';
-  const g = c.getContext('2d'); g.setTransform(FX_DPR, 0, 0, FX_DPR, 0, 0); g.translate(size / 2, size / 2);
-  draw(g); FX_SPR.set(key, c); return c;
-}
-function fxCoin(r){
-  r = Math.round(r);
-  return fxSprite('coin' + r, r * 2 + 4, g=>{
-    const gr = g.createRadialGradient(-r*.3,-r*.3,1,0,0,r);
-    gr.addColorStop(0,'#FFE9A3'); gr.addColorStop(.55,'#FFC93C'); gr.addColorStop(1,'#C77E06');
-    g.fillStyle = gr; g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.fill();
-    g.strokeStyle = '#8A5A04'; g.lineWidth = 1.4; g.stroke();
-    g.fillStyle = '#8A5A04'; g.font = 'bold ' + (r*1.1) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('$', 0, 1);
-  });
-}
-function fxGlow(r){
-  r = Math.round(r);
-  return fxSprite('glow' + r, r * 2 + 2, g=>{
-    const gr = g.createRadialGradient(0,0,0,0,0,r);
-    gr.addColorStop(0,'rgba(255,220,120,.9)'); gr.addColorStop(1,'rgba(255,201,60,0)');
-    g.fillStyle = gr; g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.fill();
-  });
-}
-function fxEmoji(ch, size){
-  size = Math.round(size);
-  return fxSprite('em' + ch + size, size * 1.4, g=>{ g.font = size + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 0, 0); });
-}
+function fit(){ cvs.width = innerWidth*devicePixelRatio; cvs.height = innerHeight*devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
 fit(); addEventListener('resize', fit);
 
 const CONF_COLORS = ['#FFC93C','#FFE08A','#F59E0B','#FFF1B8','#fff','#fff','#B45309'];
@@ -5721,8 +5637,8 @@ function confettiBurst(x,y,n=80){
     life:1, decay:.008+Math.random()*.008
   }));
 }
-function coinCannon(x,y,n){
-  spawn(n || 26, ()=>({
+function coinCannon(x,y){
+  spawn(26, ()=>({
     type:'coin', x, y,
     vx:(Math.random()-.5)*11, vy:-Math.random()*14-5,
     g:.42, r:7+Math.random()*7, rot:Math.random()*Math.PI, vr:(Math.random()-.5)*.5,
@@ -5774,8 +5690,12 @@ function loopFx(){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
         const sq = Math.abs(Math.cos(p.rot*2))*.65+.35;
         ctx.scale(sq,1);
-        const sp = fxCoin(p.r), sw = sp.width / FX_DPR;
-        ctx.drawImage(sp, -sw/2, -sw/2, sw, sw);
+        const g = ctx.createRadialGradient(-p.r*.3,-p.r*.3,1,0,0,p.r);
+        g.addColorStop(0,'#FFE9A3'); g.addColorStop(.55,'#FFC93C'); g.addColorStop(1,'#C77E06');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#8A5A04'; ctx.lineWidth=1.4; ctx.stroke();
+        ctx.fillStyle='#8A5A04'; ctx.font='bold '+p.r*1.1+'px sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,1);
         ctx.restore();
       } else if(p.type==='spark'){
         ctx.strokeStyle=p.color; ctx.lineWidth=2.2; ctx.lineCap='round';
@@ -5786,12 +5706,14 @@ function loopFx(){
         p.tw += .12;
         const a = Math.max(0, Math.min(1, p.life)) * (0.45 + 0.55*Math.abs(Math.sin(p.tw)));
         ctx.globalAlpha = a;
-        const sp2 = fxGlow(p.r*3), sw2 = sp2.width / FX_DPR;
-        ctx.drawImage(sp2, p.x - sw2/2, p.y - sw2/2, sw2, sw2);
+        const g2 = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
+        g2.addColorStop(0,'rgba(255,220,120,.9)'); g2.addColorStop(1,'rgba(255,201,60,0)');
+        ctx.fillStyle = g2;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r*3,0,Math.PI*2); ctx.fill();
       } else if(p.type==='emoji'){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        const sp3 = fxEmoji(p.ch, p.size), sw3 = sp3.width / FX_DPR;
-        ctx.drawImage(sp3, -sw3/2, -sw3/2, sw3, sw3); ctx.restore();
+        ctx.font=p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(p.ch,0,0); ctx.restore();
       }
     }
     ctx.globalAlpha = 1;
@@ -5833,16 +5755,6 @@ function playWhoosh(){ tone(180,.16,'sine',.05,0,120); }
 function playTada(){ [523,659,784,1047].forEach((f,i)=>tone(f,.32,'triangle',.12,i*.09)); }
 function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40,.05,'square',.05,i*step/1000); }
 
-/* The first button answers on finger-up. Mobile browsers can hold a synthetic
-   click for gesture detection; a real tap (no movement) should not wait. */
-(function(){
-  const b = document.querySelector('#s-landing .cta'); if(!b) return;
-  let sx = 0, sy = 0, moved = false;
-  b.addEventListener('touchstart', e=>{ const t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; moved = false; PERF_TS = performance.now(); }, { passive:true });
-  b.addEventListener('touchmove', e=>{ const t = e.changedTouches[0]; if(Math.hypot(t.clientX - sx, t.clientY - sy) > 12) moved = true; }, { passive:true });
-  b.addEventListener('touchend', e=>{ if(moved || landed) return; const t = e.changedTouches[0]; e.preventDefault(); fromLanding({ clientX: t.clientX, clientY: t.clientY, timeStamp: e.timeStamp, via: 'touch' }); }, { passive:false });
-})();
-
 /* boot */
 setBar('s-landing');
 updateBack();
@@ -5878,7 +5790,7 @@ try{
       const t0 = Date.now();
       (function wait(){
         const live = PRODUCTS.some(p => p && p.dsId);
-        if(live || Date.now() - t0 > 7000){
+        if(live || Date.now() - t0 > 3500){
           chosen = PRODUCTS[0] || FALLBACK_PRODUCTS[0]; BX.demo = true;
           try{ initAudio(); }catch(e){}
           go('s-build');
