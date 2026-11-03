@@ -332,7 +332,7 @@ module.exports = async (req, res) => {
          sessions land, how many tap through, how many pay, and how many send
          exactly one event and leave. */
       if(q.hourly === READ_KEY){
-        const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 3));
+        const days = Math.min(30, Math.max(1, parseInt(q.days, 10) || 3));
         const per = {};
         for(const d of lastNDayKeys(days)){
           const evs = (await readDay(d, true).catch(() => [])).filter(e => e && e.t && e.sid !== 'selftest');
@@ -356,7 +356,7 @@ module.exports = async (req, res) => {
 
       /* per-Pacific-day step funnel — for day-vs-day drop diagnosis */
       if(q.funnel === READ_KEY){
-        const days = Math.min(14, Math.max(1, parseInt(q.days, 10) || 3));
+        const days = Math.min(30, Math.max(1, parseInt(q.days, 10) || 3));
         const out = [];
         for(const d of lastNDayKeys(days)){
           const evs = (await readDay(d, true).catch(() => [])).filter(e => e && e.sid !== 'selftest');
