@@ -33,7 +33,7 @@ const EV_OK = new Set([
   'claim_click','paid_1dollar','paid_20','upsell_click','upsell_decline','paid_upsell',
   'seo_click','paid_seo','seo_skip','addons_skip','paid_addons','claim_unlimited',
   // performance: landing tap → next screen painted, on real devices
-  'perf_tap', 'hidden_load',
+  'perf_tap', 'hidden_load', 'land_meta',
   // reservation + diagnostics
   'resv_expired','resv_restored','checkout_mode','finalize_fail',
   'seo_fail','addons_fail','custom_mode_err','custom_mount_err'

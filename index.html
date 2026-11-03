@@ -5776,6 +5776,18 @@ if(!/paid=1|upsold=1|resume=|[?&]p=/.test(location.search)){
     });
   }
 }
+/* One compact line about where the visitor came from, so junk traffic can be
+   told apart from real visitors: device | in-app browser | ad click id |
+   utm source/campaign | referrer host | automation flag | screen size. */
+try{
+  const ua = navigator.userAgent, q = location.search, P = new URLSearchParams(q);
+  const dev = /iPhone|iPad/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
+  const app = /FBAN|FBAV|FB_IAB/.test(ua) ? 'fb' : /Instagram/.test(ua) ? 'ig' : /musical_ly|TikTok|Bytedance/i.test(ua) ? 'tt' : /Snapchat/.test(ua) ? 'snap' : 'web';
+  const click = /fbclid=/.test(q) ? 'fbclid' : /ttclid=/.test(q) ? 'ttclid' : /gclid=/.test(q) ? 'gclid' : /ScCid=/.test(q) ? 'sccid' : 'none';
+  const utm = ((P.get('utm_source') || '') + '/' + (P.get('utm_campaign') || '')).slice(0, 28);
+  const ref = (document.referrer || '').replace(/^https?:\/\//, '').split('/')[0].slice(0, 20);
+  spLog('land_meta', [dev, app, click, utm, ref, navigator.webdriver ? 'wd' : '', screen.width + 'x' + screen.height].join('|'));
+}catch(e){}
 // Deep-links: ?upsold=1 (back from the $299 → done), ?paid=1 (back from the $1 →
 // upsell), or ?resume={id} (reminder email).
 if(!dsResumeAfterUpsell() && !dsResumeAfterUpsell199() && !dsResumeAfterUpsell49() && !dsResumeAfterPayment20() && !dsResumeAfterPayment() && !dsSellFromEmail() && !dsPickFromEmail()) dsResumeFromEmail();
