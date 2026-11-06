@@ -2741,6 +2741,7 @@ function goBack(){
   current = prev;
   setBar(prev);
   updateBack();
+  if(prev === 's-pick') resetChoice();   // back to the picker: the next "Build My Store With This" must count again
 }
 
 function updateBack(){
