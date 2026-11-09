@@ -39,7 +39,7 @@ var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n
 </script>
 <!-- TikTok Pixel Code End -->
 <title>Sell Products AI — Launch Your eCommerce Store</title>
-<meta name="description" content="Our AI finds you a trending winning product, connects the supplier, and builds you a one-product store built to convert. See it before you pay.">
+<meta name="description" content="We find you a trending winning product, connect the supplier, and our AI builds you a one-product store built to convert. See it before you pay.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1229,6 +1229,34 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .eq-tile.gold b{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.1rem}
 @keyframes goldGlow{0%,100%{box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55)}50%{box-shadow:0 0 0 8px rgba(255,201,60,.04),0 10px 32px -8px rgba(245,158,11,.75)}}
 .engine-note{margin-top:7px;text-align:center;font-size:.66rem;font-weight:700;color:var(--muted)}
+/* ---- offer stack (preview screen): what the $20 buys, revealed row by row ---- */
+.offer{position:relative;background:linear-gradient(160deg,rgba(255,201,60,.09),var(--card) 55%);border:1px solid rgba(255,201,60,.38);border-radius:var(--radius);padding:13px 14px 12px;margin:4px 0 8px;text-align:left;box-shadow:0 0 46px -14px rgba(255,201,60,.4),inset 0 1px 0 rgba(255,255,255,.04)}
+.offer-title{text-align:center;font-size:.62rem;font-weight:800;letter-spacing:.16em;color:var(--gold);margin-bottom:6px}
+.offer-title #offerBrand{color:var(--text)}
+.offer-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);opacity:0;transform:translateX(-12px)}
+.screen.active .offer-row{animation:offerIn .5s cubic-bezier(.22,1,.36,1) both}
+.offer-row:nth-child(2){animation-delay:.9s}.offer-row:nth-child(3){animation-delay:1.15s}.offer-row:nth-child(4){animation-delay:1.4s}
+.offer-row:nth-child(5){animation-delay:1.65s}.offer-row:nth-child(6){animation-delay:1.9s}.offer-row:nth-child(7){animation-delay:2.15s}
+.offer-row .ic{width:30px;height:30px;border-radius:9px;background:rgba(255,201,60,.12);border:1px solid rgba(255,201,60,.18);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex:none}
+.offer-row .tx{flex:1;min-width:0}
+.offer-row .tx b{display:block;font-size:.82rem;font-weight:800;line-height:1.25}
+.offer-row .tx b span{color:var(--gold)}
+.offer-row .tx span{display:block;font-size:.64rem;color:var(--muted);line-height:1.35;margin-top:1px}
+.offer-row .val{font-weight:800;font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;text-decoration:line-through;text-decoration-color:rgba(248,113,113,.7)}
+.offer-row .val.inc{text-decoration:none;color:var(--green);font-size:.6rem;letter-spacing:.08em}
+.offer-row .val.gold{text-decoration:none;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:.95rem}
+.offer-total{display:flex;justify-content:space-between;align-items:baseline;padding:10px 2px 2px;font-size:.78rem;color:var(--muted);font-weight:700;opacity:0}
+.screen.active .offer-total{animation:offerIn .5s cubic-bezier(.22,1,.36,1) 2.4s both}
+.offer-total s{color:#F87171;font-weight:800;font-size:1rem}
+.offer-today{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:9px 12px;border-radius:14px;background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.42);opacity:0;transform:scale(.96)}
+.screen.active .offer-today{animation:offerPop .55s cubic-bezier(.34,1.56,.64,1) 2.65s both}
+.offer-today .lbl{font-weight:800;font-size:.88rem}
+.offer-today .lbl small{display:block;font-size:.6rem;color:var(--muted);font-weight:700;margin-top:1px}
+.offer-today .price{font-size:1.55rem;font-weight:900;letter-spacing:-.02em;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.offer-save{text-align:center;font-size:.64rem;font-weight:800;color:var(--green);margin-top:7px;opacity:0}
+.screen.active .offer-save{animation:offerIn .5s ease 3s both}
+@keyframes offerIn{to{opacity:1;transform:none}}
+@keyframes offerPop{to{opacity:1;transform:none}}
 .stack-line{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;animation:screenIn .6s cubic-bezier(.22,1,.36,1) .8s both}
 .stack-line .chip{
   font-size:.64rem;font-weight:700;color:var(--muted);
@@ -1267,6 +1295,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   #s-preview .mock-scene{grid-column:1;grid-row:4 / span 2;align-self:center;max-width:min(480px,calc((100vh - 330px) / .7));margin:0}
   #s-preview .engine{grid-column:2;grid-row:4;align-self:end;width:100%;max-width:440px;margin:0 0 12px}
   #s-preview .stack-line{grid-column:2;grid-row:5;align-self:start;max-width:440px;justify-content:center}
+  #s-preview .offer{grid-column:2;grid-row:4 / span 2;align-self:center;width:100%;max-width:440px;margin:0}
+  #s-preview .offer + .disclaim{grid-column:1 / -1}
 }
 @media (max-height:880px){
   #s-preview h2{font-size:1.22rem}
@@ -1274,6 +1304,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   #s-preview .kicker{margin-bottom:12px}
   .mock-scene{max-width:325px}
   .engine{padding:8px 10px 7px;margin:2px 0 7px}
+  .offer{padding:10px 12px 10px}
+  .offer-row{padding:5px 0}
   .engine-title{margin-bottom:5px}
   .eq-tile{padding:6px 5px}
   .eq-tile b{font-size:.9rem}
@@ -1790,10 +1822,10 @@ window.dsFire('PageView');
 
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> AI store builder · live now</div>
       <h1>Are You Ready To <span class="grad-text">Sell Products Online?</span></h1>
-      <p class="sub">Sell a product people are already buying. Our AI finds it out of <strong>10,000,000+ products</strong>, locks in the supplier, and builds the <strong>one-product store</strong> that sells it, so all you do is launch. You see it <span class="hl">before you pay a cent</span>.</p>
+      <p class="sub">Sell a product people are already buying. Our team hand-picks it from <strong>this week's top-selling products</strong>, locks in the supplier, and our AI builds the <strong>one-product store</strong> that sells it, so all you do is launch. You see it <span class="hl">before you pay a cent</span>.</p>
 
       <div class="proof-row">
-        <div class="proof"><b class="blue">10M+</b><span>products scanned</span></div>
+        <div class="proof"><b class="blue">Hand-picked</b><span>winning products</span></div>
         <div class="proof"><b class="green">2,400+</b><span>stores built</span></div>
         <div class="proof"><b class="gold">$20</b><span>to go live</span></div>
       </div>
@@ -1818,9 +1850,9 @@ window.dsFire('PageView');
 
     <!-- ======================= 1 · INTRO ======================= -->
     <section class="screen" id="s-intro">
-      <div class="kicker" style="align-self:center"><span class="dot"></span> AI calibration</div>
-      <h2>Before the AI hunts down your winning products…</h2>
-      <p class="sub">It needs <strong>5 quick answers</strong> from you. Every answer sharpens the search — so the products it finds are matched to <strong>you</strong>, not to everyone else.</p>
+      <div class="kicker" style="align-self:center"><span class="dot"></span> Quick calibration</div>
+      <h2>Before we show you your winning products…</h2>
+      <p class="sub">We need <strong>5 quick answers</strong> from you. Every answer narrows the shortlist — so the products you see are matched to <strong>you</strong>, not to everyone else.</p>
 
       <div class="qdots">
         <div class="qdot" id="qd1">1</div>
@@ -1830,7 +1862,7 @@ window.dsFire('PageView');
         <div class="qdot" id="qd5">5</div>
       </div>
 
-      <div class="mini-note"><span class="zap">⚡</span> Under a minute · every answer trains the AI</div>
+      <div class="mini-note"><span class="zap">⚡</span> Under a minute · every answer sharpens your matches</div>
 
       <button class="cta" onclick="go('s-q1',{fx:'ripple'})">Let's Do It ⚡</button>
     </section>
@@ -1839,7 +1871,7 @@ window.dsFire('PageView');
     <section class="screen" id="s-q1">
       <div class="kicker" style="align-self:center">Question 1 of 5</div>
       <h2>What's your main goal with eCommerce?</h2>
-      <p class="sub">Be honest — the AI weighs products differently for each answer.</p>
+      <p class="sub">Be honest — we weigh products differently for each answer.</p>
       <div class="opts">
         <button class="opt" onclick="answer(this,'goal','Side income','💵')">
           <span class="opt-ico">💵</span>
@@ -2025,14 +2057,14 @@ window.dsFire('PageView');
     <section class="screen" id="s-blueprint">
       <div class="kicker" style="align-self:center"><span class="dot"></span> Your launch plan</div>
       <h2>Here's your exact path to <span class="grad-text">selling online</span></h2>
-      <p class="sub">Three steps. The AI does two of them.</p>
+      <p class="sub">Three steps. We do two of them.</p>
 
       <div class="bp">
         <div class="bp-step" id="bp1">
           <div class="bp-rail"><div class="bp-dot">🏆</div><div class="bp-line"></div></div>
           <div class="bp-card">
             <b>1 · Pick your winning product</b>
-            <p>The AI shows you trending products — <strong>supplier found</strong>, price set, profit per sale shown. You pick <strong>ONE</strong>.</p>
+            <p>We show you hand-picked trending products — <strong>supplier found</strong>, price set, profit per sale shown. You pick <strong>ONE</strong>.</p>
             <span class="tag">You do this — right here, in 2 min</span>
           </div>
         </div>
@@ -2094,13 +2126,13 @@ window.dsFire('PageView');
     <!-- ======================= 9 · AI SCAN ======================= -->
     <section class="screen" id="s-scan">
       <div class="scan-wrap">
-        <div class="ai-orb" id="orb">🤖</div>
+        <div class="ai-orb" id="orb">🔎</div>
         <div class="odometer" id="odo">0</div>
-        <div class="odometer-label" id="odoLabel">products scanned</div>
+        <div class="odometer-label" id="odoLabel">matches found</div>
         <div class="scan-bar"><div class="scan-fill" id="scanFill"></div></div>
         <div class="scan-log">
-          <div class="scan-line" id="sl0"><span class="st">✓</span><span>Scanning 10,000,000+ products…</span></div>
-          <div class="scan-line" id="sl1"><span class="st">✓</span><span>Analyzing 48,000 viral TikTok &amp; Instagram ads…</span></div>
+          <div class="scan-line" id="sl0"><span class="st">✓</span><span>Pulling this week's top-selling products…</span></div>
+          <div class="scan-line" id="sl1"><span class="st">✓</span><span>Checking what's selling on TikTok &amp; Instagram right now…</span></div>
           <div class="scan-line" id="sl2"><span class="st">✓</span><span style="flex:1">Matching products to <b>your answers</b>…
             <span class="scan-chips" id="scanChips"></span></span></div>
           <div class="scan-line" id="sl3"><span class="st">✓</span><span>Verifying suppliers &amp; shipping times…</span></div>
@@ -2136,7 +2168,7 @@ window.dsFire('PageView');
             <div class="pick-cat" id="pCat"><span class="stars">★★★★★</span> · Home &amp; Vibes</div>
             <div class="pick-rows">
               <div class="pick-row">
-                <span class="lbl">🏭 Supplier cost <small>(AI-verified)</small></span>
+                <span class="lbl">🏭 Supplier cost <small>(verified)</small></span>
                 <span class="val" id="pCost">$11.20</span>
               </div>
               <div class="pick-row">
@@ -2232,7 +2264,7 @@ window.dsFire('PageView');
                 <div class="bx-lines">
                   <p class="bx-line" id="bxF1">Built-in margin: <b id="bxF1v">$0.00</b> per sale</p>
                   <p class="bx-line" id="bxF2">That's <b id="bxF2v">0%</b> of the list price</p>
-                  <p class="bx-line" id="bxF3">Picked from <b id="bxF3v">0</b> products</p>
+                  <p class="bx-line" id="bxF3">Hand-picked from <b id="bxF3v">this week's</b> top sellers</p>
                   <p class="bx-line" id="bxName"></p>
                   <p class="bx-line" id="bxHold"></p>
                   <p class="bx-line" id="buildLabel"></p>
@@ -2276,18 +2308,20 @@ window.dsFire('PageView');
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
       </div>
 
-        <div class="engine">
-        <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
-        <div class="eq">
-          <div class="eq-tile gold"><b id="eqProfit">$0.00</b><span>margin / sale</span></div>
+        <!-- offer stack: everything the $20 buys, revealed row by row -->
+        <div class="offer" id="offer">
+          <div class="offer-title">🎁 EVERYTHING INSIDE <span id="offerBrand">YOUR STORE</span></div>
+          <div class="offer-row"><span class="ic">🏪</span><span class="tx"><b>Custom store, built around <span id="offerProd">your product</span></b><span>Your own branded storefront — not a template</span></span><span class="val">$499</span></div>
+          <div class="offer-row"><span class="ic">✍️</span><span class="tx"><b>AI-written product page</b><span>Title, description, benefits, FAQ &amp; reviews layout</span></span><span class="val">$299</span></div>
+          <div class="offer-row"><span class="ic">📦</span><span class="tx"><b>Supplier connected &amp; product locked in</b><span>Ships direct to your customers, tracked</span></span><span class="val">$199</span></div>
+          <div class="offer-row"><span class="ic">💳</span><span class="tx"><b>Checkout, payments &amp; shipping set up</b><span>Cards, Apple Pay, tax and shipping rules</span></span><span class="val">$99</span></div>
+          <div class="offer-row"><span class="ic">📱</span><span class="tx"><b>Live on phone, tablet &amp; desktop</b><span>Fast, mobile-first, ready for ads</span></span><span class="val inc">INCLUDED</span></div>
+          <div class="offer-row"><span class="ic">💰</span><span class="tx"><b>Built-in margin per sale</b><span>List price minus supplier cost</span></span><span class="val gold" id="eqProfit">$0.00</span></div>
+          <div class="offer-total"><span>Total value</span><s>$1,096</s></div>
+          <div class="offer-today"><span class="lbl">Yours today<small>one-time · no subscription to us</small></span><span class="price">$20</span></div>
+          <div class="offer-save">✓ You save $1,076 (98%) · 30-day money-back guarantee</div>
         </div>
-        <div class="engine-note" id="engineNote">list price minus supplier cost — before ad costs, payment fees, taxes &amp; refunds</div>
-        <p class="disclaim" style="margin-top:8px;max-width:none">That margin is a fact about this product's pricing — not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
-      </div>
-
-      <div class="stack-line">
-        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$20 today</b></span>
-      </div>
+        <p class="disclaim" style="margin-top:6px;max-width:none">Margin per sale = suggested price minus supplier cost, before ad costs, payment fees, taxes and refunds. It's a fact about this product's pricing, not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
     </section>
 
     <!-- ================ 13b · VIDEO ADS UPSELL (post-purchase) ================
@@ -2959,12 +2993,12 @@ function runScan(){
   chipsBox.innerHTML = chipVals.map(c=>`<span class="scan-chip">${c}</span>`).join('');
   const chips = [...chipsBox.children];
 
-  countUp(odo, 0, 10247391, 2600, v=>Math.round(v).toLocaleString());
+  countUp(odo, 0, Math.max(PRODUCTS.length, 6), 2600, v=>Math.round(v).toLocaleString());   // real count: the products in the picker
 
   const seq = [
     {at:0,    bar:9,  line:0, mode:'doing'},
     {at:900,  bar:22, line:0, mode:'ok', ding:true},
-    {at:1400, bar:31, line:1, mode:'doing', label:'viral ads analyzed'},
+    {at:1400, bar:31, line:1, mode:'doing', label:'matches found'},
     {at:2700, bar:44, line:1, mode:'ok', ding:true},
     {at:3100, bar:52, line:2, mode:'doing', label:'matching to your answers'},
     {at:3500, chip:0},{at:3900, chip:1},{at:4300, chip:2},{at:4700, chip:3},
@@ -3834,7 +3868,7 @@ function bxFact(n){
   const dur = BX.reduced ? 1 : 900;
   if(n === 1){ countUp(v, 0, BX.margin, dur, x=>'$'+x.toFixed(2)); playCoin(); }
   if(n === 2){ countUp(v, 0, BX.pct, dur, x=>Math.round(x)+'%'); }
-  if(n === 3){ countUp(v, 0, 10000000, BX.reduced ? 1 : 760, x=>Math.round(x).toLocaleString('en-US')); }
+  if(n === 3){ v.textContent = 'this week\'s'; }
 }
 function bxScanSweep(delay){
   BX.lastScan = BX.ie; const sc = bxQ('bxScan'), h = bxQ('bxScreen').clientHeight;
@@ -4016,7 +4050,7 @@ function buildFinish(){
   bxPct(100); bxQ('bxRing').classList.add('is-done'); bxQ('bx').classList.add('is-done');
   const realName = (dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName || BX.brand;
   bxQ('bxStep').innerHTML = '<span>' + bxEsc(realName && realName.length <= 22 ? realName + ' is ready' : 'Your store is ready') + '</span>';
-  const f3 = bxQ('bxF3v'); if(f3) f3.textContent = '10,000,000+'; bxLine('bxF3');
+  const f3 = bxQ('bxF3v'); if(f3) f3.textContent = 'this week\'s'; bxLine('bxF3');
   bxQ('bxKick').textContent = 'BUILD COMPLETE';
   bxQ('buildTitle').innerHTML = realName
     ? '<span class="grad-text">' + bxEsc(realName) + '</span> is built.'
@@ -4126,6 +4160,9 @@ function pvPrepare(){
   const brand = realName || BX.brand || bxBrand(p.name);
   document.getElementById('pvProdName').textContent = brand;
   document.getElementById('pvUrl').textContent = slugOf(brand) + '.myshopify.com';
+  const ob = document.getElementById('offerBrand'), op = document.getElementById('offerProd');
+  if(ob) ob.textContent = brand.toUpperCase();
+  if(op) op.textContent = p.name;
   const sec = document.getElementById('s-preview');
   sec.classList.add('prep');
   mountScaledPanHtml(document.getElementById('scrMonitor'), bxDesktopHTML(p, brand, th), 1200);
@@ -5775,7 +5812,7 @@ try{
   }
   if(new URLSearchParams(location.search).get('step') === 'email'){
     document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
-      try{ const n = document.getElementById('cName'); if(n) n.textContent = 'Your AI-picked product'; const pr = document.getElementById('cProfit'); if(pr) pr.textContent = '🔒 reserved while you build'; }catch(e){}
+      try{ const n = document.getElementById('cName'); if(n) n.textContent = 'Your hand-picked product'; const pr = document.getElementById('cProfit'); if(pr) pr.textContent = '🔒 reserved while you build'; }catch(e){}
       go('s-email');
     }, 80));
   }
