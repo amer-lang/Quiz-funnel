@@ -56,21 +56,14 @@ async function stripe(path, method, params, idemKey, version){
    Upsell PIs all carry metadata[base_cs] → they join to this session's UTM. */
 function utmFromBody(body){
   const clean = v => String(v || '').toLowerCase().replace(/[^a-z0-9._\-]/g, '').slice(0, 60);
-  const cleanId = v => String(v || '').replace(/[^A-Za-z0-9._\-]/g, '').slice(0, 80); // click ids are case-sensitive
   const src = clean(body && body.utm_source);
-  const waid = cleanId(body && body.waid);
-  if(!src && !waid) return null;
+  if(!src) return null;
   const p = {};
   if(src) p['metadata[utm_source]'] = src;
   const med = clean(body && body.utm_medium);
   const camp = clean(body && body.utm_campaign);
   if(med) p['metadata[utm_medium]'] = med;
   if(camp) p['metadata[utm_campaign]'] = camp;
-  if(waid) p['metadata[waid]'] = waid;
-  const wacid = cleanId(body && body.wacid);
-  const wasid = cleanId(body && body.wasid);
-  if(wacid) p['metadata[wacid]'] = wacid;
-  if(wasid) p['metadata[wasid]'] = wasid;
   return p;
 }
 
@@ -429,7 +422,7 @@ module.exports = async (req, res) => {
     // }
 
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
-      Object.assign({}, utmFromBody(body), leadMeta(body)));   // utmFromBody() is null for visitors without a UTM/waid: Object.assign(null, …) threw and broke their checkout
+      Object.assign({}, utmFromBody(body), leadMeta(body)));   // utmFromBody() is null for visitors without a UTM: Object.assign(null, …) threw and broke their checkout
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
       ui: c.ui, custom_error: c.custom_error || '' });
   }catch(e){

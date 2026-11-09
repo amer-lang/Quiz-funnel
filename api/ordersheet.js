@@ -3,15 +3,10 @@
    feeds two sinks, each with its own dedupe ledger:
    1. GOOGLE SHEET — five-video orders only (type video_ads_5), appended via
       the owner's Apps Script web-app hook.
-   2. WHOP CONVERSIONS API — every paid order (all purchase types) POSTed as
-      a server-side `purchase` event with the Stripe payment id as event_id
-      (globally unique, so Whop can never double-count; the browser pixel
-      deliberately does NOT send purchase — this is the single source).
 
    GET  (cron or ?key=READ_KEY)                → sweep the last 48h
    GET  ?key=READ_KEY&backfill=30              → sheet-sink seed run (N days)
    GET  ?probe=seturl&key=READ_KEY&url=...     → store the Apps Script URL
-   GET  ?probe=setwhop&key=READ_KEY&wk=...     → store the Whop API key
    GET  ?ping=1&key=READ_KEY                   → config + ledger sanity
    GET  ?probe=stsent&key=READ_KEY&hours=N     → READ-ONLY scan of SimpleTexting's
                                                  message log (incident record of
@@ -25,12 +20,9 @@ const { guardKey } = require('../lib/secrets');
 const READ_KEY = guardKey('READ_KEY');
 const SHEET_SECRET = '789b6ab8689b124208d9bf20e12e7bbf'; // must match the Apps Script
 const TYPES = new Set(['video_ads_5']); // sheet sink
-const ALL_TYPES = new Set(['store_unlock20', 'store_unlock', 'video_ads_5', 'image_ads_10', 'store_addons']); // whop sink
+const ALL_TYPES = new Set(['store_unlock20', 'store_unlock', 'video_ads_5', 'image_ads_10', 'store_addons']); // every paid order type the sweep reads
 const LEDGER = 'orders/videolog.json';
-const WHOP_LEDGER = 'orders/whoplog.json';
 const CFG = 'members/config/ordersheet.json';
-const WHOP_CFG = 'members/config/whop.json';
-const WHOP_ACCOUNT = 'biz_FXze6GwnWnentH';
 
 function blobToken(){
   if(process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
@@ -99,9 +91,6 @@ function utmOf(meta){
   if(meta.utm_source) u.utm_source = String(meta.utm_source).slice(0, 100);
   if(meta.utm_medium) u.utm_medium = String(meta.utm_medium).slice(0, 100);
   if(meta.utm_campaign) u.utm_campaign = String(meta.utm_campaign).slice(0, 100);
-  if(meta.waid) u.waid = String(meta.waid).slice(0, 100);   // Whop ad click ids
-  if(meta.wacid) u.wacid = String(meta.wacid).slice(0, 100);
-  if(meta.wasid) u.wasid = String(meta.wasid).slice(0, 100);
   return u;
 }
 const SOURCE_BY_TYPE = { store_unlock20: '$20 unlock', store_unlock: 'legacy unlock',
@@ -175,40 +164,6 @@ async function pushRow(url, row, diag){
   return r.status >= 200 && r.status < 400;
 }
 
-/* ---- Whop server-side conversions ---- */
-let WHOP_KEY_CACHE = null;
-async function whopKey(){
-  if(process.env.WHOP_API_KEY) return process.env.WHOP_API_KEY;
-  if(WHOP_KEY_CACHE !== null) return WHOP_KEY_CACHE;
-  const cfg = await bread(WHOP_CFG);
-  WHOP_KEY_CACHE = (cfg && cfg.key) || '';
-  return WHOP_KEY_CACHE;
-}
-async function pushWhop(key, row, diag){
-  const payload = {
-    account_id: WHOP_ACCOUNT,
-    event_name: 'purchase',
-    event_time: new Date(row.created * 1000).toISOString(), // true purchase time (sweep sends up to 5 min later; retro sends up to 48h)
-    event_id: row.id,            // Stripe payment id — unique per conversion
-    value: row.value,
-    currency: 'usd',
-    action_source: 'website',
-    user: {},
-    context: {}
-  };
-  if(row.email) payload.user.email = row.email;
-  Object.assign(payload.context, row.utm || {});
-  const r = await fetch('https://api.whop.com/api/v1/events', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if(diag){
-    diag.status = r.status;
-    diag.body = String(await r.text().catch(() => '')).slice(0, 300);
-  }
-  return r.status >= 200 && r.status < 300;
-}
 
 /* READ-ONLY: SimpleTexting message-log scan for the 2026-10-08 incident
    record. There is deliberately no send function anywhere in this file. */
@@ -278,56 +233,15 @@ module.exports = async (req, res) => {
       await bwrite(CFG, { url, set: Date.now() });
       return res.status(200).json({ ok:true, stored:true });
     }
-    if(q.probe === 'setwhop' && isOwner){
-      const wk = String(q.wk || '');
-      if(wk.length < 20) return res.status(200).json({ ok:false, error:'bad_whop_key' });
-      await bwrite(WHOP_CFG, { key: wk, set: Date.now() });
-      WHOP_KEY_CACHE = wk;
-      return res.status(200).json({ ok:true, stored:true });
-    }
-
     const cfg = await bread(CFG);
     const ledger = (await bread(LEDGER)) || { seen: {} };
-    const wledger = (await bread(WHOP_LEDGER)) || { seen: {}, start: Math.floor(Date.now() / 1000) - 7200 };
-    const wkey = await whopKey();
 
     if(q.ping === '1' && isOwner){
       return res.status(200).json({ ok:true, has_sheet_url: !!(cfg && cfg.url),
-        has_whop_key: !!wkey,
-        logged_orders: Object.keys(ledger.seen || {}).length,
-        whop_sent: Object.keys(wledger.seen || {}).length,
-        whop_start: wledger.start });
+        logged_orders: Object.keys(ledger.seen || {}).length });
     }
     if(q.probe === 'stsent' && isOwner){
       return res.status(200).json(await stScan(Math.min(parseInt(q.hours, 10) || 24, 168)));
-    }
-    /* owner: Whop-ad attribution stats — Stripe-truth count of waid-stamped orders */
-    if(q.probe === 'whopstats' && isOwner){
-      const hrs = Math.min(parseInt(q.hours, 10) || 24, 96);
-      const rows2 = await collectOrders(Math.floor(Date.now() / 1000) - hrs * 3600);
-      const hit = rows2.filter(r => r.utm && r.utm.waid);
-      return res.status(200).json({ ok:true, window_hours: hrs,
-        total_orders: rows2.length,
-        total_revenue: rows2.reduce((s2, r) => s2 + r.value, 0),
-        whop_attributed_orders: hit.length,
-        whop_attributed_revenue: hit.reduce((s2, r) => s2 + r.value, 0),
-        whop_events_sent_ledger: Object.keys(wledger.seen || {}).length,
-        sample: hit.slice(0, 5).map(r => ({ amount: r.amount, source: r.source,
-          waid_tail: '…' + String(r.utm.waid).slice(-6), created: new Date(r.created * 1000).toISOString() })) });
-    }
-    /* owner diagnostic: send one TEST lead event to Whop, report raw response */
-    if(q.probe === 'whoptest' && isOwner){
-      if(!wkey) return res.status(200).json({ ok:false, error:'no_whop_key' });
-      const diag = {};
-      const r = await fetch('https://api.whop.com/api/v1/events', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + wkey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_id: WHOP_ACCOUNT, event_name: 'lead',
-          event_id: 'capi_test_' + Date.now(), action_source: 'website',
-          user: { email: 'test@sellproducts.ai' }, context: {} })
-      });
-      return res.status(200).json({ ok: r.status >= 200 && r.status < 300,
-        whop_status: r.status, whop_body: String(await r.text().catch(() => '')).slice(0, 300) });
     }
     /* owner diagnostic: plain GET to the script URL — distinguishes an access
        wall (Workspace restriction) from a POST/redirect problem */
@@ -369,24 +283,7 @@ module.exports = async (req, res) => {
     for(const id of Object.keys(ledger.seen)) if(ledger.seen[id] < cutoff) delete ledger.seen[id];
     if(pushed) await bwrite(LEDGER, ledger);
 
-    // sink 2: Whop conversions — every purchase type, from the ledger's start
-    let wsent = 0, wfailed = 0;
-    if(wkey){
-      for(const row of rows){
-        if(row.created < (wledger.start || 0)) continue; // never resend history from before the integration
-        if(!(row.value > 0)) continue;                    // Whop rejects value-less purchases
-        if(wledger.seen[row.id]) continue;
-        const ok = await pushWhop(wkey, row);
-        if(ok){ wledger.seen[row.id] = row.created; wsent++; }
-        else wfailed++; // retried next sweep
-      }
-      const wcut = Math.floor(Date.now() / 1000) - 14 * 86400; // dedupe horizon ≫ 48h scan window
-      for(const id of Object.keys(wledger.seen)) if(wledger.seen[id] < wcut) delete wledger.seen[id];
-      if(wsent || !wledger.written){ wledger.written = 1; await bwrite(WHOP_LEDGER, wledger); }
-    }
-
-    return res.status(200).json({ ok:true, scanned: rows.length,
-      sheet: { pushed, failed }, whop: { sent: wsent, failed: wfailed, enabled: !!wkey } });
+    return res.status(200).json({ ok:true, scanned: rows.length, sheet: { pushed, failed } });
   }catch(e){
     return res.status(200).json({ ok:false, error: String(e && e.message || e).slice(0, 200) });
   }

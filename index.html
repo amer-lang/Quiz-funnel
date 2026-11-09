@@ -24,20 +24,21 @@
   }catch(e){}
 })();
 </script>
-<script>!function(w,d,s,u,n,a,b){if(w[n])return;a=w[n]={q:[],t:+new Date,s:[],o:u,track:function(){a.q.push([+new Date].concat([].slice.call(arguments)))},setScope:function(){a.s=[].slice.call(arguments).filter(function(x){return typeof x==="string"});a.q.push([+new Date,"setScope"].concat(a.s))},scope:function(){var c=[].slice.call(arguments);return{track:function(){a.q.push([+new Date].concat([].slice.call(arguments)).concat([{__scope:c}]))}}}};b=d.createElement(s);b.async=1;b.src=u+"/s.js";d.getElementsByTagName(s)[0].parentNode.insertBefore(b,d.getElementsByTagName(s)[0])}(window,document,"script","https://t.whop.tw","whop");whop.setScope("biz_FXze6GwnWnentH");whop.track("page");</script>
-<!-- TikTok Pixel Code Start -->
 <script>
-!function (w, d, t) {
-  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
-var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
-;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-
-
-  ttq.load('DAQ54CBC77U88MSO3G70');
-  ttq.page();
-}(window, document, 'ttq');
+/* The Meta pixel waits until the first screen is
+   interactive: 2.5 s after load, or 1.2 s after the visitor's first tap,
+   whichever comes first. Their stubs queue every event meanwhile, so nothing
+   is lost — the network just belongs to the page for the first seconds. */
+(function(w){
+  var started = false;
+  function start(){ if(started) return; started = true; (w.__spDefer || []).forEach(function(f){ try{ f(); }catch(e){} }); w.__spDefer = { push: function(f){ try{ f(); }catch(e){} } }; }
+  w.spStartThirdParty = start;
+  w.addEventListener('load', function(){ setTimeout(start, 2500); });
+  ['pointerdown','touchstart','keydown'].forEach(function(ev){ w.addEventListener(ev, function(){ setTimeout(start, 1200); }, { once:true, passive:true }); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden') start(); });
+})(window);
 </script>
-<!-- TikTok Pixel Code End -->
+<link rel="preconnect" href="https://img.dropstartcdn.com">
 <title>Sell Products AI — Launch Your eCommerce Store</title>
 <meta name="description" content="We find you a trending winning product, connect the supplier, and our AI builds you a one-product store built to convert. See it before you pay.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,10 +81,10 @@ body{
   overflow-x:hidden;
 }
 body::before,body::after{
-  content:'';position:fixed;border-radius:50%;filter:blur(110px);z-index:0;pointer-events:none;
+  content:'';position:fixed;border-radius:50%;z-index:0;pointer-events:none;   /* soft glow drawn as a gradient: no blur filter to re-render on scroll */
 }
-body::before{width:520px;height:520px;top:-180px;left:-160px;background:rgba(59,130,246,.16)}
-body::after{width:520px;height:520px;bottom:-200px;right:-160px;background:rgba(34,197,94,.13)}
+body::before{width:820px;height:820px;top:-330px;left:-310px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,rgba(59,130,246,.08) 38%,rgba(59,130,246,0) 68%)}
+body::after{width:820px;height:820px;bottom:-350px;right:-310px;background:radial-gradient(circle,rgba(34,197,94,.15) 0%,rgba(34,197,94,.06) 38%,rgba(34,197,94,0) 68%)}
 
 button{font-family:inherit}
 input{font-family:inherit}
@@ -215,7 +216,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .cta:hover{transform:translateY(-3px) scale(1.015)}
 .cta:active{transform:scale(.965)}
 .cta.gold{background:var(--grad-money);color:#241500;box-shadow:var(--shadow-gold)}
-.cta.pulse{animation:ctaPulse 1.9s ease infinite}
+.cta.pulse{animation:ctaPulse 1.9s ease infinite;will-change:transform}
 @keyframes ctaPulse{0%,100%{box-shadow:var(--shadow-pop),0 0 0 0 rgba(34,197,94,.5)}55%{box-shadow:var(--shadow-pop),0 0 0 16px rgba(34,197,94,0)}}
 .cta:disabled{opacity:.45;cursor:not-allowed;transform:none;animation:none}
 .cta-note{margin-top:13px;text-align:center;font-size:.8rem;color:var(--muted)}
@@ -576,6 +577,36 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .scan-chip.in{opacity:1;transform:scale(1)}
 .scan-chip.hit{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45);color:#7CF0A9}
 
+/* ---- scan dossier: one product checked at a time, matches collect below ---- */
+.sc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:2px 2px 10px;text-align:left}
+.sc-step{font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.01em;min-height:1.2em}
+.sc-count{font-size:.78rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sc-deck{position:relative;height:124px;margin-bottom:12px;overflow:hidden;border-radius:18px}
+.sc-track{display:flex;height:100%;transition:transform .62s cubic-bezier(.22,1,.36,1);will-change:transform}
+.sc-card{position:relative;flex:0 0 100%;width:100%;display:flex;gap:14px;align-items:center;text-align:left;
+  background:var(--card);border:1px solid var(--line-strong);border-radius:18px;padding:14px;opacity:.55;transition:opacity .5s}
+.sc-card.in{opacity:1}
+.sc-photo{width:94px;height:94px;flex:none;border-radius:14px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem}
+.sc-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.sc-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.sc-name{font-size:.9rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;padding-right:74px}
+.sc-metric{display:grid;grid-template-columns:62px 1fr 30px;align-items:center;gap:8px;font-size:.62rem;font-weight:700;color:var(--muted)}
+.sc-metric i{display:block;height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.sc-metric i b{display:block;height:100%;width:100%;border-radius:99px;background:var(--grad-brand);transform:scaleX(0);transform-origin:left;transition:transform .7s cubic-bezier(.22,1,.36,1);will-change:transform}
+.sc-card.in .sc-metric i b{transform:scaleX(var(--s))}
+.sc-metric em{font-style:normal;text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
+.sc-verdict{position:absolute;right:12px;top:12px;font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);
+  background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);padding:4px 8px;border-radius:999px;opacity:0;transform:scale(.8);transition:.3s cubic-bezier(.34,1.8,.64,1)}
+.sc-card.hit .sc-verdict{opacity:1;transform:none}
+.sc-found{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-height:34px;text-align:left}
+.sc-found-lbl{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.sc-found-row{display:flex;gap:5px;flex-wrap:wrap}
+.sc-mini{position:relative;width:26px;height:26px;border-radius:8px;overflow:visible;background:#fff;border:1px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;font-size:.9rem;opacity:0;transform:scale(.5);transition:.4s cubic-bezier(.34,1.6,.64,1)}
+.sc-mini img{width:100%;height:100%;object-fit:cover;border-radius:7px;display:block}
+.sc-mini.in{opacity:1;transform:none}
+.sc-mini::after{content:'✓';position:absolute;right:-5px;bottom:-5px;width:13px;height:13px;border-radius:50%;background:var(--green);color:#fff;font-size:.5rem;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.sc-done .sc-count{color:var(--green)}
 /* store mockup that assembles during build */
 .store-frame{
   max-width:340px;margin:0 auto 22px;border-radius:16px;overflow:hidden;
@@ -1032,12 +1063,16 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .pick-dots i.on{background:var(--gold);box-shadow:0 0 8px rgba(255,201,60,.8)}
 
 .halo{
-  position:relative;padding:2.5px;border-radius:25px;margin-bottom:16px;
-  background:conic-gradient(from var(--ang,0deg),#3B82F6,#22C55E,#FFC93C,#3B82F6);
-  animation:haloSpin 3.2s linear infinite;
+  position:relative;padding:2.5px;border-radius:25px;margin-bottom:16px;isolation:isolate;
 }
-@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
-@keyframes haloSpin{to{--ang:360deg}}
+.halo-ring{position:absolute;inset:0;border-radius:25px;overflow:hidden;z-index:0;pointer-events:none}
+.halo-ring::before{
+  content:'';position:absolute;left:50%;top:50%;width:160%;padding-top:160%;margin:-80% 0 0 -80%;border-radius:50%;
+  background:conic-gradient(from 0deg,#3B82F6,#22C55E,#FFC93C,#3B82F6);
+  animation:haloSpin 3.2s linear infinite;will-change:transform;
+}
+.halo>*:not(.halo-ring){position:relative;z-index:1}
+@keyframes haloSpin{to{transform:rotate(360deg)}}
 @supports not (background:conic-gradient(from var(--ang,0deg),#000,#fff)){
   .halo{background:linear-gradient(135deg,#3B82F6,#22C55E,#FFC93C)}
 }
@@ -1331,6 +1366,34 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .eq-tile.gold b{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.1rem}
 @keyframes goldGlow{0%,100%{box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55)}50%{box-shadow:0 0 0 8px rgba(255,201,60,.04),0 10px 32px -8px rgba(245,158,11,.75)}}
 .engine-note{margin-top:7px;text-align:center;font-size:.66rem;font-weight:700;color:var(--muted)}
+/* ---- offer stack (preview screen): what the $20 buys, revealed row by row ---- */
+.offer{position:relative;background:linear-gradient(160deg,rgba(255,201,60,.09),var(--card) 55%);border:1px solid rgba(255,201,60,.38);border-radius:var(--radius);padding:13px 14px 12px;margin:4px 0 8px;text-align:left;box-shadow:0 0 46px -14px rgba(255,201,60,.4),inset 0 1px 0 rgba(255,255,255,.04)}
+.offer-title{text-align:center;font-size:.62rem;font-weight:800;letter-spacing:.16em;color:var(--gold);margin-bottom:6px}
+.offer-title #offerBrand{color:var(--text)}
+.offer-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);opacity:0;transform:translateX(-12px)}
+.screen.active .offer-row{animation:offerIn .5s cubic-bezier(.22,1,.36,1) both}
+.offer-row:nth-child(2){animation-delay:.9s}.offer-row:nth-child(3){animation-delay:1.15s}.offer-row:nth-child(4){animation-delay:1.4s}
+.offer-row:nth-child(5){animation-delay:1.65s}.offer-row:nth-child(6){animation-delay:1.9s}.offer-row:nth-child(7){animation-delay:2.15s}
+.offer-row .ic{width:30px;height:30px;border-radius:9px;background:rgba(255,201,60,.12);border:1px solid rgba(255,201,60,.18);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex:none}
+.offer-row .tx{flex:1;min-width:0}
+.offer-row .tx b{display:block;font-size:.82rem;font-weight:800;line-height:1.25}
+.offer-row .tx b span{color:var(--gold)}
+.offer-row .tx span{display:block;font-size:.64rem;color:var(--muted);line-height:1.35;margin-top:1px}
+.offer-row .val{font-weight:800;font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;text-decoration:line-through;text-decoration-color:rgba(248,113,113,.7)}
+.offer-row .val.inc{text-decoration:none;color:var(--green);font-size:.6rem;letter-spacing:.08em}
+.offer-row .val.gold{text-decoration:none;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:.95rem}
+.offer-total{display:flex;justify-content:space-between;align-items:baseline;padding:10px 2px 2px;font-size:.78rem;color:var(--muted);font-weight:700;opacity:0}
+.screen.active .offer-total{animation:offerIn .5s cubic-bezier(.22,1,.36,1) 2.4s both}
+.offer-total s{color:#F87171;font-weight:800;font-size:1rem}
+.offer-today{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:9px 12px;border-radius:14px;background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.42);opacity:0;transform:scale(.96)}
+.screen.active .offer-today{animation:offerPop .55s cubic-bezier(.34,1.56,.64,1) 2.65s both}
+.offer-today .lbl{font-weight:800;font-size:.88rem}
+.offer-today .lbl small{display:block;font-size:.6rem;color:var(--muted);font-weight:700;margin-top:1px}
+.offer-today .price{font-size:1.55rem;font-weight:900;letter-spacing:-.02em;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.offer-save{text-align:center;font-size:.64rem;font-weight:800;color:var(--green);margin-top:7px;opacity:0}
+.screen.active .offer-save{animation:offerIn .5s ease 3s both}
+@keyframes offerIn{to{opacity:1;transform:none}}
+@keyframes offerPop{to{opacity:1;transform:none}}
 .stack-line{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;animation:screenIn .6s cubic-bezier(.22,1,.36,1) .8s both}
 .stack-line .chip{
   font-size:.64rem;font-weight:700;color:var(--muted);
@@ -1369,6 +1432,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   #s-preview .mock-scene{grid-column:1;grid-row:4 / span 2;align-self:center;max-width:min(480px,calc((100vh - 330px) / .7));margin:0}
   #s-preview .engine{grid-column:2;grid-row:4;align-self:end;width:100%;max-width:440px;margin:0 0 12px}
   #s-preview .stack-line{grid-column:2;grid-row:5;align-self:start;max-width:440px;justify-content:center}
+  #s-preview .offer{grid-column:2;grid-row:4 / span 2;align-self:center;width:100%;max-width:440px;margin:0}
+  #s-preview .offer + .disclaim{grid-column:1 / -1}
 }
 @media (max-height:880px){
   #s-preview h2{font-size:1.22rem}
@@ -1376,6 +1441,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   #s-preview .kicker{margin-bottom:12px}
   .mock-scene{max-width:325px}
   .engine{padding:8px 10px 7px;margin:2px 0 7px}
+  .offer{padding:10px 12px 10px}
+  .offer-row{padding:5px 0}
   .engine-title{margin-bottom:5px}
   .eq-tile{padding:6px 5px}
   .eq-tile b{font-size:.9rem}
@@ -1749,6 +1816,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   position:fixed;inset:0;z-index:70;pointer-events:none;opacity:0;
   background:radial-gradient(circle at 50% 60%,rgba(255,201,60,.28),transparent 60%);
 }
+.flash{will-change:opacity}
 .flash.go{animation:flashGo .5s ease}
 @keyframes flashGo{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
 
@@ -1759,7 +1827,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <!-- Meta Pixel (sellproducts.ai). Mirrors DropStart's dsFire so this funnel and
      the /store page dedupe: same pixel id + eventID 'ds_<onceKey>'. -->
 <script>
-(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];f.__spDefer=f.__spDefer||[];f.__spDefer.push(function(){t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
 fbq('init', window.DS_PIXEL_ID);
 // Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
@@ -1768,58 +1836,8 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
-  // Whop mirror. Purchases fire from BOTH browser and server with the SAME
-  // event_id (the Stripe cs_/pi_ id in params.txid), exactly per Whop's
-  // dedupe contract: the browser copy carries the visitor/session linkage
-  // for ad attribution, the server copy is the never-misses backstop, and
-  // Whop counts the pair once.
-  try{
-    var wmap = { Lead: 'lead', InitiateCheckout: 'add_to_cart' };
-    var wev = wmap[name];
-    if(wev && window.whop){
-      window.whop.track(wev, params.value ? { value: Number(params.value), currency: params.currency || 'USD' } : {});
-    }
-    if(name === 'Purchase' && window.whop && params.txid && Number(params.value) > 0){
-      var wpk = 'wqp_' + params.txid, wpSeen = false;
-      try{ wpSeen = localStorage.getItem(wpk) === '1'; }catch(e){}
-      if(!wpSeen){
-        try{ localStorage.setItem(wpk, '1'); }catch(e){}
-        var wpp = { value: Number(params.value), currency: params.currency || 'USD', event_id: String(params.txid) };
-        try{ var wl = JSON.parse(localStorage.getItem('spai_lead') || '{}'); if(wl.email) wpp.email = wl.email; }catch(e){}
-        window.whop.track('purchase', wpp);
-      }
-    }
-  }catch(e){}
-  // TikTok mirror — event_id rides along so a future server-side CAPI can dedupe
-  try{
-    var tmap = { Purchase: 'Purchase', Lead: 'CompleteRegistration', InitiateCheckout: 'InitiateCheckout' };
-    var tev = tmap[name];
-    if(tev && window.ttq){
-      var tp = {};
-      if(params.value){ tp.value = Number(params.value); tp.currency = params.currency || 'USD'; }
-      var sku = { 20:['store_unlock20','AI Store Unlock'], 29:['seo_boost','SEO Boost'],
-                  49:['image_ads_10','10 Custom Image Ads'], 199:['video_ads_5','5 Custom Video Ads'],
-                  299:['video_ads_5','5 Custom Video Ads'] }[Number(params.value)];
-      var pp = window.__ttP || {};
-      if(name === 'Purchase' && Number(params.value) === 20 && pp.name)
-        tp.contents = ttContents(pp.id, pp.name);        // the store itself
-      else if(sku) tp.contents = ttContents(sku[0], sku[1]);
-      else if(pp.name) tp.contents = ttContents(pp.id, pp.name);
-      window.ttq.track(tev, tp, { event_id: eid });
-    }
-  }catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
-/* TikTok helpers: SHA-256 (their spec requires client-side hashing of PII)
-   and a contents[] builder from the buyer's chosen product */
-window.__ttP = null;
-function ttSha(s){
-  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)))
-    .then(function(b){ return Array.from(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join(''); });
-}
-function ttContents(id, name){
-  return [{ content_id: String(id || 'store'), content_type: 'product', content_name: String(name || 'AI Store') }];
-}
 window.dsFire('PageView');
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
@@ -2196,9 +2214,10 @@ window.dsFire('PageView');
     <!-- ======================= 9 · AI SCAN ======================= -->
     <section class="screen" id="s-scan">
       <div class="scan-wrap">
-        <div class="ai-orb" id="orb">🔎</div>
-        <div class="odometer" id="odo">0</div>
-        <div class="odometer-label" id="odoLabel">matches found</div>
+        <!-- one product at a time: photo, three metrics, a quiet verdict; matches collect below -->
+        <div class="sc-head"><span class="sc-step" id="odoLabel">Scanning this week's top sellers</span><span class="sc-count" id="odo">0 / 8</span></div>
+        <div class="sc-deck" id="scDeck"></div>
+        <div class="sc-found" id="scFound"><span class="sc-found-lbl">Matched for you</span><span class="sc-found-row" id="scFoundRow"></span></div>
         <div class="scan-bar"><div class="scan-fill" id="scanFill"></div></div>
         <div class="scan-log">
           <div class="scan-line" id="sl0"><span class="st">✓</span><span>Pulling this week's top-selling products…</span></div>
@@ -2222,7 +2241,7 @@ window.dsFire('PageView');
         <span class="pick-dots" id="pickDots"></span>
       </div>
 
-      <div class="halo">
+      <div class="halo"><div class="halo-ring"></div>
         <div class="pick-card" id="pickCard">
           <div class="pick-img" id="pImgBox">
             <span class="badge-trend" id="pTrend">🔥 TRENDING +312%</span>
@@ -2378,18 +2397,20 @@ window.dsFire('PageView');
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
       </div>
 
-        <div class="engine">
-        <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
-        <div class="eq">
-          <div class="eq-tile gold"><b id="eqProfit">$0.00</b><span>margin / sale</span></div>
+        <!-- offer stack: everything the $20 buys, revealed row by row -->
+        <div class="offer" id="offer">
+          <div class="offer-title">🎁 EVERYTHING INSIDE <span id="offerBrand">YOUR STORE</span></div>
+          <div class="offer-row"><span class="ic">🏪</span><span class="tx"><b>Custom store, built around <span id="offerProd">your product</span></b><span>Your own branded storefront — not a template</span></span><span class="val">$499</span></div>
+          <div class="offer-row"><span class="ic">✍️</span><span class="tx"><b>AI-written product page</b><span>Title, description, benefits, FAQ &amp; reviews layout</span></span><span class="val">$299</span></div>
+          <div class="offer-row"><span class="ic">📦</span><span class="tx"><b>Supplier connected &amp; product locked in</b><span>Ships direct to your customers, tracked</span></span><span class="val">$199</span></div>
+          <div class="offer-row"><span class="ic">💳</span><span class="tx"><b>Checkout, payments &amp; shipping set up</b><span>Cards, Apple Pay, tax and shipping rules</span></span><span class="val">$99</span></div>
+          <div class="offer-row"><span class="ic">📱</span><span class="tx"><b>Live on phone, tablet &amp; desktop</b><span>Fast, mobile-first, ready for ads</span></span><span class="val inc">INCLUDED</span></div>
+          <div class="offer-row"><span class="ic">💰</span><span class="tx"><b>Built-in margin per sale</b><span>List price minus supplier cost</span></span><span class="val gold" id="eqProfit">$0.00</span></div>
+          <div class="offer-total"><span>Total value</span><s>$1,096</s></div>
+          <div class="offer-today"><span class="lbl">Yours today<small>one-time · no subscription to us</small></span><span class="price">$20</span></div>
+          <div class="offer-save">✓ You save $1,076 (98%) · 30-day money-back guarantee</div>
         </div>
-        <div class="engine-note" id="engineNote">list price minus supplier cost — before ad costs, payment fees, taxes &amp; refunds</div>
-        <p class="disclaim" style="margin-top:8px;max-width:none">That margin is a fact about this product's pricing — not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
-      </div>
-
-      <div class="stack-line">
-        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$20 today</b></span>
-      </div>
+        <p class="disclaim" style="margin-top:6px;max-width:none">Margin per sale = suggested price minus supplier cost, before ad costs, payment fees, taxes and refunds. It's a fact about this product's pricing, not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
     </section>
 
     <!-- ================ 13b · VIDEO ADS UPSELL (post-purchase) ================
@@ -2654,25 +2675,16 @@ const PRICE20 = true || (function(){
 (function(){
   try{
     const p = new URLSearchParams(location.search);
-    // Whop ad clicks land with waid/wacid/wasid (their click ids) — capture
-    // them like UTMs so the purchase can be attributed to the exact ad.
-    if(p.get('utm_source') || p.get('waid') || p.get('ttclid')) localStorage.setItem('spai_utm', JSON.stringify({
+    if(p.get('utm_source')) localStorage.setItem('spai_utm', JSON.stringify({
       s: p.get('utm_source') || '', m: p.get('utm_medium') || '',
-      c: p.get('utm_campaign') || '', w: p.get('waid') || '',
-      w2: p.get('wacid') || '', w3: p.get('wasid') || '',
-      tk: p.get('ttclid') || '', t: Date.now() }));
+      c: p.get('utm_campaign') || '', t: Date.now() }));
   }catch(e){}
 })();
 function dsUtm(){
   try{
     const u = JSON.parse(localStorage.getItem('spai_utm') || 'null');
-    if(u && u.t && (u.s || u.w || u.tk) && Date.now() - u.t < 7 * 86400 * 1000){
-      const out = { utm_source: u.s || '', utm_medium: u.m || '', utm_campaign: u.c || '' };
-      if(u.w) out.waid = u.w;
-      if(u.w2) out.wacid = u.w2;
-      if(u.w3) out.wasid = u.w3;
-      if(u.tk) out.ttclid = u.tk;
-      return out;
+    if(u && u.t && u.s && Date.now() - u.t < 7 * 86400 * 1000){
+      return { utm_source: u.s || '', utm_medium: u.m || '', utm_campaign: u.c || '' };
     }
   }catch(e){}
   return {};
@@ -3061,19 +3073,58 @@ function runScan(){
   chipsBox.innerHTML = chipVals.map(c=>`<span class="scan-chip">${c}</span>`).join('');
   const chips = [...chipsBox.children];
 
-  countUp(odo, 0, Math.max(PRODUCTS.length, 6), 2600, v=>Math.round(v).toLocaleString());   // real count: the products in the picker
-
+  // the dossier: all cards sit on one track that slides left; each card fills its bars when it is current,
+  // gets a quiet "Match", and joins the row below. One transform per step = smooth on phones.
+  const deck = document.getElementById('scDeck'), foundRow = document.getElementById('scFoundRow');
+  const pool = PRODUCTS.slice(0, 8);
+  deck.innerHTML = ''; foundRow.innerHTML = '';
+  document.querySelector('.scan-wrap').classList.remove('sc-done');
+  odo.textContent = '0 / ' + pool.length;
+  const pct = (seed, lo, hi) => lo + ((seed * 7919) % (hi - lo + 1));
+  const photo = p => (p.thumb || p.image) ? '<img src="' + String(p.thumb || p.image).replace(/"/g, '&quot;') + '" alt="" decoding="async">' : (p.emoji || '📦');
+  const track = document.createElement('div'); track.className = 'sc-track'; deck.appendChild(track);
+  const cards = pool.map((p, i) => {
+    const demand = p.trend ? Math.min(98, Math.max(78, Math.round(70 + Number(p.trend) / 12))) : pct(i + 3, 82, 97);
+    const margin = p.price ? Math.round((p.price - p.cost) / p.price * 100) : pct(i + 5, 55, 75);
+    const supplier = pct(i + 11, 91, 99);
+    const card = document.createElement('div');
+    card.className = 'sc-card';
+    card.innerHTML = '<div class="sc-photo">' + photo(p) + '</div><div class="sc-body"><b class="sc-name">' + bxEsc(p.name) + '</b>' +
+      '<div class="sc-metric"><span>Demand</span><i><b style="--s:' + (demand / 100) + '"></b></i><em>' + demand + '</em></div>' +
+      '<div class="sc-metric"><span>Margin</span><i><b style="--s:' + (Math.min(margin, 100) / 100) + '"></b></i><em>' + margin + '%</em></div>' +
+      '<div class="sc-metric"><span>Supplier</span><i><b style="--s:' + (supplier / 100) + '"></b></i><em>' + supplier + '</em></div></div>' +
+      '<span class="sc-verdict">✓ Match</span>';
+    track.appendChild(card);
+    return card;
+  });
+  const slot = Math.max(900, Math.floor(8200 / Math.max(pool.length, 1)));
+  const firstPhoto = (() => { const src = pool[0] && (pool[0].thumb || pool[0].image); if(!src) return Promise.resolve(); const im = new Image(); im.src = src; return (im.decode ? im.decode() : Promise.resolve()).catch(() => {}); })();
+  const start = Promise.race([firstPhoto, new Promise(r => setTimeout(r, 600))]);
+  cards.forEach((card, i) => {
+    setTimeout(async () => {
+      if(i === 0) await start;
+      track.style.transform = 'translateX(-' + (i * 100) + '%)';
+      if(cards[i - 1]) cards[i - 1].classList.remove('in');
+      card.classList.add('in');
+      setTimeout(() => {
+        card.classList.add('hit'); playPop(1.1 + i * 0.05); vibrate(6);
+        const m = document.createElement('span'); m.className = 'sc-mini'; m.innerHTML = photo(pool[i]); foundRow.appendChild(m);
+        requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add('in')));
+        odo.textContent = (i + 1) + ' / ' + pool.length;
+      }, slot - 280);
+    }, 350 + i * slot);
+  });
   const seq = [
-    {at:0,    bar:9,  line:0, mode:'doing'},
+    {at:0,    bar:9,  line:0, mode:'doing', label:'Scanning this week\'s top sellers'},
     {at:900,  bar:22, line:0, mode:'ok', ding:true},
-    {at:1400, bar:31, line:1, mode:'doing', label:'matches found'},
+    {at:1400, bar:31, line:1, mode:'doing', label:'Checking what sells right now'},
     {at:2700, bar:44, line:1, mode:'ok', ding:true},
-    {at:3100, bar:52, line:2, mode:'doing', label:'matching to your answers'},
+    {at:3100, bar:52, line:2, mode:'doing', label:'Matching to your answers'},
     {at:3500, chip:0},{at:3900, chip:1},{at:4300, chip:2},{at:4700, chip:3},
     {at:5100, bar:68, line:2, mode:'ok', ding:true},
-    {at:5500, bar:79, line:3, mode:'doing', label:'suppliers verified'},
+    {at:5500, bar:79, line:3, mode:'doing', label:'Verifying suppliers'},
     {at:6700, bar:88, line:3, mode:'ok', ding:true},
-    {at:7100, bar:94, line:4, mode:'doing', label:'profit margins locked'},
+    {at:7100, bar:94, line:4, mode:'doing', label:'Locking your margins'},
     {at:8200, bar:100, line:4, mode:'ok', ding:true},
   ];
 
@@ -3097,12 +3148,10 @@ function runScan(){
   });
 
   setTimeout(()=>{
-    const orb = document.getElementById('orb');
-    orb.classList.add('done'); orb.textContent = '✓';
-    odo.textContent = 'FOUND'; odoLabel.textContent = 'winning products matched to you';
+    document.querySelector('.scan-wrap').classList.add('sc-done');
+    odo.textContent = pool.length + ' / ' + pool.length; odoLabel.textContent = 'Winning products matched to you';
     playTada();
-    confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 120);
-    coinCannon(window.innerWidth/2, window.innerHeight*0.35);
+    setTimeout(() => { confettiBurst(window.innerWidth/2, window.innerHeight*0.28, 70); coinCannon(window.innerWidth/2, window.innerHeight*0.3); }, 220);   // after the last card has settled
     vibrate([20,80,20,80,30]);
   }, 8700);
   setTimeout(()=>go('s-pick'), 10200);
@@ -3162,15 +3211,21 @@ function dsLoadProductsJson(){
 /* Warm the product photos so swiping through the picker is instant instead of
    fetching each image at the moment it's shown. The first few load right away;
    the rest follow a beat later so they don't compete with the opening screens. */
+const dsWarmed = new Set();
+function dsWarmOne(p){
+  const src = p && p.image; if(!src || dsWarmed.has(src)) return;
+  dsWarmed.add(src);
+  const im = new Image(); im.decoding = 'async'; im.src = src;
+}
+/* Only the first few photos at boot (the ones the scan and the first cards
+   show); the rest are warmed three ahead as the visitor swipes (dsWarmAhead),
+   so a slow connection is never flooded with 180 downloads during the quiz. */
 function dsPreloadImages(list){
-  const warm = p => {
-    if(!p || !p.image) return;
-    const im = new Image();
-    im.decoding = 'async';
-    im.src = p.image;
-  };
-  list.slice(0, 8).forEach(warm);
-  setTimeout(()=>list.slice(8).forEach(warm), 1500);
+  const go = () => list.slice(0, 8).forEach(dsWarmOne);   // the eight the scan screen shows, then the picker's first cards
+  if(document.readyState === 'complete') setTimeout(go, 400); else window.addEventListener('load', () => setTimeout(go, 400), { once:true });
+}
+function dsWarmAhead(i){
+  for(let k = 1; k <= 3; k++) dsWarmOne(PRODUCTS[(i + k) % PRODUCTS.length]);
 }
 
 /* Fisher-Yates — randomise the deck on load so the same products don't always
@@ -3244,12 +3299,14 @@ function stars(r){ const f=Math.round(r||4.8); return '★★★★★'.slice(0,
 function fillPick(p, i){
   pickShown = p;
   spLog('product_view', p.name);
+  dsWarmAhead(i);
   const box = document.getElementById('pImgBox');
   const old = box.querySelector('img'); if(old) old.remove();
   const em = document.getElementById('pEmoji');
   if(p.image){
     em.style.display='none';
     const img = document.createElement('img');
+    img.decoding = 'async'; img.fetchPriority = 'high';
     img.src = p.image; img.alt = p.name;
     box.appendChild(img);
   } else {
@@ -3318,7 +3375,13 @@ function pickSkip(){
   initAudio(); playWhoosh(); vibrate(10);
   const card = document.getElementById('pickCard');
   card.classList.add('swap-out');
-  setTimeout(()=>{
+  // decode the next photo while the card slides out, so it never pops in late
+  const nextP = PRODUCTS[(pIdx + 1) % PRODUCTS.length];
+  let decoded = Promise.resolve();
+  if(nextP && nextP.image){ const im = new Image(); im.decoding = 'async'; im.src = nextP.image; decoded = (im.decode ? im.decode() : Promise.resolve()).catch(()=>{}); }
+  const wait = Promise.race([decoded, new Promise(r => setTimeout(r, 420))]);
+  setTimeout(async ()=>{
+    await wait;
     pIdx = (pIdx + 1) % PRODUCTS.length;
     fillPick(PRODUCTS[pIdx], pIdx);
     card.classList.remove('swap-out');
@@ -3339,10 +3402,6 @@ function pickChoose(e){
   }
   chosen = sel;
   spLog('product_choose', chosen.name);
-  try{
-    window.__ttP = { id: chosen.dsId || chosen.name || 'store', name: chosen.name || 'AI Store' };
-    window.ttq && ttq.track('AddToCart', { contents: ttContents(window.__ttP.id, window.__ttP.name), value: 20, currency: 'USD' });
-  }catch(e){}
   // persist the pick — the post-payment return reloads the page and the
   // upsell's ad mockups need the product's photo, name & price back
   try{ localStorage.setItem('spai_chosen', JSON.stringify({
@@ -3461,26 +3520,6 @@ function spLead(stage, email, cs, extra){
       try{ email = (JSON.parse(localStorage.getItem('spai_lead') || '{}').email) || ''; }catch(e){ email = ''; }
     }
     if(!email || !/^https?:/.test(location.protocol)) return;
-    // Whop visitor↔purchase matching — once per email per page
-    try{
-      if(window.whop && window.__wqIdent !== email){
-        window.__wqIdent = email;
-        window.whop.identify({ email: email });
-      }
-      if(window.ttq && window.__ttIdent !== email){
-        window.__ttIdent = email;
-        // TikTok spec: PII must be SHA-256 hashed client-side (email normalized first)
-        ttSha(email.trim().toLowerCase()).then(function(he){
-          var idp = { email: he };
-          var done = function(){ try{ window.ttq.identify(idp); }catch(e){} };
-          try{
-            var c = (typeof dsCid === 'function') ? dsCid() : '';
-            if(c) return ttSha(String(c)).then(function(hc){ idp.external_id = hc; done(); }, done);
-          }catch(e){}
-          done();
-        }).catch(function(){});
-      }
-    }catch(e){}
     fetch('/api/lead', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(Object.assign({ email: email, stage: stage, cs: cs || null }, extra || {})), keepalive: true
@@ -4519,6 +4558,9 @@ function pvPrepare(){
   const brand = realName || BX.brand || bxBrand(p.name);
   document.getElementById('pvProdName').textContent = brand;
   document.getElementById('pvUrl').textContent = slugOf(brand) + '.myshopify.com';
+  const ob = document.getElementById('offerBrand'), op = document.getElementById('offerProd');
+  if(ob) ob.textContent = brand.toUpperCase();
+  if(op) op.textContent = p.name;
   const sec = document.getElementById('s-preview');
   sec.classList.add('prep');
   const rd = BX.design && BX.design.sections ? BX.design : null;
@@ -4574,10 +4616,6 @@ function dsApplyUnlimitedUi(){
 let resvTick = null;
 /* ---- preview screen: live, scrollable store pages inside the devices ---- */
 function runGlam(p){
-  try{
-    window.__ttP = { id: (p && (p.dsId || p.id || p.name)) || 'store', name: (p && p.name) || (chosen && chosen.name) || 'AI Store' };
-    window.ttq && ttq.track('ViewContent', { contents: ttContents(window.__ttP.id, window.__ttP.name), value: 20, currency: 'USD' });
-  }catch(e){}
   // store number — feels like a production line, changes daily
   const d = new Date();
   document.getElementById('buildNo').textContent = (2391 + d.getDate()*3 + d.getDay()).toLocaleString();
@@ -4971,10 +5009,6 @@ function dsPaidClaim(btn){
       }
       if(j && j.ok && j.client_secret){
         spLog('checkout_mode', j.ui || 'custom');
-        try{
-          var ttp2 = window.__ttP || {};
-          window.ttq && ttq.track('AddPaymentInfo', { contents: ttContents(ttp2.id, ttp2.name), value: 20, currency: 'USD' });
-        }catch(e){}
         if(j.custom_error) spLog('custom_mode_err', j.custom_error);
         if(j.ui === 'embedded') return dsOpenPay(j.client_secret, j.publishable_key, false);
         return dsOpenPay20(j.client_secret, j.publishable_key);
@@ -5966,8 +6000,46 @@ function countUp(el, from, to, dur, fmt){
 const cvs = document.getElementById('fx');
 const ctx = cvs.getContext('2d');
 let parts = [];
-function fit(){ cvs.width = innerWidth*devicePixelRatio; cvs.height = innerHeight*devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+/* 2x is plenty for confetti and coins; 3x triples the fill cost on iPhones for no visible gain */
+const FX_DPR = Math.min(window.devicePixelRatio || 1, 2);
+function fit(){ cvs.width = innerWidth*FX_DPR; cvs.height = innerHeight*FX_DPR; ctx.setTransform(FX_DPR,0,0,FX_DPR,0,0); }
 fit(); addEventListener('resize', fit);
+
+/* Sprites: a coin, a glow and an emoji are rendered ONCE per size to a small
+   offscreen canvas and then stamped with drawImage, instead of rebuilding a
+   radial gradient and laying out a glyph for every particle on every frame. */
+const fxCache = {};
+function fxSprite(key, size, draw){
+  let c = fxCache[key]; if(c) return c;
+  c = document.createElement('canvas');
+  const px = Math.max(2, Math.ceil(size * FX_DPR)); c.width = px; c.height = px;
+  const g = c.getContext('2d'); g.setTransform(FX_DPR,0,0,FX_DPR,0,0); draw(g, size);
+  fxCache[key] = c; return c;
+}
+function fxCoin(r){
+  const R = Math.max(4, Math.round(r));
+  return fxSprite('coin' + R, R*2 + 4, (g, sz) => {
+    const c = sz/2, gr = g.createRadialGradient(c - R*.3, c - R*.3, 1, c, c, R);
+    gr.addColorStop(0,'#FFE9A3'); gr.addColorStop(.55,'#FFC93C'); gr.addColorStop(1,'#C77E06');
+    g.fillStyle = gr; g.beginPath(); g.arc(c, c, R, 0, Math.PI*2); g.fill();
+    g.strokeStyle = '#8A5A04'; g.lineWidth = 1.4; g.stroke();
+    g.fillStyle = '#8A5A04'; g.font = 'bold ' + (R*1.1) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('$', c, c + 1);
+  });
+}
+function fxGlow(r){
+  const R = Math.max(3, Math.round(r*3));
+  return fxSprite('glow' + R, R*2, (g, sz) => {
+    const c = sz/2, gr = g.createRadialGradient(c, c, 0, c, c, R);
+    gr.addColorStop(0,'rgba(255,220,120,.9)'); gr.addColorStop(1,'rgba(255,201,60,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, sz, sz);
+  });
+}
+function fxEmoji(ch, size){
+  const S = Math.max(8, Math.round(size));
+  return fxSprite('em' + ch + S, Math.ceil(S*1.5), (g, sz) => {
+    g.font = S + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, sz/2, sz/2 + 1);
+  });
+}
 
 const CONF_COLORS = ['#3B82F6','#22C55E','#FFC93C','#F59E0B','#8EC5FF','#7CF0A9','#fff'];
 
@@ -6036,12 +6108,8 @@ function loopFx(){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
         const sq = Math.abs(Math.cos(p.rot*2))*.65+.35;
         ctx.scale(sq,1);
-        const g = ctx.createRadialGradient(-p.r*.3,-p.r*.3,1,0,0,p.r);
-        g.addColorStop(0,'#FFE9A3'); g.addColorStop(.55,'#FFC93C'); g.addColorStop(1,'#C77E06');
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#8A5A04'; ctx.lineWidth=1.4; ctx.stroke();
-        ctx.fillStyle='#8A5A04'; ctx.font='bold '+p.r*1.1+'px sans-serif';
-        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,1);
+        const sp = fxCoin(p.r), w = sp.width / FX_DPR;
+        ctx.drawImage(sp, -w/2, -w/2, w, w);
         ctx.restore();
       } else if(p.type==='spark'){
         ctx.strokeStyle=p.color; ctx.lineWidth=2.2; ctx.lineCap='round';
@@ -6052,14 +6120,12 @@ function loopFx(){
         p.tw += .12;
         const a = Math.max(0, Math.min(1, p.life)) * (0.45 + 0.55*Math.abs(Math.sin(p.tw)));
         ctx.globalAlpha = a;
-        const g2 = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
-        g2.addColorStop(0,'rgba(255,220,120,.9)'); g2.addColorStop(1,'rgba(255,201,60,0)');
-        ctx.fillStyle = g2;
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r*3,0,Math.PI*2); ctx.fill();
+        const sp = fxGlow(p.r), w = sp.width / FX_DPR;
+        ctx.drawImage(sp, p.x - w/2, p.y - w/2, w, w);
       } else if(p.type==='emoji'){
         ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        ctx.font=p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(p.ch,0,0); ctx.restore();
+        const sp = fxEmoji(p.ch, p.size), w = sp.width / FX_DPR;
+        ctx.drawImage(sp, -w/2, -w/2, w, w); ctx.restore();
       }
     }
     ctx.globalAlpha = 1;
@@ -6168,6 +6234,17 @@ try{
           try{ initAudio(); }catch(e){}
           go('s-build');
         } else setTimeout(wait, 150);
+      })();
+    });
+  }
+  if(new URLSearchParams(location.search).get('step') === 'scan'){
+    /* Design review link: plays the product scan with the live catalogue, then the picker. */
+    document.addEventListener('DOMContentLoaded', () => {
+      const t0 = Date.now();
+      (function wait(){
+        const live = PRODUCTS.some(p => p && p.dsId);
+        if(live || Date.now() - t0 > 3500){ go('s-scan'); setTimeout(runScan, 350); }
+        else setTimeout(wait, 150);
       })();
     });
   }
