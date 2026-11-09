@@ -11,7 +11,8 @@
    Progress lives in Vercel Blob members/<cs>.json (private store). */
 
 const AC_URL = 'https://sellproducts.api-us1.com';
-const AC_KEY = 'd84c8bf84307d5b159099552ae63a16a92af944cac522e0ff3ea8ece4bae99b7350dab92';
+const { credential } = require('../lib/secrets');
+const AC_KEY = credential('AC_KEY');
 const ACTIVATION_FIELD_ID = 2;               // %ACTIVATION_LINK%
 const RESEND_LIST = 'SPAI Resend Activation'; // auto-created; wire an AC automation to it
 const OK_TYPES = new Set(['store_unlock20', 'store_unlock']); // $20 era + legacy $1 era
@@ -81,6 +82,7 @@ async function sendActivationEmail(to, link, product){
 }
 
 async function ac(path, method, body){
+  if(!AC_KEY) return { status: 0, ok: false, j: {} };
   const r = await fetch(AC_URL + path, {
     method: method || 'GET',
     headers: { 'Api-Token': AC_KEY, 'Content-Type': 'application/json' },

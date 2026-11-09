@@ -14,7 +14,9 @@
    the same deep-link the legacy DropStart $299 checkout used, so the
    existing dsResumeAfterUpsell() handler settles it unchanged. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const RETURN_URL = 'https://www.sellproducts.ai/?upsold=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
 const RETURN_URL_MEMBERS = 'https://www.sellproducts.ai/members?dfy=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
 /* open-access members link: no base order; the buyer types card + email in

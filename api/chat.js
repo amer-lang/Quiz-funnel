@@ -14,15 +14,21 @@
    Rate limit: 20 messages/hour per member (blob counter). History capped
    at the last 12 turns, 2k chars per message. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
-const AUTH_SECRET = process.env.AUTH_SECRET || '20365b854f330a5a41656911796269c12b0417be5adc698b572491ce9df7d857';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
+/* Same signing secret as /api/auth — read ONLY from the AUTH_SECRET Vercel env var; if it is missing no cookie is valid. */
+const AUTH_SECRET = (function(){ const v = String(process.env.AUTH_SECRET || '').trim(); return v.length >= 32 ? v : ''; })(); // trimmed; shorter than 32 characters counts as "not set"
 const OK_TYPES = new Set(['store_unlock20', 'store_unlock']);
 const MAX_PER_HOUR = 20;
 const { isOpen } = require('../lib/open'); // open-access members link: rate-limited per IP
 
 const crypto = require('crypto');
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');
-const hmac = s => crypto.createHmac('sha256', AUTH_SECRET).update(String(s)).digest('hex');
+const hmac = s => {
+  if(!AUTH_SECRET) throw new Error('auth_not_configured');
+  return crypto.createHmac('sha256', AUTH_SECRET).update(String(s)).digest('hex');
+};
 
 function blobToken(){
   if(process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
@@ -59,6 +65,7 @@ async function anthropicKey(){
 
 /* who is asking — signed cookie first, else a paid store order (memoized) */
 function cookieEmail(req){
+  if(!AUTH_SECRET) return ''; // not configured: no cookie is ever valid
   const raw = String(req.headers.cookie || '');
   const m = raw.match(/(?:^|;\s*)spai_sess=([^;]+)/);
   if(!m) return '';

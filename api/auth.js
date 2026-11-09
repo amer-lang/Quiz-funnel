@@ -19,8 +19,12 @@
    members/email/<sha256(email)>.json  { email, cs, src, created, updated }
    members/code/<sha256(email)>.json   { h, exp, tries, sends:[ts] } */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
-const AUTH_SECRET = process.env.AUTH_SECRET || '20365b854f330a5a41656911796269c12b0417be5adc698b572491ce9df7d857';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
+/* The session-cookie signing secret lives ONLY in the AUTH_SECRET Vercel env var (Production + Preview). If it is
+   missing nothing is signed or accepted — login fails closed instead of falling back to a value anyone could know. */
+const AUTH_SECRET = (function(){ const v = String(process.env.AUTH_SECRET || '').trim(); return v.length >= 32 ? v : ''; })(); // trimmed; shorter than 32 characters counts as "not set"
 /* Resend key: env var wins; otherwise the private-blob config written once via
    ?probe=setmail (keeps the secret out of git — GitHub blocks pushed API keys) */
 let RESEND_KEY_CACHE = null;
@@ -42,7 +46,10 @@ const MAX_TRIES = 5;
 
 const crypto = require('crypto');
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');
-const hmac = s => crypto.createHmac('sha256', AUTH_SECRET).update(String(s)).digest('hex');
+const hmac = s => {
+  if(!AUTH_SECRET) throw new Error('auth_not_configured');
+  return crypto.createHmac('sha256', AUTH_SECRET).update(String(s)).digest('hex');
+};
 const b64u = s => Buffer.from(String(s)).toString('base64url');
 const unb64u = s => { try{ return Buffer.from(String(s), 'base64url').toString('utf8'); }catch(e){ return ''; } };
 
@@ -198,6 +205,7 @@ function clearSession(res){
   res.setHeader('Set-Cookie', COOKIE + '=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax');
 }
 function readSession(req){
+  if(!AUTH_SECRET) return ''; // not configured: no cookie is ever valid
   const raw = String(req.headers.cookie || '');
   const m = raw.match(new RegExp('(?:^|;\\s*)' + COOKIE + '=([^;]+)'));
   if(!m) return '';
@@ -250,6 +258,35 @@ module.exports = async (req, res) => {
 
     /* ---- owner diagnostics ---- */
     if(q.probe && q.key === READ_KEY){
+      if(q.probe === 'vimeo'){ // owner: what Vimeo says about each members-area video to a logged-out viewer
+        const ids = String(q.ids || '').split(',').map(x => x.replace(/\D/g, '')).filter(Boolean).slice(0, 12);
+        const out = [];
+        for(const id of ids){
+          try{
+            const r = await fetch('https://vimeo.com/api/oembed.json?url=' + encodeURIComponent('https://vimeo.com/' + id), { headers: { 'User-Agent': 'Mozilla/5.0', Referer: 'https://www.sellproducts.ai/members' } });
+            const t = await r.text();
+            let j = {}; try{ j = JSON.parse(t); }catch(e){}
+            out.push({ id, status: r.status, title: j.title || null, note: r.status === 200 ? 'plays for everyone' : r.status === 403 ? 'privacy blocks logged-out viewers (unlisted needs its hash, or domain/embed restricted)' : r.status === 404 ? 'private or deleted' : t.slice(0, 120) });
+          }catch(e){ out.push({ id, error: String(e && e.message || e).slice(0, 120) }); }
+        }
+        /* the player's own config call — the exact thing that shows 'Sorry …' in the embed */
+        const refs = { none: '', www: 'https://www.sellproducts.ai/members', apex: 'https://sellproducts.ai/members', preview: 'https://nwq-git-gift-preview-ecom-websites.vercel.app/members' };
+        const player = [];
+        for(const id of ids){
+          const row = { id };
+          for(const [k, ref] of Object.entries(refs)){
+            try{
+              const h = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36' };
+              if(ref) h.Referer = ref;
+              const r = await fetch('https://player.vimeo.com/video/' + id + '/config?dnt=1', { headers: h });
+              const t = await r.text(); let j = {}; try{ j = JSON.parse(t); }catch(e){}
+              row[k] = r.status + (r.status === 200 ? ' ok' : ' ' + String(j.title || '') + ': ' + String(j.message || t.slice(0, 80)));
+            }catch(e){ row[k] = 'ERR ' + String(e && e.message || e).slice(0, 60); }
+          }
+          player.push(row);
+        }
+        return res.status(200).json({ ok:true, videos: out, player });
+      }
       if(q.probe === 'opentoken'){ // the no-login members link (see lib/open.js)
         const t = require('../lib/open').openToken();
         return res.status(200).json({ ok: !!t, link: t ? 'https://www.sellproducts.ai/members?pass=' + t : '' });

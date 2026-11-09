@@ -20,7 +20,9 @@
    Sheet columns (row 1 headers, set by hand):
    Date (PT) | Email | Product | Amount | Source | Order ID */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const SHEET_SECRET = '789b6ab8689b124208d9bf20e12e7bbf'; // must match the Apps Script
 const TYPES = new Set(['video_ads_5']); // sheet sink
 const ALL_TYPES = new Set(['store_unlock20', 'store_unlock', 'video_ads_5', 'image_ads_10', 'store_addons']); // whop sink

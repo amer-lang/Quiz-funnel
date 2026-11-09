@@ -167,6 +167,10 @@ input{font-family:inherit}
 @keyframes screenFade{to{opacity:0}}
 @keyframes screenSoft{from{opacity:0}to{opacity:1}}
 .dev-phone.landing{animation:none;visibility:hidden;transform:rotate(4deg)}
+#s-preview .dev-phone.landing{animation:none;visibility:hidden;opacity:1;transform:rotate(4deg)}
+/* after the glide: the real phone is simply THERE (no entrance replay); it keeps its idle float (the float starts on the same pose), desktop holds still */
+#s-preview .dev-phone.landed{animation:floatPh 4.8s ease-in-out infinite;opacity:1;visibility:visible;transform:rotate(4deg)}
+@media (min-width:640px) and (pointer:fine){ #s-preview .dev-phone.landed{animation:none} }
 @keyframes screenIn{from{opacity:0;transform:translateX(46px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes screenOut{to{opacity:0;transform:translateX(-40px) scale(.985)}}
 
@@ -733,7 +737,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
 /* ---------- the store page inside the phone (light theme, 390px) ---------- */
 .sp{
-  --acc:#2563EB;--acc-soft:#E8EEFF;--acc-ink:#1E3A8A;
+  --acc:#2563EB;--acc-soft:#E8EEFF;--acc-ink:#1E3A8A;--fill:var(--acc);--on-fill:#fff;--acc-text:var(--acc);
   width:390px;background:#fff;color:#111827;font-family:'Plus Jakarta Sans',system-ui,sans-serif;
   text-align:left;line-height:1.4;-webkit-font-smoothing:antialiased;
 }
@@ -746,10 +750,10 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   -webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent);
 }
 .sp .sec.sp-media:not(.in)::before{inset:0;left:0;right:0;top:0;bottom:0;border-radius:0;background:#EEF1F6;-webkit-mask-image:none;mask-image:none}
-.sp-status{display:flex;justify-content:space-between;align-items:center;height:46px;padding:12px 24px 0;background:var(--acc);color:#fff;font-size:15px;font-weight:700}
+.sp-status{display:flex;justify-content:space-between;align-items:center;height:46px;padding:12px 24px 0;background:var(--fill);color:var(--on-fill);font-size:15px;font-weight:700}
 .sp-status i{display:inline-block;width:22px;height:11px;border:1.5px solid #fff;border-radius:3px;position:relative;vertical-align:-1px;margin-left:6px}
 .sp-status i::after{content:'';position:absolute;left:2px;top:2px;bottom:2px;width:14px;background:#fff;border-radius:1px}
-.sp-ann{background:var(--acc);color:#fff;text-align:center;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:9px 12px}
+.sp-ann{background:var(--fill);color:var(--on-fill);text-align:center;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:9px 12px}
 .sp-nav{display:flex;align-items:center;justify-content:space-between;height:58px;padding:0 18px;border-bottom:1px solid #EEF1F6}
 .sp-nav .sp-ic{font-size:20px;color:#111827;width:26px;text-align:center}
 .sp-word{font-size:21px;font-weight:800;letter-spacing:-.02em;color:#111827;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
@@ -760,7 +764,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .sp-dots{position:absolute;left:0;right:0;bottom:-18px;display:flex;justify-content:center;gap:6px}
 .sp-dots i{width:6px;height:6px;border-radius:99px;background:#D1D5DB}.sp-dots i.on{width:22px;background:#111827}
 .sp-body{padding:30px 18px 6px}
-.sp-eye{display:block;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);margin-bottom:8px}
+.sp-eye{display:block;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-text);margin-bottom:8px}
 .sp h1,.sp h3,.sp p,.sp ul{text-align:left;max-width:none}
 .sp-title{font-size:27px;font-weight:800;letter-spacing:-.025em;line-height:1.15;margin:0 0 8px;color:#111827;text-align:left}
 .sp-stars{font-size:13px;color:#4B5563;font-weight:600;margin-bottom:14px}
@@ -775,7 +779,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .sp-bul li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#1F2937;font-weight:600}
 .sp-bul li::before{content:'✓';flex:none;width:20px;height:20px;border-radius:50%;background:var(--acc-soft);color:var(--acc-ink);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .sp-buy{display:grid;gap:10px;margin-bottom:14px}
-.sp-btn{height:50px;border-radius:13px;background:var(--acc);color:#fff;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;letter-spacing:-.01em}
+.sp-btn{height:50px;border-radius:13px;background:var(--fill);color:var(--on-fill);font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;letter-spacing:-.01em}
 .sp-btn.alt{background:#fff;color:#111827;border:1.5px solid #D1D5DB}
 .sp-pay{display:flex;justify-content:center;gap:6px;font-size:11.5px;color:#6B7280;font-weight:600}
 .sp-trust{list-style:none;margin:0;padding:0 0 22px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -814,7 +818,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .sp-how{padding:26px 18px 10px}
 .sp-how ol{list-style:none;margin:0;padding:0;display:grid;gap:12px}
 .sp-how li{display:flex;gap:12px;align-items:flex-start}
-.sp-how li b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sp-how li b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--fill);color:var(--on-fill);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .sp-how strong{display:block;font-size:14.5px;color:#111827}
 .sp-how li span{display:block;font-size:13px;color:#4B5563;line-height:1.4}
 .sp-ship{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 18px 24px}
@@ -875,7 +879,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
 /* desktop variant of the same store (monitor on the preview screen) */
 .spd{width:1200px}
-.spd-ann{background:var(--acc);color:#fff;text-align:center;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;padding:11px}
+.spd-ann{background:var(--fill);color:var(--on-fill);text-align:center;font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;padding:11px}
 .spd-nav{display:flex;align-items:center;justify-content:space-between;height:76px;padding:0 48px;border-bottom:1px solid #EEF1F6;font-size:15px;color:#4B5563;font-weight:600}
 .spd-word{font-size:27px;font-weight:800;letter-spacing:-.02em;color:#111827}
 .spd-hero{display:grid;grid-template-columns:560px 1fr;gap:56px;padding:48px;align-items:start}
@@ -904,6 +908,104 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .spd .sp-rcard p{font-size:15px}
 .spd .sp-h3{font-size:26px}
 .spd .sp-foot{padding:36px 48px 64px}
+
+/* ── Showcase: the animation draws the REAL store (TG16931) ─────────────────────────────────────────────────────────── */
+.sp.real .sp-life,.sp.real .sp-how,.sp.real .sp-ship{background:#F9FAFB}
+.sp.real .sp-ship{padding-top:22px;padding-bottom:24px}
+.sp.real .sp-life .sp-h3{margin-top:2px}
+.sp-spot{padding:26px 18px 6px}
+.sp-spot .eb{display:block;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--acc-text);margin-bottom:8px}
+.sp-spot .row{margin-bottom:22px}
+.sp-spot .im{aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#F3F4F6;margin-bottom:12px;box-shadow:0 14px 30px -20px rgba(17,24,39,.35)}
+.sp-spot .im img,.sp-inc .im img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(var(--z,1.12))}
+.sp-spot .im .sp-ph,.sp-inc .im .sp-ph{height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;background:linear-gradient(135deg,var(--acc-soft),#fff)}
+.sp-spot .ix{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--acc-ink);background:var(--acc-soft);padding:3px 9px;border-radius:99px;margin-bottom:8px}
+.sp-spot h4{font-size:15.5px;font-weight:800;color:#111827;margin:0 0 5px;letter-spacing:-.02em;word-spacing:.1em}
+.sp-spot p{margin:0;font-size:13.5px;line-height:1.55;color:#4B5563}
+.sp-cmp{padding:26px 18px 14px}
+.cmp{border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 10px 30px -18px rgba(17,24,39,.28)}
+.cmp .r{display:grid;grid-template-columns:1fr 72px 72px;align-items:stretch;border-top:1px solid #F1F3F6}
+.cmp .r:first-child{border-top:0}
+.cmp .r>span{padding:11px 8px;font-size:12.5px;font-weight:600;color:#111827;line-height:1.35;display:flex;align-items:center}
+.cmp .r>span.us{background:var(--acc-soft);justify-content:center}
+.cmp .r>span.th{justify-content:center;text-align:center}
+.cmp .h>span{font-size:11.5px;font-weight:800;padding-top:12px;padding-bottom:12px}
+.cmp .h>span.us{border-top:3px solid var(--fill);flex-direction:column;gap:4px;text-align:center;padding-top:9px}
+.cmp .av{width:30px;height:30px;border-radius:50%;overflow:hidden;background:#F3F4F6;display:block}
+.cmp .av img{width:100%;height:100%;object-fit:cover;display:block}
+.cmp i.ck{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--fill);color:var(--on-fill);font-style:normal;font-size:12px;font-weight:800;align-items:center;justify-content:center}
+.cmp i.xx{color:#9CA3AF;font-style:normal;font-size:15px}
+.sp-inc{padding:26px 18px 10px}
+.sp-inc .im{aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#F3F4F6;margin-bottom:12px;box-shadow:0 14px 30px -20px rgba(17,24,39,.35)}
+.sp-inc .it{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #EEF1F6}
+.sp-inc .it:last-child{border-bottom:0}
+.sp-inc .it i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--acc-soft);color:var(--acc-ink);font-style:normal;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.sp-inc .it b{display:block;font-size:14.5px;color:#111827;word-spacing:.1em}
+.sp-inc .it p{margin:2px 0 0;font-size:13px;color:#4B5563;line-height:1.45}
+.sp.real .sp-ship small{display:block;font-size:12px;color:#6B7280;margin-top:2px}
+.sp.real .sp-card .ic{font-size:15px;font-weight:800;color:var(--acc-ink)}
+.sp.real h1,.sp.real h3,.sp.real .sp-btn,.sp.real .sp-trust li,.sp.real .sp-card b,.sp.real .sp-how strong,.sp.real .sp-faq .q,.sp.real .sp-promise b{word-spacing:.1em}
+/* tablet */
+.spt .sp-spot,.spt .sp-cmp,.spt .sp-inc{padding:34px 40px 14px}
+.spt .sp-spot .row{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;margin-bottom:30px}
+.spt .sp-spot .row:nth-child(odd) .im{order:0}
+.spt .sp-spot .row:nth-child(even) .im{order:2}
+.spt .sp-spot .im{margin:0}
+.spt .sp-spot h4{font-size:20px}.spt .sp-spot p{font-size:15px}
+.spt .cmp .r{grid-template-columns:1fr 120px 120px}
+.spt .cmp .r>span{font-size:14px;padding:14px 14px}
+.spt .sp-inc .wrap{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start}
+.spt .sp-inc .im{margin:0}
+/* desktop monitor */
+.spd.real .spd-nav{justify-content:center;position:relative}
+.spd.real .spd-nav .spd-icons{position:absolute;right:48px}
+.spd.real .spd-band{padding:48px 48px 40px}
+.spd.real .spd-band.g{background:#F9FAFB}
+.spd.real .sp-spot{padding:0}
+.spd.real .sp-spot .row{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;margin-bottom:44px}
+.spd.real .sp-spot .row:nth-child(even) .im{order:2}
+.spd.real .sp-spot .im{aspect-ratio:3/2;margin:0}
+.spd.real .sp-spot h4{font-size:26px}.spd.real .sp-spot p{font-size:17px}
+.spd.real .sp-cmp,.spd.real .sp-inc{padding:0}
+.spd.real .cmp .r{grid-template-columns:1fr 170px 170px}
+.spd.real .cmp .r>span{font-size:15px;padding:16px 18px}
+.spd.real .cmp .h>span{font-size:14px}
+.spd.real .sp-inc .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.spd.real .sp-inc .im{margin:0}
+.spd.real .spd-life{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.spd.real .spd-life .im{aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#F3F4F6}
+.spd.real .spd-life .im img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.15)}
+.spd.real .spd-life p{font-size:17px;line-height:1.6;color:#4B5563;margin:0}
+.spd.real .spd-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.spd.real .spd-steps .s b{display:flex;width:32px;height:32px;border-radius:50%;background:var(--fill);color:var(--on-fill);font-size:14px;font-weight:800;align-items:center;justify-content:center;margin-bottom:10px}
+.spd.real .spd-steps strong{display:block;font-size:18px;margin-bottom:4px;word-spacing:.1em}
+.spd.real .spd-steps span{font-size:15px;line-height:1.5;color:#4B5563}
+.spd.real .spd-tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.spd.real .spd-tiles>div{border:1px solid #E5E7EB;border-radius:16px;padding:20px 24px;background:#fff;display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:center}
+.spd.real .spd-tiles span{grid-row:1/span 2;font-size:28px;width:52px;height:52px;border-radius:50%;background:var(--acc-soft);display:flex;align-items:center;justify-content:center}
+.spd.real .spd-tiles b{font-size:17px;align-self:end}
+.spd.real .spd-tiles small{font-size:14px;color:#4B5563;align-self:start}
+.spd.real .spd-faq{max-width:none}
+.spd.real .spd-faq .q{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid #E5E7EB;font-size:17px;font-weight:700;color:#111827}
+.spd.real .spd-faq .q::after{content:'+';font-size:22px;color:#9CA3AF;font-weight:400}
+.spd.real .sp-promise{margin:0 48px 32px}
+/* the store's own distinct pictures are shown whole: the template crops zoom ONE photo to fake variety */
+.sp img.rp,.sp-gal span img.rp{transform:none!important}
+
+/* the store's real reviews (only when the product has them): Amer's card language - rating summary card + white text cards, same as the store */
+.sp-rv{padding:26px 18px 14px;background:#F9FAFB}
+.sp-rv .sp-sum .big b{display:block;font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#111827}
+.sp-rv .sp-sum .meta{display:flex;flex-direction:column;gap:5px}
+.sp-rv .rs{position:relative;display:inline-block;height:16px;font-size:15px;line-height:1;letter-spacing:1px;font-style:normal}
+.sp-rv .rs .bg{color:#E5E7EB}
+.sp-rv .rs .fg{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:#F59E0B}
+.sp-rv .sp-sum .lb{font-size:12px;color:#6B7280;font-weight:600}
+.sp-rv .sp-rcard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.sp-rv .sp-rcard .st{margin-bottom:0}
+.sp-rv .sp-rcard .ph{width:64px;height:64px;border-radius:10px;object-fit:cover;flex:none}
+.spd.real .sp-rv{background:transparent;padding:0}
+.spd.real .sp-rv .rcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.spd.real .sp-rv .sp-sum{max-width:none}
 
 @media (prefers-reduced-motion:reduce){
   .bx-cam,.bx-scroll,.bx-sel{transition:none}
@@ -1229,34 +1331,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .eq-tile.gold b{background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.1rem}
 @keyframes goldGlow{0%,100%{box-shadow:0 0 0 4px rgba(255,201,60,.1),0 10px 26px -10px rgba(245,158,11,.55)}50%{box-shadow:0 0 0 8px rgba(255,201,60,.04),0 10px 32px -8px rgba(245,158,11,.75)}}
 .engine-note{margin-top:7px;text-align:center;font-size:.66rem;font-weight:700;color:var(--muted)}
-/* ---- offer stack (preview screen): what the $20 buys, revealed row by row ---- */
-.offer{position:relative;background:linear-gradient(160deg,rgba(255,201,60,.09),var(--card) 55%);border:1px solid rgba(255,201,60,.38);border-radius:var(--radius);padding:13px 14px 12px;margin:4px 0 8px;text-align:left;box-shadow:0 0 46px -14px rgba(255,201,60,.4),inset 0 1px 0 rgba(255,255,255,.04)}
-.offer-title{text-align:center;font-size:.62rem;font-weight:800;letter-spacing:.16em;color:var(--gold);margin-bottom:6px}
-.offer-title #offerBrand{color:var(--text)}
-.offer-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);opacity:0;transform:translateX(-12px)}
-.screen.active .offer-row{animation:offerIn .5s cubic-bezier(.22,1,.36,1) both}
-.offer-row:nth-child(2){animation-delay:.9s}.offer-row:nth-child(3){animation-delay:1.15s}.offer-row:nth-child(4){animation-delay:1.4s}
-.offer-row:nth-child(5){animation-delay:1.65s}.offer-row:nth-child(6){animation-delay:1.9s}.offer-row:nth-child(7){animation-delay:2.15s}
-.offer-row .ic{width:30px;height:30px;border-radius:9px;background:rgba(255,201,60,.12);border:1px solid rgba(255,201,60,.18);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex:none}
-.offer-row .tx{flex:1;min-width:0}
-.offer-row .tx b{display:block;font-size:.82rem;font-weight:800;line-height:1.25}
-.offer-row .tx b span{color:var(--gold)}
-.offer-row .tx span{display:block;font-size:.64rem;color:var(--muted);line-height:1.35;margin-top:1px}
-.offer-row .val{font-weight:800;font-size:.82rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;text-decoration:line-through;text-decoration-color:rgba(248,113,113,.7)}
-.offer-row .val.inc{text-decoration:none;color:var(--green);font-size:.6rem;letter-spacing:.08em}
-.offer-row .val.gold{text-decoration:none;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:.95rem}
-.offer-total{display:flex;justify-content:space-between;align-items:baseline;padding:10px 2px 2px;font-size:.78rem;color:var(--muted);font-weight:700;opacity:0}
-.screen.active .offer-total{animation:offerIn .5s cubic-bezier(.22,1,.36,1) 2.4s both}
-.offer-total s{color:#F87171;font-weight:800;font-size:1rem}
-.offer-today{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:9px 12px;border-radius:14px;background:rgba(255,201,60,.1);border:1px solid rgba(255,201,60,.42);opacity:0;transform:scale(.96)}
-.screen.active .offer-today{animation:offerPop .55s cubic-bezier(.34,1.56,.64,1) 2.65s both}
-.offer-today .lbl{font-weight:800;font-size:.88rem}
-.offer-today .lbl small{display:block;font-size:.6rem;color:var(--muted);font-weight:700;margin-top:1px}
-.offer-today .price{font-size:1.55rem;font-weight:900;letter-spacing:-.02em;background:var(--grad-money);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.offer-save{text-align:center;font-size:.64rem;font-weight:800;color:var(--green);margin-top:7px;opacity:0}
-.screen.active .offer-save{animation:offerIn .5s ease 3s both}
-@keyframes offerIn{to{opacity:1;transform:none}}
-@keyframes offerPop{to{opacity:1;transform:none}}
 .stack-line{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;animation:screenIn .6s cubic-bezier(.22,1,.36,1) .8s both}
 .stack-line .chip{
   font-size:.64rem;font-weight:700;color:var(--muted);
@@ -1295,8 +1369,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   #s-preview .mock-scene{grid-column:1;grid-row:4 / span 2;align-self:center;max-width:min(480px,calc((100vh - 330px) / .7));margin:0}
   #s-preview .engine{grid-column:2;grid-row:4;align-self:end;width:100%;max-width:440px;margin:0 0 12px}
   #s-preview .stack-line{grid-column:2;grid-row:5;align-self:start;max-width:440px;justify-content:center}
-  #s-preview .offer{grid-column:2;grid-row:4 / span 2;align-self:center;width:100%;max-width:440px;margin:0}
-  #s-preview .offer + .disclaim{grid-column:1 / -1}
 }
 @media (max-height:880px){
   #s-preview h2{font-size:1.22rem}
@@ -1304,8 +1376,6 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   #s-preview .kicker{margin-bottom:12px}
   .mock-scene{max-width:325px}
   .engine{padding:8px 10px 7px;margin:2px 0 7px}
-  .offer{padding:10px 12px 10px}
-  .offer-row{padding:5px 0}
   .engine-title{margin-bottom:5px}
   .eq-tile{padding:6px 5px}
   .eq-tile b{font-size:.9rem}
@@ -2308,20 +2378,18 @@ window.dsFire('PageView');
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
       </div>
 
-        <!-- offer stack: everything the $20 buys, revealed row by row -->
-        <div class="offer" id="offer">
-          <div class="offer-title">🎁 EVERYTHING INSIDE <span id="offerBrand">YOUR STORE</span></div>
-          <div class="offer-row"><span class="ic">🏪</span><span class="tx"><b>Custom store, built around <span id="offerProd">your product</span></b><span>Your own branded storefront — not a template</span></span><span class="val">$499</span></div>
-          <div class="offer-row"><span class="ic">✍️</span><span class="tx"><b>AI-written product page</b><span>Title, description, benefits, FAQ &amp; reviews layout</span></span><span class="val">$299</span></div>
-          <div class="offer-row"><span class="ic">📦</span><span class="tx"><b>Supplier connected &amp; product locked in</b><span>Ships direct to your customers, tracked</span></span><span class="val">$199</span></div>
-          <div class="offer-row"><span class="ic">💳</span><span class="tx"><b>Checkout, payments &amp; shipping set up</b><span>Cards, Apple Pay, tax and shipping rules</span></span><span class="val">$99</span></div>
-          <div class="offer-row"><span class="ic">📱</span><span class="tx"><b>Live on phone, tablet &amp; desktop</b><span>Fast, mobile-first, ready for ads</span></span><span class="val inc">INCLUDED</span></div>
-          <div class="offer-row"><span class="ic">💰</span><span class="tx"><b>Built-in margin per sale</b><span>List price minus supplier cost</span></span><span class="val gold" id="eqProfit">$0.00</span></div>
-          <div class="offer-total"><span>Total value</span><s>$1,096</s></div>
-          <div class="offer-today"><span class="lbl">Yours today<small>one-time · no subscription to us</small></span><span class="price">$20</span></div>
-          <div class="offer-save">✓ You save $1,076 (98%) · 30-day money-back guarantee</div>
+        <div class="engine">
+        <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
+        <div class="eq">
+          <div class="eq-tile gold"><b id="eqProfit">$0.00</b><span>margin / sale</span></div>
         </div>
-        <p class="disclaim" style="margin-top:6px;max-width:none">Margin per sale = suggested price minus supplier cost, before ad costs, payment fees, taxes and refunds. It's a fact about this product's pricing, not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
+        <div class="engine-note" id="engineNote">list price minus supplier cost — before ad costs, payment fees, taxes &amp; refunds</div>
+        <p class="disclaim" style="margin-top:8px;max-width:none">That margin is a fact about this product's pricing — not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
+      </div>
+
+      <div class="stack-line">
+        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$20 today</b></span>
+      </div>
     </section>
 
     <!-- ================ 13b · VIDEO ADS UPSELL (post-purchase) ================
@@ -3608,19 +3676,28 @@ function bxIsPlaceholderName(n){
   return words.length <= 3 && /\b(store|shop|boutique|co)\.?$/i.test(t) && !/[&']/.test(t);
 }
 /* ask the builder for the name as soon as it exists (read-only status calls) */
+/* poll rhythm: 0.7s until the name is known, then 1s until the store's wording arrives (a coarser rhythm saved ~12% of polls but cost ~0.7s of reveal lag: not worth it) */
+function bxPollGap(){
+  const now = performance.now(); if(!BX.pollT0) BX.pollT0 = now;
+  const t = now - BX.pollT0;
+  return !BX.realName ? 700 : 1000;
+}
 function bxPollName(){
-  if(BX.done || BX.realName || !DS_LIVE || BX.demo) { BX.polling = false; return; }
+  const haveDesign = !!(BX.design && BX.design.sections);
+  if(BX.done || !DS_LIVE || BX.demo || (BX.realName && (BX.polled || 0) >= 2 && (!BX.designKnown || haveDesign))) { BX.polling = false; return; }
   BX.polling = true;
   if(!dsBuild || !dsBuild.project_id){ BX.nameTimer = setTimeout(bxPollName, 800); return; }
   fetch(DS_API + '/status/' + encodeURIComponent(dsBuild.project_id)).then(r=>r.json()).then(j=>{
-    if(j && j.store_name && !bxIsPlaceholderName(j.store_name)){
+    BX.polled = (BX.polled || 0) + 1;
+    if(j && j.store_name && !bxIsPlaceholderName(j.store_name) && !BX.realName){
       BX.realName = j.store_name;
       dsBuild.store_name = j.store_name;
       try{ localStorage.setItem('ds_build', JSON.stringify(dsBuild)); }catch(e){}
-      return;
     }
-    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 700);
-  }).catch(()=>{ if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 3000); });
+    if(j && j.ready) BX.statusReady = true;
+    if(j && j.design) bxTakeDesign(j.design);
+    if(!BX.done) BX.nameTimer = setTimeout(bxPollName, bxPollGap());
+  }).catch(()=>{ BX.polled = (BX.polled || 0) + 1; if(!BX.done) BX.nameTimer = setTimeout(bxPollName, 3000); });
 }
 
 /* page copy + accent by category / name keywords (the real store gets its
@@ -3706,6 +3783,246 @@ function bxStoreHTML(p, brand, th, built, cls){
     <div class="sec sp-foot" data-sec="foot"><div class="sp-news"><b>Get 10% off your first order</b><span><i>you@email.com</i><em>Join</em></span></div><b>${bxEsc(BX.realName ? brand : '')}</b>© ${new Date().getFullYear()} · Powered by Shopify<small>Shipping · Returns · Privacy · Terms · Contact</small></div>
   </div>`;
   return built ? html.replace(/class="sec"/g, 'class="sec in"').replace(/class="sec /g, 'class="sec in ') : html;
+}
+
+/* ============================================================
+   SHOWCASE: draw the store that was ACTUALLY built (TG16931)
+   /api/express/status now returns `design` for Showcase stores:
+     design.accent   from the first poll   (the store's exact colours)
+     design.sections once the wording exists (the store's real text, ~5 KB, one time)
+   With it the phone, the iPad and the monitor are the real store; without it nothing changes (the template below is the fallback).
+   ============================================================ */
+const BX_GATE_AT  = 2650;   // script time (after "base") where the animation waits for the store's wording: just BEFORE the title beat, so the real title/price are typed once (never the catalogue's, then swapped)
+const BX_GATE_CAP = 12000;   // ...but never longer than this; after that it plays the template text as before
+function bxSecOf(d, k){ return ((d && d.sections) || []).find(s=>s.key === k) || {}; }
+function bxAccentVars(a){
+  if(!a) return '';
+  return '--acc:' + a.acc + ';--acc-soft:' + a.soft + ';--acc-ink:' + a.ink + ';--fill:' + a.fill + ';--on-fill:' + a.on_fill + ';--acc-text:' + a.text;
+}
+function bxApplyAccent(a){
+  const root = bxQ('bxPage') && bxQ('bxPage').querySelector('.sp'); if(!root || !a) return;
+  [['--acc',a.acc],['--acc-soft',a.soft],['--acc-ink',a.ink],['--fill',a.fill],['--on-fill',a.on_fill],['--acc-text',a.text]].forEach(([k,v])=>root.style.setProperty(k, v));
+}
+/* the store's own pictures, by place. Every list can be empty (older API, or a supplier photo that is not a pool picture): callers then fall back to the catalogue photo */
+function bxPics(d){
+  const g = (d && d.gallery) || {}, im = o=>((o && o.items) || []).map(i=>(i && i.image) || '');
+  return { gallery: Array.isArray(g.images) ? g.images : [], count: g.count || 0, spot: im(bxSecOf(d,'spotlight')),
+           life: bxSecOf(d,'lifestyle').image || '', inc: bxSecOf(d,'included').image || '', cmp: bxSecOf(d,'comparison').image || '', rev: ((bxSecOf(d,'reviews').items) || []).map(i=>(i && i.image) || '') };
+}
+function bxPreload(d){
+  BX.pre = BX.pre || {};
+  const p = bxPics(d);
+  [].concat(p.gallery, p.spot, p.rev, [p.life, p.inc, p.cmp]).forEach(u=>{ if(u && !BX.pre[u]){ BX.pre[u] = 1; try{ const i = new Image(); i.decoding = 'async'; i.src = u; }catch(e){} } });
+}
+/* the product-page thumbnails from the store's own gallery: several different pictures, not the catalogue photo repeated */
+function bxGalleryHTML(pics){
+  const E = bxEsc, g = pics.gallery.slice(0, 4), more = Math.max(0, (pics.count || g.length) - g.length);
+  return g.map((u,i)=>'<span' + (i === 0 ? ' class="on"' : '') + '><img class="rp" src="' + E(u) + '" alt="" onerror="this.remove()"></span>').join('') + (more ? '<span class="more">+' + more + '</span>' : '');
+}
+function bxSwapGallery(){
+  const pics = bxPics(BX.design), el = BX.secs && BX.secs.gallery;
+  if(BX.galleryReal || !el || pics.gallery.length < 2) return;
+  BX.galleryReal = true;
+  el.innerHTML = bxGalleryHTML(pics);
+  const c = BX.secs.media && BX.secs.media.querySelector('.sp-count'); if(c && pics.count) c.textContent = '1 / ' + pics.count;
+}
+/* `design` comes from our own API but is treated as untrusted: only known fields, only the right types, colours as hex, numbers as numbers, https image URLs */
+const BX_HEX = /^#[0-9a-fA-F]{3,8}$/;
+function bxStr(v, max){ return typeof v === 'string' ? v.slice(0, max || 600) : ''; }
+function bxNum(v){ const n = Number(v); return isFinite(n) ? n : 0; }
+function bxUrl(v){ return typeof v === 'string' && /^https:\/\/[^\s"'<>\\]+$/.test(v) ? v : ''; }
+function bxObjs(a){ return Array.isArray(a) ? a.filter(x=>x && typeof x === 'object' && !Array.isArray(x)) : []; }
+function bxCleanAccent(a){
+  if(!a || typeof a !== 'object') return null;
+  const g = k=>(typeof a[k] === 'string' && BX_HEX.test(a[k])) ? a[k] : '';
+  const acc = g('acc'); if(!acc) return null;
+  return { acc:acc, soft:g('soft') || '#E8EEFF', ink:g('ink') || '#1E3A8A', fill:g('fill') || acc, on_fill:g('on_fill') || '#FFFFFF', text:g('text') || acc };
+}
+function bxCleanSection(s){
+  const o = { key: s.key };
+  ['text','wordmark','eyebrow','title','subtitle','assurance','heading','body','us_label','them_label','value','label'].forEach(k=>{ if(typeof s[k] === 'string') o[k] = s[k].slice(0, 600); });
+  if(s.image_position === 'left' || s.image_position === 'right') o.image_position = s.image_position;
+  ['price','was_price','save_pct','rating','rating_count'].forEach(k=>{ if(s[k] != null) o[k] = bxNum(s[k]); });
+  if(typeof s.image === 'string') o.image = bxUrl(s.image);
+  if(s.bullets !== undefined) o.bullets = (Array.isArray(s.bullets) ? s.bullets : []).filter(x=>typeof x === 'string').map(x=>x.slice(0, 200)).slice(0, 6);
+  if(s.items !== undefined) o.items = bxObjs(s.items).slice(0, 12).map(it=>{ const r = {}; Object.keys(it).forEach(k=>{ if(k === 'image') r.image = bxUrl(it.image); else if(k === 'rating') r.rating = Math.max(1, Math.min(5, Math.round(bxNum(it.rating)) || 5)); else if(typeof it[k] === 'string') r[k] = it[k].slice(0, 600); }); return r; });
+  if(s.rows !== undefined) o.rows = bxObjs(s.rows).slice(0, 10).map(r=>({ label: bxStr(r.label, 200), us: !!r.us, them: !!r.them }));
+  return o;
+}
+function bxCleanDesign(d){
+  if(!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  const out = {};
+  const acc = bxCleanAccent(d.accent); if(acc) out.accent = acc;
+  if(d.gallery && typeof d.gallery === 'object'){
+    const imgs = (Array.isArray(d.gallery.images) ? d.gallery.images : []).map(bxUrl).filter(Boolean).slice(0, 5);
+    if(imgs.length) out.gallery = { images: imgs, count: Math.max(imgs.length, Math.min(99, Math.floor(bxNum(d.gallery.count)))) };
+  }
+  if(Array.isArray(d.sections)){
+    const secs = bxObjs(d.sections).filter(x=>typeof x.key === 'string').map(bxCleanSection);
+    if(secs.some(x=>x.key === 'hero') && secs.length >= 8) out.sections = secs;   // anything smaller is not "the real store": keep the template
+  }
+  return (out.accent || out.gallery || out.sections) ? out : null;
+}
+function bxTakeDesign(raw){
+  const d = bxCleanDesign(raw);
+  if(!d) return;
+  BX.designKnown = true;
+  BX.design = Object.assign({}, BX.design || {}, d);
+  bxPreload(BX.design);
+  if(d.accent) bxApplyAccent(d.accent);
+  if(BX.reduced && d.sections && !BX.hydrated){ try{ bxHydrate(BX.design, true); }catch(err){} }
+}
+/* the store's own page, section by section, in its own order (13 sections, same markup classes as the template) */
+function bxRealSections(p, brand, d){
+  const hero = bxSecOf(d,'hero'), tr = bxSecOf(d,'trust'), why = bxSecOf(d,'benefits'), sp = bxSecOf(d,'spotlight'), lf = bxSecOf(d,'lifestyle'),
+        cm = bxSecOf(d,'comparison'), st = bxSecOf(d,'steps'), inc = bxSecOf(d,'included'), tl = bxSecOf(d,'tiles'), fq = bxSecOf(d,'faq'), pr = bxSecOf(d,'promise'),
+        an = bxSecOf(d,'announcement');
+  const photos = bxPhotos(p), E = bxEsc;
+  const ph = ()=>'<div class="sp-ph">' + (p.emoji||'📦') + '</div>';
+  const shot = (i, pos, z)=> photos.length ? '<img src="' + E(photos[i % photos.length]) + '" alt="" style="object-position:' + (pos||'50% 35%') + ';--z:' + (z||1.12) + '">' : ph();
+  const pics = bxPics(d), mainImg = pics.gallery[0] || p.image, picCount = pics.count || (photos.length + 2);
+  const img = (u, i, pos, z)=> u ? '<img class="rp" src="' + E(u) + '" alt="" onerror="this.remove()" style="object-position:' + (pos||'50% 50%') + '">' : shot(i, pos, z);
+  const price = Number(hero.price != null ? hero.price : (p.price||0));
+  const was = hero.was_price ? Number(hero.was_price) : 0;
+  const pct = hero.save_pct || (was > price ? Math.round((1 - price/was)*100) : 0);
+  const rating = hero.rating ? Number(hero.rating).toFixed(1) : '', rc = hero.rating_count ? Number(hero.rating_count).toLocaleString('en-US') : '';
+  const hd = (o, k)=> o.heading ? '<h3 class="sp-h3">' + E(o.heading) + '</h3>' : '';
+  const rv = bxSecOf(d,'reviews'), rvItems = (rv.items || []).slice(0, 3), rvR = bxNum(rv.rating);
+  const rvWho = r=>{ const nm = (r.author && String(r.author).toLowerCase() !== 'verified buyer') ? E(r.author) : ''; return nm + (r.location ? (nm ? ' · ' : '') + E(r.location) : '') + ((nm || r.location) ? ' · ' : '') + '<b>✓ Verified buyer</b>'; };
+  const rvCards = rvItems.map(r=>'<div class="sp-rcard"><div class="top"><div class="st">' + '★★★★★'.slice(0, r.rating || 5) + '</div>' + (r.image ? '<img class="ph rp" src="' + E(r.image) + '" alt="" onerror="this.remove()">' : '') + '</div><p>“' + E(r.text || '') + '”</p><small>' + rvWho(r) + '</small></div>').join('');
+  const rvSum = rvR > 0 ? '<div class="sp-sum"><div class="big"><b>' + rvR.toFixed(1) + '</b></div><div class="meta"><i class="rs"><span class="bg">★★★★★</span><span class="fg" style="width:' + Math.max(0, Math.min(100, Math.round(rvR / 5 * 100))) + '%">★★★★★</span></i><span class="lb">Average customer rating</span></div></div>' : '';
+  const emo = ['🚚','↩️','🔒'];
+  return {
+    ann: '<div class="sec sp-ann" data-sec="ann">' + E(an.text || 'Free shipping · 30-day guarantee') + '</div>',
+    head: '<div class="sec sp-nav" data-sec="head"><span class="sp-ic">≡</span><span class="sp-word" data-type="name">' + E(brand) + '</span><span class="sp-ic">🛍</span></div>',
+    media: '<div class="sec sp-media" data-sec="media">' + (mainImg ? '<img src="' + E(mainImg) + '" alt="">' : ph()) + '<span class="sp-count">1 / ' + picCount + '</span></div>',
+    gallery: '<div class="sec sp-gal" data-sec="gallery">' + (pics.gallery.length >= 2 ? bxGalleryHTML(pics) : '<span class="on">' + shot(0) + '</span><span>' + shot(1) + '</span><span class="zoom">' + shot(0,'50% 35%') + '</span><span class="zoom">' + shot(1,'50% 70%') + '</span><span class="more">+2</span>') + '</div>',
+    title: '<div class="sec" data-sec="title"><span class="sp-eye">' + E(brand) + '</span><h1 class="sp-title" data-type="title">' + E(hero.title || p.name || '') + '</h1>' +
+           (rating ? '<div class="sp-stars"><b>★★★★★</b>' + rating + (rc ? ' · ' + rc + ' total reviews' : '') + '</div>' : '') + '</div>',
+    price: '<div class="sec" data-sec="price"><div class="sp-price"><b class="sp-now">' + '$' + price.toFixed(2) + '</b>' + (was ? '<s class="sp-was">$' + was.toFixed(2) + '</s>' : '') +
+           (pct ? '<em class="sp-save">' + pct + '% OFF' + (was > price ? ' · SAVE $' + (was - price).toFixed(2) : '') + '</em>' : '') + '</div><p class="sp-tax">Taxes and shipping calculated at checkout.</p></div>',
+    desc: '<div class="sec" data-sec="desc"><p class="sp-desc" data-type="desc">' + E(hero.subtitle || '') + '</p></div>',
+    bullets: '<div class="sec" data-sec="bullets"><ul class="sp-bul">' + (hero.bullets||[]).map(b=>'<li>' + E(b) + '</li>').join('') + '</ul></div>',
+    buy: '<div class="sec" data-sec="buy"><div class="sp-buy"><span class="sp-btn">Add to cart</span><span class="sp-btn alt">Buy it now</span><span class="sp-pay">' + E(hero.assurance || '30-day money-back guarantee · Free shipping') + '</span></div></div>',
+    trust: '<div class="sec" data-sec="trust"><ul class="sp-trust">' + (tr.items||[]).slice(0,3).map((t,i)=>'<li><span>' + emo[i] + '</span>' + E(t.label) + '</li>').join('') + '</ul></div>',
+    why: '<div class="sec sp-why" data-sec="why">' + hd(why) + (why.items||[]).map(c=>'<div class="sp-card"><span class="ic">✓</span><div><b>' + E(c.title) + '</b><p>' + E(c.text) + '</p></div></div>').join('') + '</div>',
+    revs: rvItems.length ? '<div class="sec sp-rv" data-sec="revs">' + hd(rv) + rvSum + '<div class="rcards">' + rvCards + '</div></div>' : '',
+    spot: '<div class="sec sp-spot" data-sec="spot">' + (sp.eyebrow ? '<span class="eb">' + E(sp.eyebrow) + '</span>' : '') + hd(sp) +
+          (sp.items||[]).map((r,i)=>'<div class="row"><div class="im">' + img(pics.spot[i], i, ['50% 30%','40% 55%','60% 40%'][i%3], 1.15) + '</div><div><span class="ix">0' + (i+1) + '</span><h4>' + E(r.heading) + '</h4><p>' + E(r.body) + '</p></div></div>').join('') + '</div>',
+    life: '<div class="sec sp-life" data-sec="life"><div class="sp-lifeimg">' + img(pics.life, photos.length > 1 ? 1 : 0, '50% 60%', 1.25) + '</div>' + hd(lf) + '<p>' + E(lf.body || '') + '</p></div>',
+    cmp: '<div class="sec sp-cmp" data-sec="cmp">' + hd(cm) + '<div class="cmp"><div class="r h"><span></span><span class="us"><i class="av">' + img(pics.cmp, 0, '50% 40%', 1.0) + '</i>' + E(cm.us_label || brand) + '</span><span class="th">' + E(cm.them_label || 'Ordinary Options') + '</span></div>' +
+         (cm.rows||[]).map(r=>'<div class="r"><span>' + E(r.label) + '</span><span class="us">' + (r.us ? '<i class="ck">✓</i>' : '<i class="xx">✕</i>') + '</span><span class="th">' + (r.them ? '<i class="ck">✓</i>' : '<i class="xx">✕</i>') + '</span></div>').join('') + '</div></div>',
+    how: '<div class="sec sp-how" data-sec="how">' + hd(st) + '<ol>' + (st.items||[]).map((s,i)=>'<li><b>' + (i+1) + '</b><div><strong>' + E(s.title) + '</strong><span>' + E(s.text) + '</span></div></li>').join('') + '</ol></div>',
+    inc: '<div class="sec sp-inc" data-sec="inc">' + hd(inc) + '<div class="wrap"><div class="im">' + img(pics.inc, 0, '50% 50%', 1.0) + '</div><div class="its">' + (inc.items||[]).map(i=>'<div class="it"><i>✓</i><div><b>' + E(i.title) + '</b><p>' + E(i.text) + '</p></div></div>').join('') + '</div></div></div>',
+    ship: '<div class="sec sp-ship" data-sec="ship">' + (tl.items||[]).slice(0,2).map((t,i)=>'<div><span>' + ['🚚','↩️'][i] + '</span><b>' + E(t.label) + '</b><small>' + E(t.sub) + '</small></div>').join('') + '</div>',
+    faq: '<div class="sec sp-faq" data-sec="faq">' + hd(fq) + (fq.items||[]).map(q=>'<div class="q">' + E(q.q) + '</div>').join('') + '</div>',
+    promise: '<div class="sec sp-promise" data-sec="promise"><span>🛡️</span><div><b>' + E(pr.heading || ('The ' + brand + ' promise')) + '</b><p>' + E(pr.text || '') + '</p></div></div>',
+    foot: '<div class="sec sp-foot" data-sec="foot"><div class="sp-news"><b>Join our newsletter</b><span><i>you@email.com</i><em>Join</em></span></div><b>' + E(brand) + '</b>© ' + new Date().getFullYear() + ' · Powered by Shopify</div>'
+  };
+}
+const BX_REAL_ORDER = ['ann','head','media','gallery','BODY','why','spot','life','cmp','how','inc','ship','faq','promise','foot'];
+function bxStoreHTMLReal(p, brand, d, built, cls){
+  const s = bxRealSections(p, brand, d);
+  const html = '<div class="sp real ' + (cls||'') + '" style="' + bxAccentVars(d.accent) + '">' +
+    '<div class="sp-status"><span>9:41</span><span>●●● <i></i></span></div>' +
+    s.ann + s.head + s.media + s.gallery +
+    '<div class="sp-body">' + s.title + s.price + s.desc + s.bullets + s.buy + s.trust + '</div>' +
+    s.why + s.revs + s.spot + s.life + s.cmp + s.how + s.inc + s.ship + s.faq + s.promise + s.foot + '</div>';
+  return built ? html.replace(/class="sec"/g, 'class="sec in"').replace(/class="sec /g, 'class="sec in ') : html;
+}
+/* the same store at monitor width */
+function bxDesktopHTMLReal(p, brand, d){
+  const s = bxRealSections(p, brand, d);
+  const hero = bxSecOf(d,'hero'), tr = bxSecOf(d,'trust'), why = bxSecOf(d,'benefits'), sp = bxSecOf(d,'spotlight'), lf = bxSecOf(d,'lifestyle'), cm = bxSecOf(d,'comparison'),
+        st = bxSecOf(d,'steps'), inc = bxSecOf(d,'included'), tl = bxSecOf(d,'tiles'), fq = bxSecOf(d,'faq'), E = bxEsc;
+  const photos = bxPhotos(p), pics = bxPics(d), main = pics.gallery[0] || p.image;
+  const img = main ? '<img src="' + E(main) + '" alt="">' : '<div class="sp-ph">' + (p.emoji||'📦') + '</div>';
+  const price = Number(hero.price != null ? hero.price : (p.price||0)), was = hero.was_price ? Number(hero.was_price) : 0, pct = hero.save_pct || 0;
+  const rating = hero.rating ? Number(hero.rating).toFixed(1) : '', rc = hero.rating_count ? Number(hero.rating_count).toLocaleString('en-US') : '';
+  const emo = ['🚚','↩️','🔒'];
+  const hd = (o)=> o.heading ? '<h3 class="sp-h3">' + E(o.heading) + '</h3>' : '';
+  const band = (inner, g)=>'<div class="spd-band' + (g ? ' g' : '') + '">' + inner + '</div>';
+  const body = (html)=>html.replace(/^<div class="sec ([^"]*)" data-sec="[a-z]+">/, '<div class="$1">');
+  return '<div class="sp spd real" style="' + bxAccentVars(d.accent) + '">' +
+    '<div class="spd-ann">' + E(bxSecOf(d,'announcement').text || 'Free shipping · 30-day guarantee') + '</div>' +
+    '<div class="spd-nav"><span class="spd-word">' + E(brand) + '</span><span class="spd-icons">🛍</span></div>' +
+    '<div class="spd-hero"><div class="spd-media">' + img + '<span class="sp-count">1 / ' + (pics.count || (photos.length + 2)) + '</span></div>' +
+      '<div class="spd-copy"><span class="sp-eye">' + E(brand) + '</span><h1 class="spd-title">' + E(hero.title || p.name || '') + '</h1>' +
+      (rating ? '<div class="sp-stars"><b>★★★★★</b>' + rating + (rc ? ' · ' + rc + ' total reviews' : '') + '</div>' : '') +
+      '<div class="sp-price"><b class="sp-now">$' + price.toFixed(2) + '</b>' + (was ? '<s class="sp-was">$' + was.toFixed(2) + '</s>' : '') + (pct ? '<em class="sp-save">' + pct + '% OFF' + (was > price ? ' · SAVE $' + (was - price).toFixed(2) : '') + '</em>' : '') + '</div>' +
+      '<p class="sp-tax">Taxes and shipping calculated at checkout.</p><p class="spd-desc">' + E(hero.subtitle || '') + '</p>' +
+      '<ul class="sp-bul">' + (hero.bullets||[]).map(b=>'<li>' + E(b) + '</li>').join('') + '</ul>' +
+      '<div class="spd-buy"><span class="sp-btn">Add to cart</span><span class="sp-btn alt">Buy it now</span></div><span class="sp-pay">' + E(hero.assurance || '') + '</span></div></div>' +
+    '<ul class="spd-trust">' + (tr.items||[]).slice(0,3).map((t,i)=>'<li><span>' + emo[i] + '</span>' + E(t.label) + '</li>').join('') + '</ul>' +
+    band(hd(why) + '<div class="spd-cards">' + (why.items||[]).map(c=>'<div class="sp-card"><span class="ic">✓</span><div><b>' + E(c.title) + '</b><p>' + E(c.text) + '</p></div></div>').join('') + '</div>', true) +
+    (s.revs ? band(body(s.revs), true) : '') +
+    band(body(s.spot), false) +
+    band('<div class="spd-life"><div class="im">' + (pics.life ? '<img class="rp" src="' + E(pics.life) + '" alt="" onerror="this.remove()" style="object-position:50% 40%">' : (photos.length ? '<img src="' + E(photos[photos.length > 1 ? 1 : 0]) + '" alt="" style="object-position:50% 40%">' : '')) + '</div><div>' + hd(lf) + '<p>' + E(lf.body || '') + '</p></div></div>', true) +
+    band(body(s.cmp), false) +
+    band(hd(st) + '<div class="spd-steps">' + (st.items||[]).map((x,i)=>'<div class="s"><b>' + (i+1) + '</b><strong>' + E(x.title) + '</strong><span>' + E(x.text) + '</span></div>').join('') + '</div>', true) +
+    band(body(s.inc), false) +
+    band('<div class="spd-tiles">' + (tl.items||[]).slice(0,2).map((t,i)=>'<div><span>' + ['🚚','↩️'][i] + '</span><b>' + E(t.label) + '</b><small>' + E(t.sub) + '</small></div>').join('') + '</div>', true) +
+    band(hd(fq) + '<div class="spd-faq">' + (fq.items||[]).map(q=>'<div class="q">' + E(q.q) + '</div>').join('') + '</div>', false) +
+    body(s.promise) +
+    '<div class="sp-foot"><b>' + E(brand) + '</b>© ' + new Date().getFullYear() + ' · Powered by Shopify</div></div>';
+}
+/* swap the template text for the real store while those sections are still hidden (forced for reduced-motion, where everything is shown at once) */
+function bxHydrate(d, force){
+  if(BX.hydrated) return true;
+  const page = bxQ('bxPage'); const live = page && page.querySelector('.sp'); if(!live) return false;
+  const tpl = document.createElement('div');
+  tpl.innerHTML = bxStoreHTMLReal(BX.p, BX.realName || BX.brand, d, false, '');
+  const fresh = tpl.querySelector('.sp'); if(!fresh) return false;
+  live.classList.add('real');
+  bxApplyAccent(d.accent);
+  const titleShown = !!(BX.secs && BX.secs.title && BX.secs.title.classList.contains('in'));   // only true when the title was typed from the catalogue BEFORE the wording arrived (forced/late paths)
+  const order = Array.prototype.map.call(fresh.querySelectorAll('[data-sec]'), el=>el.dataset.sec);
+  let prev = null;
+  order.forEach(key=>{
+    const nu = fresh.querySelector('[data-sec="' + key + '"]');
+    const cur = live.querySelector('[data-sec="' + key + '"]');
+    if(cur){
+      const shown = cur.classList.contains('in');
+      if(key === 'gallery' && shown && !force){ bxSwapGallery(); }
+      else if(force || !shown || key === 'title' || key === 'price'){ if(shown) nu.classList.add('in'); cur.replaceWith(nu); }   // title and price were typed from the catalogue: swap in the store's own
+    } else if(prev){ if(force) nu.classList.add('in'); prev.after(nu); }
+    prev = live.querySelector('[data-sec="' + key + '"]');
+  });
+  Array.prototype.forEach.call(live.querySelectorAll('[data-sec]'), el=>{ if(order.indexOf(el.dataset.sec) < 0) el.remove(); });
+  BX.secs = {}; Array.prototype.forEach.call(page.querySelectorAll('[data-sec]'), el=>{ BX.secs[el.dataset.sec] = el; });
+  if(!BX.reduced){
+    bxPrepTypers();
+    if(titleShown) (BX.typers || []).forEach(g=>{ if(g.key === 'title'){ g.on = true; g.done = true; g.el.textContent = g.full; } });   // an already-typed title is complete; otherwise the beat types the real one
+  }
+  BX.hydrated = true;
+  bxLayout(true);
+  return true;
+}
+/* the gate: hold the script just before the product page is "written" until the store's wording has arrived (max BX_GATE_CAP) */
+function bxGate(e, dt){
+  if(e[0] !== 'base' || e[1] < BX_GATE_AT || BX.gateDone || BX.reduced) return false;
+  const d = BX.design, now = performance.now();
+  if(!BX.gateT0) BX.gateT0 = now;
+  const waited = now - BX.gateT0;      // REAL time: the script clock is frozen while we wait, and this function only runs on some frames
+  BX.gateWait = waited;
+  if(d && d.sections){
+    BX.gateDone = true;
+    let ok = false;
+    try{ ok = !!(BX.tlParts && bxHydrate(d)); }catch(err){ ok = false; }
+    if(ok){
+      try{
+        BX.tl = BX.tl.slice(0, BX.ti).concat(BX.tlParts.tailReal(d).filter(x=>x[1] >= BX_GATE_AT)); BX.T = BX.tailT || 13000; BX.real = true;   // beats already played stay; the rest becomes the real store's
+        BX.speed = waited > 1200 ? 1.45 : 1.3;      // 13 sections instead of 8: play the rest a little quicker (more so after a long wait)
+      }catch(err){ /* keep the template timeline */ }
+    }
+    return false;
+  }
+  // nothing to wait for: no status polling in this run (design-review link, failed or slow /build), an ordinary store (no design after one poll or 1.5 s),
+  // the build is done and has no wording, or we have waited long enough
+  if(BX.demo || !dsBuild || (!BX.designKnown && ((BX.polled || 0) >= 1 || waited > 1500)) || waited > BX_GATE_CAP || (BX.statusReady && !(d && d.sections))){ BX.gateDone = true; return false; }
+  BX.base = BX.ie - (BX_GATE_AT - 1);                 // freeze the script clock
+  bxStep(2);                                           // "Writing your product page" is what the builder is really doing now
+  return true;
 }
 
 /* the same store at desktop width, for the monitor on the preview screen */
@@ -3888,7 +4205,7 @@ function bxTimeline(){
   const S = bxShow;
   const L = (names, level, selNames)=>{ bxScrollTo(names, 900); bxSel(selNames === undefined ? names : selNames, true); bxCam(names, level, 950); };
   const rise = [{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}];
-  return [
+  const head = [
     // the header goes up first with an empty wordmark; the store is named
     // last, with the name the finished store actually carries
     [0,    ()=>bxStep(0)],
@@ -3905,8 +4222,10 @@ function bxTimeline(){
       const a = bxAnim(f, [{transform:'translateX(-120%)'},{transform:'translateX(120%)'}], {duration:950, delay:300, easing:'ease-in-out', fill:'backwards'});
       if(a){ a.onfinish = ()=>f.remove(); a.oncancel = ()=>f.remove(); } else f.remove();
     }],
-    ['base', 1900, ()=>{ S('gallery'); bxEach('.sp-gal span', [{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'none'}], 90, {duration:380, easing:'cubic-bezier(.3,1.4,.5,1)'}); bxSel(['gallery'], true); }],
+    ['base', 1900, ()=>{ bxSwapGallery(); S('gallery'); bxEach('.sp-gal span', [{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'none'}], 90, {duration:380, easing:'cubic-bezier(.3,1.4,.5,1)'}); bxSel(['gallery'], true); }],
     ['base', 2300, ()=>bxFact(1)],
+  ];
+  const tailMock = [
     // product page
     ['base', 2700, ()=>{ bxStep(2); bxScrollTo(['title','price','desc','bullets'], 900); bxSel(['title','price'], true); bxCam(['title','price'], 'hi', 950); }],
     ['base', 2780, ()=>{ S('title'); bxType('title', 650, 22, 48); }],
@@ -3933,7 +4252,33 @@ function bxTimeline(){
     ['base', 10400, ()=>{ S('promise'); S('foot'); bxEach('.sp-promise, .sp-news', rise, 150); bxScrollTo(['promise','foot'], 900); bxSel(['promise'], true); bxCam(['promise','foot'], 'low', 950); }],
     ['base', 11300, bxFinalChecks]
   ];
+  BX.tlParts = { head, tailMock, tailReal: bxTailReal };
+  return head.concat(tailMock);
 }
+/* the same script for the real store: after the checkout beats, one beat per real section (13 sections, no reviews) */
+function bxTailReal(d){
+  const S = bxShow, rise = [{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'none'}];
+  const L = (names, level, selNames)=>{ bxScrollTo(names, 900); bxSel(selNames === undefined ? names : selNames, true); bxCam(names, level, 950); };
+  BX_STEPS[5] = 'Adding comparison & extras';
+  const keep = BX.tlParts.tailMock.filter(e=>e[0] === 'base' && e[1] <= 5700);
+  const hasRev = !!((bxSecOf(d,'reviews').items || []).length), off = hasRev ? 750 : 0;   // a store with real reviews gets one more beat; everything after it moves 750 ms later
+  BX.tailT = 13000 + off;
+  const why = ['base', 6300, ()=>{ bxStep(4); S('why'); bxEach('.sp-why .sp-card', rise, 110); L(['why'], 'mid'); }];
+  const revBeat = hasRev ? [['base', 7000, ()=>{ S('revs'); bxEach('.sp-rv .sp-sum, .sp-rv .sp-rcard', rise, 140); L(['revs'], 'mid'); }]] : [];
+  const rest = [
+    ['base', 7000,  ()=>{ S('spot'); bxEach('.sp-spot .row', rise, 160); L(['spot'], 'low'); }],
+    ['base', 7800,  ()=>{ S('life'); L(['life'], 'low'); }],
+    ['base', 8500,  ()=>{ bxStep(5); S('cmp'); bxEach('.cmp .r', rise, 90); L(['cmp'], 'mid'); }],
+    ['base', 9300,  ()=>{ S('how'); bxEach('.sp-how li', rise, 120); L(['how'], 'low'); }],
+    ['base', 10000, ()=>{ S('inc'); bxEach('.sp-inc .it', rise, 90); L(['inc'], 'low'); }],
+    ['base', 10800, ()=>{ S('ship'); bxEach('.sp-ship>div', rise, 120); L(['ship'], 'low'); }],
+    ['base', 11300, ()=>{ bxStep(6); S('faq'); bxEach('.sp-faq .q', [{opacity:0,transform:'translateX(-10px)'},{opacity:1,transform:'none'}], 90); L(['faq'], 'mid'); }],
+    ['base', 12100, ()=>{ S('promise'); S('foot'); bxEach('.sp-promise, .sp-news', rise, 150); bxScrollTo(['promise','foot'], 900); bxSel(['promise'], true); bxCam(['promise','foot'], 'low', 950); }],
+    ['base', 13000, bxFinalChecks]
+  ].map(e=>[e[0], e[1] + off, e[2]]);
+  return keep.concat([why], revBeat, rest);
+}
+
 /* type the real name into the header; the chip announces it */
 function bxTypeName(){
   if(BX.named) return; BX.named = true; BX.namedAt = BX.ie;
@@ -3951,17 +4296,18 @@ function bxFinalChecks(){
 }
 function bxFrame(now){
   BX.raf = 0; if(BX.done) return;
-  if(BX.pauseAt === null) BX.ie = now - BX.t0 - BX.paused;
+  const dt = BX.lastNow ? Math.min(120, Math.max(0, now - BX.lastNow)) : 16; BX.lastNow = now;
+  if(BX.pauseAt === null) BX.ie += dt * (BX.speed || 1);
   const tl = BX.tl;
   while(BX.ti < tl.length){
     const e = tl[BX.ti];
-    if(e[0] === 'base'){ if(BX.base === null || e[1] > BX.ie - BX.base) break; BX.ti++; try{ e[2](); }catch(err){} }
+    if(e[0] === 'base'){ if(BX.base === null || e[1] > BX.ie - BX.base) break; if(bxGate(e, dt)) break; BX.ti++; try{ e[2](); }catch(err){} }
     else { if(e[0] > BX.ie) break; BX.ti++; try{ e[1](); }catch(err){} }
     if(BX.done) return;
   }
   bxTick();
   if(BX.base === null && BX.ie >= 900) BX.base = 900;
-  const T = 11300, te = BX.base === null ? 0 : BX.ie - BX.base;
+  const T = BX.T || 11300, te = BX.base === null ? 0 : BX.ie - BX.base;
   const pct = BX.hold ? Math.min(99, 94 + Math.floor((BX.ie - BX.holdAt) / 1800))
     : BX.base === null ? Math.min(7, Math.floor(BX.ie / 150))
     : Math.min(93, 7 + Math.floor(86 * (1 - Math.pow(1 - Math.min(1, te/T), 1.25))));
@@ -3986,6 +4332,7 @@ function runBuild(){
   const brand = known || bxLocalName(p, th);
   if(known) BX.realName = known;
   Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, named:false, namingAt:0, namedAt:0, base:null, finishWait:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
+  BX.design = null; BX.designKnown = false; BX.hydrated = false; BX.galleryReal = false; BX.pre = {}; BX.gateT0 = 0; BX.statusReady = false; BX.gateDone = false; BX.gateWait = 0; BX.polled = 0; BX.speed = 1; BX.lastNow = 0; BX.T = 0; BX.real = false; BX.tlParts = null; BX.pollT0 = 0;
   BX.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const margin = Math.max(0, Number(p.price||0) - Number(p.cost||0)), pct = p.price > 0 ? Math.round(margin / p.price * 100) : 0;
   BX.margin = margin; BX.pct = pct;
@@ -4070,6 +4417,8 @@ function buildFinish(){
    screen (a fixed clone follows the real element's position), so the two
    screens read as one continuous moment instead of a cut. */
 function bxHandoff(){
+  // a design that arrived AFTER the gate gave up: put the real store on the build phone before it is cloned, so the glide lands on the same content
+  try{ if(!BX.reduced && BX.design && BX.design.sections && !BX.hydrated && bxQ('bxPage')) bxHydrate(BX.design, true); }catch(err){}
   const ph = bxQ('bxPhone');
   let ghost = null;
   if(!BX.reduced && ph){
@@ -4080,31 +4429,40 @@ function bxHandoff(){
       ghost.classList.add('bx-ghost');
       const w = ph.offsetWidth, sc = r.width / w;
       ghost.style.cssText = 'left:0;top:0;width:' + w + 'px;transform:translate(' + r.left.toFixed(1) + 'px,' + r.top.toFixed(1) + 'px) scale(' + sc.toFixed(4) + ')';
+      ghost.style.opacity = '0';   // invisible while the real build phone stays on screen, until the clone's pictures are decoded (a clone decodes them again: that was a 2-frame white flash)
       document.body.appendChild(ghost);
-      ph.style.visibility = 'hidden';
     }
   }
   if(!ghost){ go('s-preview'); return; }
+  const imgs = Array.prototype.slice.call(ghost.querySelectorAll('img'));
+  const decoded = Promise.all(imgs.map(i=>(i.decode ? i.decode().catch(()=>{}) : Promise.resolve())));
+  Promise.race([decoded, new Promise(r=>setTimeout(r, 500))]).then(()=>bxHandoffGo(ph, ghost));
+}
+function bxHandoffGo(ph, ghost){
+  ghost.style.opacity = ''; ph.style.visibility = 'hidden';   // one task: the clone appears on the frame the original goes
   // the real phone on the preview stays hidden (and skips its own entrance)
   // until the glide lands on it
   const dev = document.querySelector('#s-preview .dev-phone');
   if(dev) dev.classList.add('landing');
-  go('s-preview', { handoff: true });
+  let landed = false, bail = 0;
+  const forceLand = ()=>{ if(landed) return; landed = true; clearTimeout(bail); if(dev){ dev.classList.add('landed'); dev.classList.remove('landing'); } try{ ghost.remove(); }catch(err){} };
+  bail = setTimeout(forceLand, 3500);   // whatever goes wrong below, the clone never stays on screen and the real phone never stays hidden
+  try{ go('s-preview', { handoff: true }); }catch(err){ forceLand(); return; }
   const w = ph.offsetWidth, h = ph.offsetHeight, r0 = ph.getBoundingClientRect();
   ghost.style.transformOrigin = '50% 50%';
-  const from = 'translate(' + (r0.left + r0.width/2 - w/2).toFixed(1) + 'px,' + (r0.top + r0.height/2 - h/2).toFixed(1) + 'px) scale(' + (r0.width / w).toFixed(4) + ')';
+  const from = 'translate(' + (r0.left + r0.width/2 - w/2).toFixed(1) + 'px,' + (r0.top + r0.height/2 - h/2).toFixed(1) + 'px) rotate(0deg) scale(' + (r0.width / w).toFixed(4) + ',' + (r0.width / w).toFixed(4) + ')';
   ghost.style.transform = from;
   const t0 = performance.now();
   (function seek(){
     const tgt = document.querySelector('#s-preview.active .dev-phone .ph-screen');
     const tr = tgt && tgt.getBoundingClientRect();
-    if(!tr || tr.width < 10){ if(performance.now() - t0 < 1400) return requestAnimationFrame(seek); ghost.remove(); if(dev) dev.classList.remove('landing'); return; }
+    if(!tr || tr.width < 10){ if(performance.now() - t0 < 1400) return requestAnimationFrame(seek); forceLand(); return; }
     // the target sits at rotate(4deg); rotation keeps the centre, so aim the centres and match the unrotated width
-    const s2 = tgt.offsetWidth / (w - 12);
-    const to = 'translate(' + (tr.left + tr.width/2 - w/2).toFixed(1) + 'px,' + (tr.top + tr.height/2 - h/2).toFixed(1) + 'px) rotate(4deg) scale(' + s2.toFixed(4) + ')';
+    const sx = tgt.offsetWidth / w, sy = tgt.offsetHeight / h;   // outer box onto outer box (bezel onto border); the two aspects differ by a few %, so scale X and Y separately
+    const to = 'translate(' + (tr.left + tr.width/2 - w/2).toFixed(1) + 'px,' + (tr.top + tr.height/2 - h/2).toFixed(1) + 'px) rotate(4deg) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
     let a = null;
     try{ a = ghost.animate([{transform:from},{transform:to}], {duration:900, easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards'}); }catch(e){}
-    const land = ()=>{ if(dev) dev.classList.remove('landing'); ghost.remove(); };
+    const land = forceLand;   // one task: the real phone is visible on the same frame the ghost goes
     if(a){ a.onfinish = land; a.oncancel = land; } else land();
   })();
 }
@@ -4125,6 +4483,7 @@ function dsWaitThenPreview(startedAt){
     .then(j=>{
       if(j && j.ready){
         dsStatus = j;
+        if(j.design) bxTakeDesign(j.design);
         // Keep the brand name for the upsell screen after the checkout round trip.
         if(j.store_name && dsBuild){
           dsBuild.store_name = j.store_name;
@@ -4160,15 +4519,17 @@ function pvPrepare(){
   const brand = realName || BX.brand || bxBrand(p.name);
   document.getElementById('pvProdName').textContent = brand;
   document.getElementById('pvUrl').textContent = slugOf(brand) + '.myshopify.com';
-  const ob = document.getElementById('offerBrand'), op = document.getElementById('offerProd');
-  if(ob) ob.textContent = brand.toUpperCase();
-  if(op) op.textContent = p.name;
   const sec = document.getElementById('s-preview');
   sec.classList.add('prep');
-  mountScaledPanHtml(document.getElementById('scrMonitor'), bxDesktopHTML(p, brand, th), 1200);
-  mountScaledPanHtml(document.getElementById('scrTablet'), bxStoreHTML(p, brand, th, true, 'spt'), 768);
-  mountScaledPanHtml(document.getElementById('scrPhone'), bxStoreHTML(p, brand, th, true), 390);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>sec.classList.remove('prep')));   // the devices have measured themselves; back to normal flow
+  const rd = BX.design && BX.design.sections ? BX.design : null;
+  const pick = (real, tpl)=>{ if(rd){ try{ return real(); }catch(err){} } return tpl(); };   // a real-store render that throws falls back to the template
+  try{
+    mountScaledPanHtml(document.getElementById('scrMonitor'), pick(()=>bxDesktopHTMLReal(p, brand, rd), ()=>bxDesktopHTML(p, brand, th)), 1200);
+    mountScaledPanHtml(document.getElementById('scrTablet'), pick(()=>bxStoreHTMLReal(p, brand, rd, true, 'spt'), ()=>bxStoreHTML(p, brand, th, true, 'spt')), 768);
+    mountScaledPanHtml(document.getElementById('scrPhone'), pick(()=>bxStoreHTMLReal(p, brand, rd, true), ()=>bxStoreHTML(p, brand, th, true)), 390);
+  } finally {
+    requestAnimationFrame(()=>requestAnimationFrame(()=>sec.classList.remove('prep')));   // the devices have measured themselves; back to normal flow (also if a mount threw)
+  }
 }
 function runPreview(){
   if(previewRan) return; previewRan = true;

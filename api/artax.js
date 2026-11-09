@@ -24,7 +24,9 @@
    GET ?key=<READ_KEY>&report=1&from=YYYY-MM-DD&to=YYYY-MM-DD
        aggregates cached days by month (missing days listed, not computed). */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const MAX_PAGES = 40;
 const SCHEMA = 1;
 const TZ = 'America/Los_Angeles';

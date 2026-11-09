@@ -16,9 +16,11 @@
 
    Uses AC's legacy v1 API (the only API that can create campaigns). */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey, credential } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const AC_URL = 'https://sellproducts.api-us1.com';
-const AC_KEY = 'd84c8bf84307d5b159099552ae63a16a92af944cac522e0ff3ea8ece4bae99b7350dab92';
+const AC_KEY = credential('AC_KEY');
 const LIST_ID = 7;
 const ADS_FIELD_ID = 3; // %ADS_LINK% (created by /api/lead.js)
 const CAMPAIGN_NAME = 'SPAI $49 Ad Pack Fulfillment (auto)';
@@ -95,6 +97,7 @@ const EMAIL_TEXT = [
 
 /* legacy v1 API call: action in the query string, data form-encoded */
 async function v1(action, data){
+  if(!AC_KEY) return { raw: 'ac_not_configured' };
   const r = await fetch(AC_URL + '/admin/api.php?api_action=' + action +
       '&api_key=' + AC_KEY + '&api_output=json', {
     method: 'POST',
@@ -107,6 +110,7 @@ async function v1(action, data){
 
 /* v3 API (same one lead.js uses) for the test-contact leg */
 async function v3(path, method, body){
+  if(!AC_KEY) return { status: 0, j: {} };
   const r = await fetch(AC_URL + path, {
     method: method || 'GET',
     headers: { 'Api-Token': AC_KEY, 'Content-Type': 'application/json' },

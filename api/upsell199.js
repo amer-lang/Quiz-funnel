@@ -16,7 +16,9 @@
    fulfillment, metrics and the already-bought dedupe all treat them as one
    product — a buyer can never be charged for the pack twice. */
 
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const READ_KEY = guardKey('READ_KEY');
 const RETURN_URL = 'https://www.sellproducts.ai/?upsold199=1&cs={BASE}&upsell_cs={CHECKOUT_SESSION_ID}';
 const SKU_NAME = '5 Custom Video Ads';
 const SKU_DESC = 'Five ready-to-run video ads produced for your store’s product. Delivered digitally to your email.';

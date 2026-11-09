@@ -22,8 +22,10 @@
    GET ?key=<EMAILREV_KEY|READ_KEY>&days=N   (N default 30, max 90)
    GET ?key=<READ_KEY>&rebuild=YYYY-MM-DD    force-recompute one cached day */
 
-const EMAILREV_KEY = '4df5f90b15564978972ac6f045a80606185d699a7001ec6811dc79d344fc3df7';
-const READ_KEY = '448bd487135f59ca260b08fcb16d660e60b0953c54063d91cfeab0fe7e95362c';
+const { guardKey } = require('../lib/secrets');
+
+const EMAILREV_KEY = guardKey('EMAILREV_KEY');
+const READ_KEY = guardKey('READ_KEY');
 const RATE = 0.05;        // copywriter commission on net attributed revenue
 const LOOKBACK = 14;      // days of pre-window purchases kept for joins
 const MAX_PAGES = 40;
