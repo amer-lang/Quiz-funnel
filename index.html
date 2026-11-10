@@ -133,7 +133,12 @@ input{font-family:inherit}
 .topbar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:18px 0 14px;position:sticky;top:0;z-index:40;
-  background:linear-gradient(180deg,var(--bg) 78%,transparent);
+}
+/* the dark band runs edge to edge, not just the content column, so the
+   page glow never shows through the side gutters beside the header */
+.topbar::before{
+  content:'';position:absolute;top:0;bottom:0;left:50%;width:100vw;transform:translateX(-50%);
+  background:linear-gradient(180deg,var(--bg) 78%,transparent);z-index:-1;pointer-events:none;
 }
 .hud{display:flex;align-items:center;gap:10px}
 .streak{
@@ -789,7 +794,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .sp-nav .sp-ic{font-size:20px;color:#111827;width:26px;text-align:center}
 .sp-word{font-size:21px;font-weight:800;letter-spacing:-.02em;color:#111827;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .sp-media{position:relative;aspect-ratio:4/3;background:#F3F4F6;overflow:hidden}
-.sp-media img{width:100%;height:100%;object-fit:cover;display:block;transform-origin:50% 50%}
+.sp-media img{width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block;transform-origin:50% 50%}   /* the 4:3 crop keeps the top of top-heavy photos, like the real store's hero */
 .sp-media .sp-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:92px;background:linear-gradient(135deg,var(--acc-soft),#fff)}
 .sp-count{position:absolute;right:14px;bottom:14px;background:rgba(17,24,39,.72);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px}
 .sp-dots{position:absolute;left:0;right:0;bottom:-18px;display:flex;justify-content:center;gap:6px}
@@ -3193,7 +3198,11 @@ function dsLoadProducts(){
         cost:     Number(p.cost || 0),
         price:    Number(p.price || 0),
         rating:   p.rating || 4.8,
-        desc:     p.desc || ''
+        desc:     p.desc || '',
+        accent:   bxCleanAccent(p.accent),   // the store colour the build will use (null when the list has none)
+        // the store's own thumbnail strip (hero + studio angles + real count), sent with the product list so the phone shows it from its first frame
+        gallery:  (p.gallery && Array.isArray(p.gallery.images) && p.gallery.images.length >= 3)
+                    ? { images: p.gallery.images.filter(u=>typeof u === 'string' && /^https:\/\//.test(u)).slice(0, 5), count: Math.max(0, Math.floor(Number(p.gallery.count) || 0)) } : null
       }));
     });
 }
@@ -3401,6 +3410,7 @@ function pickChoose(e){
     return;
   }
   chosen = sel;
+  try{ ((chosen.gallery && chosen.gallery.images) || []).forEach(u=>{ const i = new Image(); i.decoding = 'async'; i.src = u; }); }catch(err){}   // decoded long before the animation starts
   spLog('product_choose', chosen.name);
   // persist the pick — the post-payment return reloads the page and the
   // upsell's ad mockups need the product's photo, name & price back
@@ -3719,6 +3729,7 @@ function bxIsPlaceholderName(n){
 function bxPollGap(){
   const now = performance.now(); if(!BX.pollT0) BX.pollT0 = now;
   const t = now - BX.pollT0;
+  if(BX.gateT0 && !BX.gateDone) return 500;   // the script is standing still for the store's wording: look more often
   return !BX.realName ? 700 : 1000;
 }
 function bxPollName(){
@@ -3793,13 +3804,16 @@ function bxStoreHTML(p, brand, th, built, cls){
   const img = p.image ? `<img src="${bxEsc(p.image)}" alt="">` : `<div class="sp-ph">${p.emoji||'📦'}</div>`;
   const photos = bxPhotos(p);
   const shot = (i, pos)=> photos[i] ? `<img src="${bxEsc(photos[i])}" alt="" style="object-position:${pos||'50% 50%'}">` : `<div class="sp-ph">${p.emoji||'📦'}</div>`;
+  const gal = (p.gallery && Array.isArray(p.gallery.images) && p.gallery.images.length >= 3) ? p.gallery : null;   // the store's own pictures, known from the product list
+  if(gal) BX.galleryPreview = true;
+  const lifePic = gal ? '<img class="rp" src="' + bxEsc(gal.images[gal.images.length - 1]) + '" alt="" onerror="this.remove()" style="object-position:50% 50%">' : shot(photos.length > 1 ? 1 : 0, '50% 60%');
   const rating = Number(p.rating||4.8).toFixed(1);
-  const html = `<div class="sp ${cls||''}" style="--acc:${th.acc};--acc-soft:${th.soft};--acc-ink:${th.ink}">
+  const html = `<div class="sp ${cls||''}" style="${bxThemeVars(p, th)}">
     <div class="sp-status"><span>9:41</span><span>●●● <i></i></span></div>
     <div class="sec sp-ann" data-sec="ann">Free shipping · 30-day guarantee</div>
     <div class="sec sp-nav" data-sec="head"><span class="sp-ic">≡</span><span class="sp-word" data-type="name">${bxEsc(brand)}</span><span class="sp-ic">🛍</span></div>
-    <div class="sec sp-media" data-sec="media">${img}<span class="sp-count">1 / ${photos.length + 2}</span></div>
-    <div class="sec sp-gal" data-sec="gallery"><span class="on">${shot(0)}</span><span>${shot(1 % photos.length)}</span><span class="zoom">${shot(0, '50% 35%')}</span><span class="zoom">${shot(1 % photos.length, '50% 70%')}</span><span class="more">+2</span></div>
+    <div class="sec sp-media" data-sec="media">${img}<span class="sp-count">1 / ${gal && gal.count ? gal.count : photos.length + 2}</span></div>
+    <div class="sec sp-gal" data-sec="gallery">${gal ? bxGalleryHTML({ gallery: gal.images, count: gal.count || gal.images.length }) : `<span class="on">${shot(0)}</span><span>${shot(1 % photos.length)}</span><span class="zoom">${shot(0, '50% 35%')}</span><span class="zoom">${shot(1 % photos.length, '50% 70%')}</span><span class="more">+2</span>`}</div>
     <div class="sp-body">
       <div class="sec" data-sec="title"><span class="sp-eye">${bxEsc(BX.realName ? brand : '')}</span><h1 class="sp-title" data-type="title">${bxEsc(p.name)}</h1><div class="sp-stars"><b>★★★★★</b>${rating} · 2,347 reviews</div></div>
       <div class="sec" data-sec="price"><div class="sp-price"><b class="sp-now">$${price.toFixed(2)}</b><s class="sp-was">$${wasP.toFixed(2)}</s><em class="sp-save">SAVE ${save}%</em></div><p class="sp-tax">Taxes and shipping calculated at checkout.</p></div>
@@ -3809,7 +3823,7 @@ function bxStoreHTML(p, brand, th, built, cls){
       <div class="sec" data-sec="trust"><ul class="sp-trust"><li><span>🚚</span>Tracked shipping</li><li><span>↩️</span>30-day returns</li><li><span>🔒</span>Secure checkout</li></ul></div>
     </div>
     <div class="sec sp-why" data-sec="why"><h3 class="sp-h3">Why people love it</h3>${th.why.map(w=>`<div class="sp-card"><span class="ic">${w[0]}</span><div><b>${bxEsc(w[1])}</b><p>${bxEsc(w[2])}</p></div></div>`).join('')}</div>
-    <div class="sec sp-life" data-sec="life"><div class="sp-lifeimg">${shot(photos.length > 1 ? 1 : 0, '50% 60%')}</div><h3 class="sp-h3">${bxEsc(th.life[0])}</h3><p>${bxEsc(th.life[1])}</p></div>
+    <div class="sec sp-life" data-sec="life"><div class="sp-lifeimg">${lifePic}</div><h3 class="sp-h3">${bxEsc(th.life[0])}</h3><p>${bxEsc(th.life[1])}</p></div>
     <div class="sec sp-how" data-sec="how"><h3 class="sp-h3">How it works</h3><ol><li><b>1</b><div><strong>Order today</strong><span>Checkout takes under a minute.</span></div></li><li><b>2</b><div><strong>We ship it tracked</strong><span>Tracking number in your inbox within 24 hours.</span></div></li><li><b>3</b><div><strong>Love it or send it back</strong><span>30 days, no questions asked.</span></div></li></ol></div>
     <div class="sec sp-ship" data-sec="ship"><div><span>🚚</span><b>Shipping</b><p>Free, tracked, 5–9 business days.</p></div><div><span>↩️</span><b>Returns</b><p>30-day money-back guarantee.</p></div></div>
     <div class="sec sp-rev" data-sec="rev"><h3 class="sp-h3">What customers say</h3>
@@ -3832,12 +3846,19 @@ function bxStoreHTML(p, brand, th, built, cls){
    With it the phone, the iPad and the monitor are the real store; without it nothing changes (the template below is the fallback).
    ============================================================ */
 const BX_GATE_AT  = 2650;   // script time (after "base") where the animation waits for the store's wording: just BEFORE the title beat, so the real title/price are typed once (never the catalogue's, then swapped)
-const BX_GATE_CAP = 12000;   // ...but never longer than this; after that it plays the template text as before
+const BX_GATE_CAP = 600;    // ...but never longer than this. It was 12 s, and in production (the build answers ~3.5 s after the click, the store is ready ~5-15 s after that) the script then stood still at 31% for 5-12 s right after it had started. The real wording almost never arrives in time, so the template plays on and the real store is swapped in when it does (bxHydrate / bxHandoff); the real title is typed only when it is already there
+const BX_FIT_END  = 12600;   // real ms after "go" at which the script should reach "Final checks": where the original animation always ended, however the gate went
+function bxFitSpeed(rem, lo, hi){   // play the rest of the script (rem ms of script time) so that it ends at BX_FIT_END
+  const E = performance.now() - BX.t0 - (BX.paused || 0);
+  return Math.max(lo, Math.min(hi, rem / Math.max(2000, BX_FIT_END - E)));
+}
 function bxSecOf(d, k){ return ((d && d.sections) || []).find(s=>s.key === k) || {}; }
 function bxAccentVars(a){
   if(!a) return '';
   return '--acc:' + a.acc + ';--acc-soft:' + a.soft + ';--acc-ink:' + a.ink + ';--fill:' + a.fill + ';--on-fill:' + a.on_fill + ';--acc-text:' + a.text;
 }
+/* the template phone / tablet / monitor paint with the product's REAL store colour when the product list carried it (the accent the build will use), else the name-guessed theme */
+function bxThemeVars(p, th){ return (p && p.accent) ? bxAccentVars(p.accent) : '--acc:' + th.acc + ';--acc-soft:' + th.soft + ';--acc-ink:' + th.ink; }
 function bxApplyAccent(a){
   const root = bxQ('bxPage') && bxQ('bxPage').querySelector('.sp'); if(!root || !a) return;
   [['--acc',a.acc],['--acc-soft',a.soft],['--acc-ink',a.ink],['--fill',a.fill],['--on-fill',a.on_fill],['--acc-text',a.text]].forEach(([k,v])=>root.style.setProperty(k, v));
@@ -3860,10 +3881,18 @@ function bxGalleryHTML(pics){
 }
 function bxSwapGallery(){
   const pics = bxPics(BX.design), el = BX.secs && BX.secs.gallery;
-  if(BX.galleryReal || !el || pics.gallery.length < 2) return;
+  if(BX.galleryReal || BX.galleryPreview || !el || pics.gallery.length < 2) return;   // the product list already gave the phone the store's pictures: no mid-build swap
   BX.galleryReal = true;
   el.innerHTML = bxGalleryHTML(pics);
   const c = BX.secs.media && BX.secs.media.querySelector('.sp-count'); if(c && pics.count) c.textContent = '1 / ' + pics.count;
+}
+/* the store's own pictures arrive with the first status look, usually AFTER the script has already passed its gallery beat: swap the strip (and the lifestyle picture) in the moment they arrive, so the phone never keeps showing one photo cropped four ways while the real store has a dozen */
+function bxEarlyPics(){
+  if(!BX.secs || !BX.design || BX.galleryPreview) return;
+  const pics = bxPics(BX.design); if(pics.gallery.length < 2) return;
+  bxSwapGallery();
+  const li = BX.secs.life && BX.secs.life.querySelector('.sp-lifeimg'), u = pics.gallery[pics.gallery.length - 1];
+  if(li && u && u !== pics.gallery[0] && !li.getAttribute('data-real')){ li.setAttribute('data-real', '1'); li.innerHTML = '<img class="rp" src="' + bxEsc(u) + '" alt="" onerror="this.remove()" style="object-position:50% 50%">'; }
 }
 /* `design` comes from our own API but is treated as untrusted: only known fields, only the right types, colours as hex, numbers as numbers, https image URLs */
 const BX_HEX = /^#[0-9a-fA-F]{3,8}$/;
@@ -3908,6 +3937,7 @@ function bxTakeDesign(raw){
   BX.designKnown = true;
   BX.design = Object.assign({}, BX.design || {}, d);
   bxPreload(BX.design);
+  try{ bxEarlyPics(); }catch(err){}
   if(d.accent) bxApplyAccent(d.accent);
   if(BX.reduced && d.sections && !BX.hydrated){ try{ bxHydrate(BX.design, true); }catch(err){} }
 }
@@ -4051,14 +4081,14 @@ function bxGate(e, dt){
     if(ok){
       try{
         BX.tl = BX.tl.slice(0, BX.ti).concat(BX.tlParts.tailReal(d).filter(x=>x[1] >= BX_GATE_AT)); BX.T = BX.tailT || 13000; BX.real = true;   // beats already played stay; the rest becomes the real store's
-        BX.speed = waited > 1200 ? 1.45 : 1.3;      // 13 sections instead of 8: play the rest a little quicker (more so after a long wait)
+        BX.speed = bxFitSpeed((BX.tailT || 13000) - BX_GATE_AT, 1.15, 1.75);   // 13 sections instead of 8: play the rest as fast as it takes to end where the original animation did (more after a longer wait)
       }catch(err){ /* keep the template timeline */ }
     }
     return false;
   }
   // nothing to wait for: no status polling in this run (design-review link, failed or slow /build), an ordinary store (no design after one poll or 1.5 s),
   // the build is done and has no wording, or we have waited long enough
-  if(BX.demo || !dsBuild || (!BX.designKnown && ((BX.polled || 0) >= 1 || waited > 1500)) || waited > BX_GATE_CAP || (BX.statusReady && !(d && d.sections))){ BX.gateDone = true; return false; }
+  if(BX.demo || !dsBuild || (!BX.designKnown && ((BX.polled || 0) >= 1 || waited > 1500)) || waited > BX_GATE_CAP || (BX.statusReady && !(d && d.sections))){ BX.gateDone = true; BX.speed = bxFitSpeed(11300 - BX_GATE_AT, 1, 1.5); return false; }   // the template script resumes, quicker by as much as the wait cost
   BX.base = BX.ie - (BX_GATE_AT - 1);                 // freeze the script clock
   bxStep(2);                                           // "Writing your product page" is what the builder is really doing now
   return true;
@@ -4069,7 +4099,7 @@ function bxDesktopHTML(p, brand, th){
   const price = Number(p.price||0), wasP = Math.ceil(price*1.6)-0.01, save = price>0 ? Math.round((1-price/wasP)*100) : 0;
   const img = p.image ? `<img src="${bxEsc(p.image)}" alt="">` : `<div class="sp-ph">${p.emoji||'📦'}</div>`;
   const rating = Number(p.rating||4.8).toFixed(1);
-  return `<div class="sp spd" style="--acc:${th.acc};--acc-soft:${th.soft};--acc-ink:${th.ink}">
+  return `<div class="sp spd" style="${bxThemeVars(p, th)}">
     <div class="spd-ann">Free shipping on every order · 30-day guarantee</div>
     <div class="spd-nav"><span class="spd-links">Shop &nbsp;·&nbsp; Benefits &nbsp;·&nbsp; FAQ &nbsp;·&nbsp; Contact</span><span class="spd-word">${bxEsc(brand)}</span><span class="spd-icons">🔍 &nbsp; 👤 &nbsp; 🛍</span></div>
     <div class="spd-hero">
@@ -4371,7 +4401,7 @@ function runBuild(){
   const brand = known || bxLocalName(p, th);
   if(known) BX.realName = known;
   Object.assign(BX, { p, brand, step:-1, pctShown:-1, ti:0, hold:false, named:false, namingAt:0, namedAt:0, base:null, finishWait:false, done:false, scrollY:0, lastScan:0, lastLine:0, paused:0, pauseAt:null, typers:[], secs:{}, focus:null, selNames:null, raf:0 });
-  BX.design = null; BX.designKnown = false; BX.hydrated = false; BX.galleryReal = false; BX.pre = {}; BX.gateT0 = 0; BX.statusReady = false; BX.gateDone = false; BX.gateWait = 0; BX.polled = 0; BX.speed = 1; BX.lastNow = 0; BX.T = 0; BX.real = false; BX.tlParts = null; BX.pollT0 = 0;
+  BX.design = null; BX.designKnown = false; BX.hydrated = false; BX.galleryReal = false; BX.galleryPreview = false; BX.pre = {}; BX.gateT0 = 0; BX.statusReady = false; BX.gateDone = false; BX.gateWait = 0; BX.polled = 0; BX.speed = 1; BX.lastNow = 0; BX.T = 0; BX.real = false; BX.tlParts = null; BX.pollT0 = 0;
   BX.reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const margin = Math.max(0, Number(p.price||0) - Number(p.cost||0)), pct = p.price > 0 ? Math.round(margin / p.price * 100) : 0;
   BX.margin = margin; BX.pct = pct;
@@ -4422,8 +4452,8 @@ function buildFinish(){
     bxStep(8); bxScrollTop(700); bxSel(['head'], true); bxCam(['head'], 'hi', 800);
     const w = bxQ('bxPage') && bxQ('bxPage').querySelector('.sp-word'); if(w) w.classList.add('is-naming');
     setTimeout(bxTypeName, 650);
-    setTimeout(()=>{ bxSel(null); bxCam(null, 'whole', 800); }, 2100);
-    setTimeout(buildFinish, 2900);
+    setTimeout(()=>{ bxSel(null); bxCam(null, 'whole', 800); }, 1700);
+    setTimeout(buildFinish, 2300);
     return;
   }
   buildFinished = true;
@@ -4449,7 +4479,7 @@ function buildFinish(){
   const r = bxQ('bxPhone').getBoundingClientRect();
   const cx = r.left + r.width/2, cy = r.top + Math.min(r.height, innerHeight - r.top) * .35;
   coinCannon(cx, cy); confettiBurst(cx, Math.max(60, r.top + r.height*.25), 110);
-  setTimeout(bxHandoff, BX.reduced ? 300 : 1350);
+  setTimeout(bxHandoff, BX.reduced ? 300 : 1050);
 }
 
 /* The phone glides from the build stage into its place on the preview
@@ -4532,7 +4562,7 @@ function dsWaitThenPreview(startedAt){
       }
       const lbl = document.getElementById('buildLabel');
       if(lbl && j && j.status_text) lbl.textContent = j.status_text.replace(/^I'm\s+/,'');
-      setTimeout(()=>dsWaitThenPreview(startedAt), 3000);
+      setTimeout(()=>dsWaitThenPreview(startedAt), 1000);   // was 3 s: the store was often finished well before the next look
     })
     .catch(()=>setTimeout(()=>dsWaitThenPreview(startedAt), 3000));
 }
@@ -4568,7 +4598,7 @@ function pvPrepare(){
   try{
     mountScaledPanHtml(document.getElementById('scrMonitor'), pick(()=>bxDesktopHTMLReal(p, brand, rd), ()=>bxDesktopHTML(p, brand, th)), 1200);
     mountScaledPanHtml(document.getElementById('scrTablet'), pick(()=>bxStoreHTMLReal(p, brand, rd, true, 'spt'), ()=>bxStoreHTML(p, brand, th, true, 'spt')), 768);
-    mountScaledPanHtml(document.getElementById('scrPhone'), pick(()=>bxStoreHTMLReal(p, brand, rd, true), ()=>bxStoreHTML(p, brand, th, true)), 390);
+    mountScaledPanHtml(document.getElementById('scrPhone'), pick(()=>bxStoreHTMLReal(p, brand, rd, true), ()=>bxStoreHTML(p, brand, th, true)), 390);   // all three now, while .prep keeps the section measurable: a device mounted after .prep is gone measures a 0-wide box and stays at scale(0), i.e. blank
   } finally {
     requestAnimationFrame(()=>requestAnimationFrame(()=>sec.classList.remove('prep')));   // the devices have measured themselves; back to normal flow (also if a mount threw)
   }
