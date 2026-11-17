@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Your AI Team — Sell Products AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/employees.css">
+<script src="/team.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="logo" href="/members">
+      <span class="logo-icon">
+        <svg width="30" height="30" viewBox="0 0 48 48" fill="none">
+          <defs><linearGradient id="lgh" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#3B82F6"/><stop offset="1" stop-color="#22C55E"/></linearGradient></defs>
+          <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#lgh)"/>
+          <path d="M17 19.5h14l-1.6 13.4a3.2 3.2 0 0 1-3.2 2.8h-4.4a3.2 3.2 0 0 1-3.2-2.8L17 19.5z" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" fill="rgba(255,255,255,.12)"/>
+          <path d="M20 19.5v-2.3a4 4 0 0 1 8 0v2.3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M25.4 22.5 21.6 28h2.7l-1.3 5 4.4-6.4h-2.7l1.6-4.1h-0.9z" fill="#FFC93C" stroke="#FFC93C" stroke-width=".8" stroke-linejoin="round"/>
+        </svg>
+        <span class="logo-spark">✦</span>
+      </span>
+      <span class="logo-word"><span>Sell Products</span><span class="logo-ai">AI</span></span>
+    </a>
+    <div class="chip-top">🤖 <span class="gold-text">AI TEAM</span></div>
+  </header>
+
+  <div id="previewbar" class="previewbar" hidden>Preview with test data — nothing here is charged and no real customer is affected.</div>
+  <div id="banner"></div>
+  <section id="home" aria-label="Home"><div class="skel"></div></section>
+  <section id="top" hidden></section>
+  <div id="panes" hidden>
+    <div class="pane" id="pane-needs"></div>
+    <div class="pane" id="pane-approvals"></div>
+    <div class="pane" id="pane-convos"></div>
+    <div class="pane" id="pane-flags"></div>
+    <div class="pane" id="pane-weekly"></div>
+    <div class="pane" id="pane-gallery"></div>
+    <div class="pane" id="pane-activity"></div>
+    <div class="pane" id="pane-esettings"></div>
+    <div class="pane" id="pane-settings"></div>
+  </div>
+</div>
+<nav id="nav" class="nav" aria-label="Main" hidden></nav>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+var PREVIEW = null;
+/* test login for preview deployments only: #pp=…&cs=… (a fragment, so it never reaches a server log or a Referer) */
+try{
+  var HP = new URLSearchParams(location.hash.replace(/^#/, ''));
+  if(HP.get('pp') && HP.get('cs')){
+    PREVIEW = { pp: HP.get('pp'), cs: HP.get('cs') };
+    sessionStorage.setItem('emp_preview', JSON.stringify(PREVIEW));
+    history.replaceState(null, '', location.pathname);
+  }else{ PREVIEW = JSON.parse(sessionStorage.getItem('emp_preview') || 'null'); }
+}catch(e){}
+
+/* ---------- helpers ---------- */
+function h(tag, attrs){
+  var e = document.createElement(tag);
+  if(attrs) for(var k in attrs){
+    if(k === 'class') e.className = attrs[k];
+    else if(k === 'on'){ for(var ev in attrs.on) e.addEventListener(ev, attrs.on[ev]); }
+    else if(attrs[k] !== null && attrs[k] !== undefined && attrs[k] !== false) e.setAttribute(k, attrs[k]);
+  }
+  (function add(list){
+    for(var i = 0; i < list.length; i++){
+      var c = list[i];
+      if(c === null || c === undefined || c === false) continue;
+      if(Array.isArray(c)) add(c);
+      else e.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+    }
+  })(Array.prototype.slice.call(arguments, 2));
+  return e;
+}
+function $(id){ return document.getElementById(id); }
+/* only https links to our own hosts or the buyer's Shopify admin are ever put in href/src */
+function safeUrl(u){
+  try{ var x = new URL(u); return x.protocol === 'https:' && (/\.myshopify\.com$/.test(x.hostname) || x.hostname === 'chat.dropstart.app' || x.hostname === 'dropstart.app') ? x.href : ''; }catch(e){ return ''; }
+}
+function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); return n; }
+var toastT;
+function toast(msg){ var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('show'); }, 2600); }
+function ago(iso){
+  if(!iso) return '';
+  var s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if(isNaN(s)) return '';
+  if(s < 90) return 'just now'; if(s < 5400) return Math.round(s / 60) + ' min ago';
+  if(s < 129600) return Math.round(s / 3600) + ' h ago'; return Math.round(s / 86400) + ' days ago';
+}
+function inTime(iso){
+  if(!iso) return '';
+  var s = (new Date(iso).getTime() - Date.now()) / 1000;
+  if(s < 90) return 'any minute'; if(s < 5400) return 'in ' + Math.round(s / 60) + ' min';
+  if(s < 129600) return 'in ' + Math.round(s / 3600) + ' h'; return 'in ' + Math.round(s / 86400) + ' days';
+}
+/* HTML -> readable text lines, without ever inserting the HTML into the page */
+function htmlToText(html){
+  var d = new DOMParser().parseFromString('<body>' + String(html || '') + '</body>', 'text/html'), out = [];
+  d.body.querySelectorAll('h2,h3,h4,p,li').forEach(function(n){
+    var t = n.textContent.replace(/\s+/g, ' ').trim();
+    if(t) out.push((n.tagName === 'LI' ? '• ' : '') + t);
+  });
+  return out.length ? out.join('\n\n').replace(/\n\n• /g, '\n• ') : d.body.textContent.trim();
+}
+var VERB = { reply_send:'Customer reply', seo_meta:'Search listing', alt_text:'Image descriptions', description:'Product description', title:'Product title', article:'Blog article', report:'Report', info:'Note', todo:'To do' };
+var STATUS = { applied:'Done', proposed:'Waiting for you', rejected:'Not applied', skipped:'Skipped', failed:"Couldn't apply", expired:'Expired', applying:'Working', undoing:'Working', undone:'Undone', open:'' };
+function describe(a){
+  var b = a.before || {}, n = a.after || {}, B = '', A = '';
+  if(a.verb === 'seo_meta'){
+    B = [b.seo_title !== undefined ? 'Title: ' + (b.seo_title || '(empty)') : '', b.seo_description !== undefined ? 'Description: ' + (b.seo_description || '(empty)') : ''].filter(Boolean).join('\n\n');
+    A = [n.seo_title !== undefined ? 'Title: ' + n.seo_title : '', n.seo_description !== undefined ? 'Description: ' + n.seo_description : ''].filter(Boolean).join('\n\n');
+  }else if(a.verb === 'alt_text'){
+    B = Object.keys(b.alts || {}).map(function(){ return '(no description)'; }).join('\n');
+    A = Object.keys(n.alts || {}).map(function(k){ return n.alts[k]; }).join('\n\n');
+  }else if(a.verb === 'description'){ B = htmlToText(b.descriptionHtml); A = htmlToText(n.descriptionHtml); }
+  else if(a.verb === 'title'){ B = b.title || ''; A = n.title || ''; }
+  else if(a.verb === 'article'){ B = ''; A = (n.title || '') + '\n\n' + (n.summary ? n.summary + '\n\n' : '') + htmlToText(n.body_html); }
+  /* what the text holds that this view cannot show: pictures, videos, tables, links */
+  var warn = '';
+  if(a.verb === 'description' && b.descriptionHtml){
+    var d = new DOMParser().parseFromString('<body>' + b.descriptionHtml + '</body>', 'text/html'), m = d.body.querySelectorAll('img,picture,iframe,video,audio,table,svg').length, l = d.body.querySelectorAll('a').length;
+    if(m || l) warn = 'This text also has ' + [m ? m + ' picture, video or table item' + (m > 1 ? 's' : '') : '', l ? l + ' link' + (l > 1 ? 's' : '') : ''].filter(Boolean).join(' and ') + ' that this change would not keep.';
+  }
+  return { before: B, after: A, warn: warn, cut: !!a.truncated };
+}
+
+/* ---------- api ---------- */
+function api(route, o){
+  o = o || {};
+  var qs = new URLSearchParams(Object.assign({ r: route }, o.q || {}));
+  var hd = { 'Content-Type': 'application/json' };
+  if(PREVIEW){ hd['x-preview-pass'] = PREVIEW.pp; hd['x-preview-cs'] = PREVIEW.cs; }
+  return fetch('/api/office?' + qs, { method: o.method || 'GET', headers: hd, credentials: 'same-origin', body: (o.method && o.method !== 'GET') ? JSON.stringify(o.body || {}) : undefined })
+    .then(function(r){ return r.json().catch(function(){ return { ok:false }; }).then(function(j){ return { status: r.status, j: j }; }); })
+    .catch(function(){ return { status: 0, j: { ok:false, error:'offline' } }; });
+}
+
+/* ---------- state ---------- */
+var S = { office: null, approvals: [], ledger: [], cursor: null, creatives: [], loaded: false, view: 'home', sec: null, sel: null, f: null, threads: [], threadCursor: null, tf: 'needs', tfTouched: false, sset: null, mgrLedger: [] };
+
+/* the team: the same names and faces for every customer (team.js) */
+var T = window.TEAM || {};
+function who(role){ return T[role] || { name: 'Your employee', title: role || '', img: '' }; }
+function av(role, size){
+  var w = who(role);
+  return h('span', { class: 'av' + (size ? ' ' + size : '') }, w.img ? h('img', { src: w.img, alt: '', width: '64', height: '64', decoding: 'async' }) : null);
+}
+var JOB = { onboard_audit: 'getting to know your store', rewrite_product: 'writing product text', blog_article: 'writing a blog article', product_check: 'checking your products',
+  health_scan: 'scanning your store', weak_page_refresh: 'freshening up a weak page', launch_set: 'making your first ads', monthly_refresh: 'making this month\'s ads',
+  seasonal_set: 'making seasonal ads', product_poll: 'looking for new products', more_like_this: 'making more ads like the one you liked' };
+JOB.baseline = 'getting to know your orders'; JOB.daily_check = 'checking your orders'; JOB.weekly_report = 'writing your weekly report'; JOB.sweep = 'tidying my inbox'; JOB.setup = 'getting my inbox ready';
+function autoOn(e){ return !!e && e.mode === 'autopilot' && !!(S.office && S.office.autopilot_available); }
+function hasRole(role){ return !!S.office && S.office.hires.some(function(x){ return x.role === role; }); }
+function hireOf(role){ return S.office.hires.filter(function(x){ return x.role === role; })[0] || null; }
+function scoped(list){ return S.sel ? list.filter(function(a){ return a.role === S.sel; }) : list; }
+
+/* ---------- confirm sheet: a bottom sheet on phones, a centred card on larger screens ---------- */
+var modalOpen = false;
+function confirmModal(o){
+  return new Promise(function(resolve){
+    if(modalOpen){ resolve(false); return; }
+    modalOpen = true;
+    var prev = document.activeElement, done = false;
+    var back = h('div', { class: 'mback' }), sheet = h('div', { class: 'msheet', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mtitle', 'aria-describedby': 'mbody', tabindex: '-1' });
+    function onKey(ev){
+      if(ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); close(false); return; }
+      if(ev.key !== 'Tab') return;
+      var f = sheet.querySelectorAll('button'); if(!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); }
+      else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+    }
+    function close(v){
+      if(done) return; done = true;
+      document.removeEventListener('keydown', onKey, true);
+      back.classList.remove('in'); if(!sheetOpen) document.body.classList.remove('modal-on');
+      setTimeout(function(){
+        if(back.parentNode) back.parentNode.removeChild(back);
+        modalOpen = false;
+        if(prev && prev.focus){ try{ prev.focus(); }catch(e){} }
+        resolve(v);
+      }, 230);
+    }
+    var ok = h('button', { class: (o.danger ? 'btn-red' : 'btn-gold') + ' mok', type: 'button', on: { click: function(){ close(true); } } }, o.ok || 'Confirm');
+    var no = h('button', { class: 'mno', type: 'button', on: { click: function(){ close(false); } } }, o.cancel || 'Cancel');
+    sheet.appendChild(h('div', { class: 'mgrab', 'aria-hidden': 'true' }));
+    if(o.role) sheet.appendChild(h('div', { class: 'mface' }, av(o.role, 'lg')));
+    sheet.appendChild(h('h2', { id: 'mtitle' }, o.title));
+    sheet.appendChild(h('div', { id: 'mbody', class: 'mbody' }, o.text ? h('p', null, o.text) : null,
+      o.points ? h('ul', { class: 'mpts' }, o.points.map(function(p){ return h('li', null, h('span', { class: 'mi', 'aria-hidden': 'true' }, p[0]), h('span', null, p[1])); })) : null));
+    sheet.appendChild(h('div', { class: 'mbtns' }, ok, no));
+    /* phones: drag the sheet down to dismiss */
+    var y0 = null, dy = 0;
+    sheet.addEventListener('touchstart', function(ev){ if(ev.target.closest('.mgrab,h2,.mface')) y0 = ev.touches[0].clientY; }, { passive: true });
+    sheet.addEventListener('touchmove', function(ev){ if(y0 === null) return; dy = Math.max(0, ev.touches[0].clientY - y0); sheet.style.transition = 'none'; sheet.style.transform = 'translateY(' + dy + 'px)'; }, { passive: true });
+    sheet.addEventListener('touchend', function(){
+      if(y0 === null) return;
+      var d = dy; y0 = null; dy = 0; sheet.style.transition = '';
+      if(d > 90){ sheet.style.transform = 'translateY(100%)'; close(false); } else sheet.style.transform = '';
+    });
+    back.appendChild(sheet);
+    back.addEventListener('mousedown', function(ev){ if(ev.target === back) close(false); });
+    document.body.appendChild(back); document.body.classList.add('modal-on');
+    document.addEventListener('keydown', onKey, true);
+    requestAnimationFrame(function(){ back.classList.add('in'); (o.focusCancel ? no : ok).focus(); });
+  });
+}
+
+function loadAll(opt){
+  opt = opt || {};
+  return api('office').then(function(o){
+    if(o.status === 401){ return showLogin(); }
+    if(o.status === 404 || (o.j && o.j.error === 'not_available')){ return showMessage('The AI Team isn\'t available yet.', 'warn'); }
+    if(!o.j || !o.j.ok){ return showMessage('We couldn\'t load your team just now. Please try again in a minute.', 'bad'); }
+    o.j.hires = (o.j.hires || []).filter(function(x){ return x.hire_status !== 'ended'; }); /* people whose time with you has ended are not on the team */
+    S.office = o.j; $('previewbar').hidden = !o.j.preview;
+    /* only ask for what can have changed: approvals when something is waiting, the gallery when it is open or just changed */
+    var wantCreatives = hasRole('designer') && (opt.creatives || !S.loaded || S.sec === 'gallery');
+    var sup = hasRole('support') && !!hireOf('support').employee, mgrEmp = hasRole('manager') ? hireOf('manager').employee : null;
+    return Promise.all([
+      o.j.pending_approvals ? api('approvals') : Promise.resolve({ j: { items: [] } }),
+      api('ledger'),
+      wantCreatives ? api('creatives') : Promise.resolve(null),
+      sup ? Promise.all([api('threads'), api('threads', { q: { status: 'needs_owner' } }), api('threads', { q: { status: 'draft_ready' } })]) : Promise.resolve(null),
+      sup ? api('ssettings') : Promise.resolve(null),
+      mgrEmp ? api('ledger', { q: { employee: mgrEmp.id } }) : Promise.resolve(null)
+    ]).then(function(r){
+      S.approvals = (r[0].j && r[0].j.items) || [];
+      S.ledger = (r[1].j && r[1].j.items) || []; S.cursor = r[1].j && r[1].j.next_cursor;
+      if(r[2]) S.creatives = (r[2].j && r[2].j.items) || [];
+      if(r[3] && r[3][0].j && r[3][0].j.ok) mergeThreads(r[3]); else if(!sup){ S.threads = []; S.threadCursor = null; }
+      if(r[4] && r[4].j && r[4].j.ok) S.sset = r[4].j; else if(!sup) S.sset = null;
+      S.mgrLedger = r[5] && r[5].j && r[5].j.items ? r[5].j.items : (mgrEmp ? S.mgrLedger : []);
+      S.loaded = true; render();
+    });
+  });
+}
+function showMessage(msg, kind){ clear($('home')); clear($('banner')).appendChild(h('div', { class: 'banner ' + (kind || '') }, msg)); }
+function showLogin(){
+  clear($('home')); clear($('banner'));
+  $('banner').appendChild(h('div', { class: 'banner warn' }, 'Please sign in to see your AI team. ', h('a', { href: '/members' }, 'Go to your members area →')));
+}
+
+/* ---------- render ---------- */
+/* ---------- the app shell: Home, one short screen per person, four things in the bottom bar ---------- */
+var SECTIONS = {
+  seo:      [['approvals', 'Changes'], ['activity', 'Activity'], ['esettings', 'Settings']],
+  designer: [['gallery', 'Ads'], ['activity', 'Activity'], ['esettings', 'Settings']],
+  manager:  [['flags', 'Needs a look'], ['weekly', 'Weekly report'], ['activity', 'Activity'], ['esettings', 'Settings']],
+  support:  [['convos', 'Inbox'], ['activity', 'Activity'], ['esettings', 'Settings']]
+};
+function firstSec(role){ return (SECTIONS[role] || [['activity']])[0][0]; }
+function needsBy(role){
+  if(!hasRole(role)) return 0;
+  if(role === 'seo') return S.approvals.filter(function(a){ return a.role === 'seo'; }).length;
+  if(role === 'manager') return managerFlags().length;
+  if(role === 'support') return S.threads.filter(needsYou).length;
+  return 0;
+}
+function needsTotal(){ return ['seo', 'manager', 'support'].reduce(function(n, r){ return n + needsBy(r); }, 0); }
+var curSheetClose = null;
+function navTo(view, sel, sec, o){
+  o = o || {};
+  var same = S.view === view && S.sel === (view === 'emp' ? sel : null) && S.sec === (view === 'emp' ? (sec || firstSec(sel)) : null);
+  if(!o.keepFilter && !same) S.f = null;
+  S.view = view; S.sel = view === 'emp' ? sel : null; S.sec = view === 'emp' ? (sec || firstSec(sel)) : null;
+  if(!o.noPush && !same){ try{ history.pushState({ v: view, s: S.sel, c: S.sec }, ''); }catch(e){} }
+  if(S.office) render();
+  if(!same) window.scrollTo(0, 0);
+  if(S.sec === 'gallery' && S.loaded) loadAll({ creatives: true });
+}
+/* old-style "jump to the items behind this number" */
+function goTo(tab, f){
+  var map = { convos: ['support', 'convos'], reports: ['manager', 'flags'], gallery: ['designer', 'gallery'] };
+  if(map[tab]){ navTo('emp', map[tab][0], map[tab][1]); return; }
+  S.f = f ? { tab: tab, label: f.label, test: f.test } : null;
+  if(S.sel) navTo('emp', S.sel, tab, { keepFilter: true });
+  else navTo(tab === 'approvals' ? 'needs' : 'activity', null, null, { keepFilter: true });
+}
+function render(){
+  if(S.sel && !hasRole(S.sel)){ S.view = 'home'; S.sel = null; S.sec = null; }
+  renderBanner(); renderHome(); renderTop(); renderNeeds(); renderApprovals('pane-approvals'); renderConvos(); renderFlags(); renderWeekly(); renderActivity(); renderGallery(); renderESettings(); renderSettings(); renderNav(); applyView();
+  afterRender();
+}
+function syncTabs(){ renderNav(); }
+function afterRender(){ try{ guideTick(); }catch(e){} }
+function applyView(){
+  var home = S.view === 'home';
+  $('home').hidden = !home; $('top').hidden = home; $('panes').hidden = home;
+  var pane = S.view === 'emp' ? S.sec : S.view;
+  document.querySelectorAll('.pane').forEach(function(x){ x.classList.toggle('on', x.id === 'pane-' + pane); });
+  document.title = (S.view === 'emp' && S.sel ? who(S.sel).name + ' · ' : '') + 'Your AI Team — Sell Products AI';
+}
+/* what the lists are currently narrowed to: a tapped number */
+function scopeBar(tab){
+  if(!(S.f && S.f.tab === tab)) return null;
+  return h('div', { class: 'filterbar' }, h('span', null, 'Showing: ', h('b', null, S.f.label)),
+    h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ S.f = null; render(); } } }, 'Show everything ✕'));
+}
+
+function svgIcon(d){
+  var NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg'), p = document.createElementNS(NS, 'path');
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('width', '23'); s.setAttribute('height', '23'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor');
+  s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true');
+  p.setAttribute('d', d); s.appendChild(p); return s;
+}
+var ICON = {
+  home: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
+  needs: 'M6 9a6 6 0 0112 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10 20.5a2 2 0 004 0',
+  activity: 'M3 12h4l3-8 4 16 3-8h4',
+  settings: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M9 14v6'
+};
+function renderNav(){
+  var n = clear($('nav')), total = needsTotal();
+  n.hidden = !S.office;
+  var items = [['home', 'Home'], ['needs', 'Needs you'], ['activity', 'Activity'], ['settings', 'Settings']];
+  n.appendChild(h('div', { class: 'navin' }, items.map(function(it){
+    var on = S.view === it[0] || (it[0] === 'home' && S.view === 'emp'), badge = it[0] === 'needs' && total ? h('span', { class: 'nbadge' }, total > 99 ? '99+' : String(total)) : null;
+    return h('button', { class: 'navbtn' + (on ? ' on' : ''), type: 'button', 'aria-current': on ? 'page' : null, on: { click: function(){ navTo(it[0]); } } },
+      h('span', { class: 'ni' }, svgIcon(ICON[it[0]]), badge), h('span', { class: 'nl' }, it[1]));
+  })));
+}
+
+/* one short line per person for the Home list */
+function shortLine(hire){
+  var e = hire.employee, st = statusOf(hire), c = (e && e.card) || {}, n = needsBy(hire.role);
+  if(st[1] !== 'ok') return st[0];
+  if(hire.role === 'support') return n ? plural(n, 'email') + ' need' + (n === 1 ? 's' : '') + ' you' : 'Inbox is clear';
+  if(hire.role === 'manager') return n ? plural(n, 'thing') + ' to look at' : (c.last_check ? 'All clear' : 'Getting started');
+  if(hire.role === 'seo') return n ? plural(n, 'change') + ' waiting for you' : 'All caught up';
+  return c.next_job ? 'Next: ' + (JOB[c.next_job.kind] || 'my next task') : 'All caught up';
+}
+function memberRow(hire){
+  var st = statusOf(hire), w = who(hire.role), n = needsBy(hire.role);
+  return h('button', { class: 'member', type: 'button', 'aria-label': w.name + ', ' + (w.title || hire.label) + '. ' + shortLine(hire), on: { click: function(){ navTo('emp', hire.role); } } },
+    h('span', { class: 'avwrap' + (st[1] === 'ok' ? ' live' : (st[1] === 'wait' ? ' live wait' : '')) }, av(hire.role), h('i', { class: 'dot ' + st[1] })),
+    h('span', { class: 'mmain' }, h('b', null, w.name), h('span', { class: 'mrole' }, w.title || hire.label), h('span', { class: 'msay' + (n ? ' gold' : '') }, shortLine(hire))),
+    n ? h('span', { class: 'mcount' }, String(n)) : h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
+}
+/* the things waiting for the owner, each one leading to the right place */
+function needRows(){
+  var rows = [], th = S.threads, ready = th.filter(function(t){ return t.status === 'draft_ready'; }).length, ans = th.filter(function(t){ return t.status === 'needs_owner'; }).length;
+  if(hasRole('support') && ready) rows.push(['support', plural(ready, 'customer reply', 'customer replies') + ' ready to send', function(){ S.tf = 'ready'; S.tfTouched = true; navTo('emp', 'support', 'convos'); }]);
+  if(hasRole('support') && ans) rows.push(['support', plural(ans, 'customer email') + ' need' + (ans === 1 ? 's' : '') + ' your answer', function(){ S.tf = 'answer'; S.tfTouched = true; navTo('emp', 'support', 'convos'); }]);
+  var fl = managerFlags();
+  if(fl.length){ var hi = fl.filter(function(f){ return f.severity === 'high'; }).length; rows.push(['manager', plural(fl.length, 'thing') + ' to look at in your orders' + (hi ? ' · ' + hi + ' urgent' : ''), function(){ navTo('emp', 'manager', 'flags'); }]); }
+  var sa = needsBy('seo'); if(sa) rows.push(['seo', plural(sa, 'change') + ' waiting for your OK', function(){ navTo('emp', 'seo', 'approvals'); }]);
+  return rows;
+}
+function renderHome(){
+  var t = clear($('home')), hires = S.office.hires;
+  t.appendChild(h('div', { class: 'ptitle' }, h('h1', null, 'Your AI team'), h('p', { class: 'sub' }, 'Nothing goes out to your customers without your OK.')));
+  if(!hires.length){
+    t.appendChild(h('div', { class: 'empty' }, h('div', { class: 'faces' }, av('seo'), av('designer'), av('manager'), av('support')), 'Nobody on your team yet. ', h('a', { href: '/hire' }, 'Meet the team →')));
+    return;
+  }
+  hires.forEach(function(hire){ var g = guideHome(hire); if(g) t.appendChild(g); });
+  var rows = needRows(), total = needsTotal();
+  if(rows.length){
+    var hero = h('div', { class: 'card hero' }, h('div', { class: 'hh' }, h('span', { class: 'hk' }, 'Needs you'), h('span', { class: 'hn' }, String(total))));
+    rows.slice(0, 4).forEach(function(r){
+      hero.appendChild(h('button', { class: 'needrow', type: 'button', on: { click: r[2] } }, av(r[0], 'xs'), h('span', { class: 'ntx' }, r[1]), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
+    });
+    hero.appendChild(h('button', { class: 'btn-gold hbtn', type: 'button', on: { click: function(){ navTo('needs'); } } }, 'Review everything'));
+    t.appendChild(hero);
+  }else{
+    t.appendChild(h('div', { class: 'allclear' }, h('span', { class: 'ok-ic', 'aria-hidden': 'true' }, '✓'), h('div', null, h('b', null, 'All clear'), h('span', null, 'Nothing is waiting for you right now.'))));
+  }
+  t.appendChild(h('div', { class: 'sech' }, 'Your team'));
+  t.appendChild(h('div', { class: 'members', role: 'group', 'aria-label': 'Your team' }, hires.map(memberRow)));
+  var recent = S.ledger.filter(function(a){ return a.verb !== 'report' && a.verb !== 'todo'; }).slice(0, 3);
+  if(recent.length){
+    t.appendChild(h('div', { class: 'sech' }, 'Latest', h('button', { class: 'seeall', type: 'button', on: { click: function(){ navTo('activity'); } } }, 'See all')));
+    var box = h('div', { class: 'minilist' });
+    recent.forEach(function(a){ box.appendChild(h('div', { class: 'mini' }, av(a.role, 'xs'), h('span', { class: 'mtx' }, a.summary), h('time', null, ago(a.at)))); });
+    t.appendChild(box);
+  }
+  t.appendChild(h('p', { class: 'note', style: 'margin-top:22px;text-align:center' }, h('a', { href: '/hire' }, 'Meet the rest of the team →')));
+}
+
+/* the top of every screen except Home */
+function renderTop(){
+  var t = clear($('top'));
+  if(S.view === 'home') return;
+  if(S.view === 'emp'){ var hire = hireOf(S.sel); if(hire) t.appendChild(empHeader(hire)); return; }
+  var titles = { needs: ['Needs you', needsTotal() ? 'Everything waiting for your OK.' : ''], activity: ['Activity', 'Everything your team has done. Most of it can be undone.'], settings: ['Settings', ''] };
+  var ti = titles[S.view] || ['', '']; t.appendChild(h('div', { class: 'ptitle' }, h('h1', null, ti[0]), ti[1] ? h('p', { class: 'sub' }, ti[1]) : null));
+}
+function empNums(hire){
+  var e = hire.employee, c = (e && e.card) || {}, nums = [];
+  if(!e) return nums;
+  if(hire.role === 'seo'){
+    nums = [
+      num('Products optimized', (c.products_optimized || 0) + ' of ' + (c.products_total || 0), true, function(){ goTo('activity', { label: 'changes to your products', test: function(a){ return a.status === 'applied' && ['seo_meta', 'alt_text', 'description', 'title'].indexOf(a.verb) >= 0; } }); }),
+      num('Articles live', c.articles_published || 0, false, function(){ goTo('activity', { label: 'live articles', test: function(a){ return a.verb === 'article' && a.status === 'applied'; } }); }),
+      num('Articles waiting', c.articles_waiting || 0, false, function(){ goTo('approvals', { label: 'articles waiting', test: function(a){ return a.verb === 'article'; } }); })];
+  }else if(hire.role === 'designer'){
+    nums = [
+      num('Ads made', c.creatives ? Math.round(c.creatives / 3) : 0, true, function(){ goTo('gallery', null); }),
+      num('This month', (c.images_this_month || 0) + ' of ' + (c.images_cap || 20), false, function(){ goTo('gallery', null); }),
+      num('Thumbs up', c.thumbs_up || 0, false, function(){ goTo('gallery', { label: 'ads you liked', test: function(x){ return x.feedback === 'up'; } }); })];
+  }
+  return nums;
+}
+function secCount(role, sec){
+  if(sec === 'approvals' && role === 'seo') return needsBy('seo');
+  if(sec === 'flags') return needsBy('manager');
+  if(sec === 'convos') return needsBy('support');
+  return 0;
+}
+function empHeader(hire){
+  var e = hire.employee, st = statusOf(hire), w = who(hire.role), c = (e && e.card) || {}, nums = empNums(hire);
+  var canPause = e && (e.status === 'active' || (e.status === 'paused' && e.paused_reason === 'paused_by_owner'));
+  var box = h('div', { class: 'emphead' });
+  box.appendChild(h('div', { class: 'empbar' },
+    h('button', { class: 'backbtn', type: 'button', 'aria-label': 'Back to your team', on: { click: function(){ navTo('home'); } } }, '‹ Team'),
+    canPause ? (e.status === 'paused'
+      ? h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ act('resume', { employee: e.id }, w.name + ' is back at work'); } } }, 'Resume')
+      : h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ act('pause', { employee: e.id }, w.name + ' is paused'); } } }, 'Pause')) : null));
+  box.appendChild(h('div', { class: 'thead' },
+    h('span', { class: 'avwrap' + (st[1] === 'ok' ? ' live' : (st[1] === 'wait' ? ' live wait' : '')) }, av(hire.role, 'lg'), h('i', { class: 'dot ' + st[1], title: st[0] })),
+    h('div', { class: 'tname' }, h('h2', null, w.name), h('div', { class: 'cmeta' }, w.title || hire.label), h('div', { class: 'status ' + st[1] }, st[0]))));
+  box.appendChild(h('p', { class: 'say' }, sayLine(hire)));
+  var gcard = guideCard(hire); if(gcard) box.appendChild(gcard);
+  if(nums.length) box.appendChild(h('div', { class: 'nums' }, nums));
+  if(c.catching_up) box.appendChild(h('p', { class: 'note', style: 'margin-top:10px' }, 'Catching up: some work moved to later to keep within this month\'s limits.'));
+  box.appendChild(h('div', { class: 'secnav', role: 'tablist', 'aria-label': w.name + '\'s sections' }, (SECTIONS[hire.role] || []).map(function(s){
+    var n = secCount(hire.role, s[0]), on = S.sec === s[0];
+    return h('button', { class: 'fchip' + (on ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': String(on), on: { click: function(){ navTo('emp', hire.role, s[0]); } } }, s[1], n ? h('span', { class: 'n' }, String(n)) : null);
+  })));
+  return box;
+}
+
+/* Needs you: everything waiting, grouped by who is waiting for you */
+function renderNeeds(){
+  var p = clear($('pane-needs')), th = S.threads.filter(needsYou), fl = managerFlags(), td = todosCard();
+  var seoWait = S.approvals.filter(function(a){ return a.verb !== 'reply_send'; });
+  if(!th.length && !fl.length && !seoWait.length && !td){
+    p.appendChild(h('div', { class: 'allclear' }, h('span', { class: 'ok-ic', 'aria-hidden': 'true' }, '✓'), h('div', null, h('b', null, 'All clear'), h('span', null, 'Nothing is waiting for you. When your team needs an OK, it shows up here.'))));
+    return;
+  }
+  if(th.length){
+    p.appendChild(h('div', { class: 'sech' }, 'Customer emails', h('span', { class: 'count' }, String(th.length)), h('button', { class: 'seeall', type: 'button', on: { click: function(){ navTo('emp', 'support', 'convos'); } } }, 'Open inbox')));
+    var box = h('div', { class: 'tlist' }); th.slice(0, 6).forEach(function(t){ box.appendChild(threadRow(t)); }); p.appendChild(box);
+  }
+  if(fl.length){
+    p.appendChild(h('div', { class: 'sech' }, 'Needs a look', h('span', { class: 'count' }, String(fl.length)), h('button', { class: 'seeall', type: 'button', on: { click: function(){ navTo('emp', 'manager', 'flags'); } } }, 'See all')));
+    fl.slice(0, 3).forEach(function(f){ p.appendChild(flagCard(f)); });
+  }
+  if(seoWait.length){
+    p.appendChild(h('div', { class: 'sech' }, 'Waiting for your OK', h('span', { class: 'count' }, String(seoWait.length))));
+    renderApprovals('pane-needs', { append: true, skipReply: true });
+  }
+  if(td) p.appendChild(td);
+}
+
+/* per-person settings */
+function renderESettings(){
+  var p = clear($('pane-esettings'));
+  if(S.view !== 'emp' || !S.sel) return;
+  var hire = hireOf(S.sel), e = hire && hire.employee, w = who(S.sel);
+  if(!e){ p.appendChild(h('div', { class: 'empty' }, 'Settings appear once ' + w.name + ' is working on your store.')); return; }
+  if(S.sel === 'seo' && e.status !== 'token_problem') p.appendChild(h('div', { class: 'card' }, h('h3', null, 'How ' + w.name + ' works'), modeControl(e, w, 'seo')));
+  if(S.sel === 'seo' || S.sel === 'designer') p.appendChild(h('div', { class: 'card' }, instructionsBox(e, w)));
+  if(S.sel === 'support'){
+    var ss = supportSettings(); if(ss) ss.forEach(function(c){ p.appendChild(c); });
+    var oc = (e.card || {}).orders_connected;
+    var pbs = permissionBox(e.card || {}, w.name); if(pbs) p.appendChild(pbs);
+    p.appendChild(h('div', { class: 'card' }, h('h3', null, 'Order details'),
+      h('p', { class: 'note', style: 'margin-top:6px;color:#D7DEEF' }, oc ? 'I can look up the customer\'s order when I answer.' : (permissionNeeded(e.card || {}) ? 'Waiting for the approval above. Until then I write the reply without order details and say so, so you can add them.' : 'Not connected yet. For order questions I write the reply without order details and say so, so you can add them. This switches on once order access is enabled for your store.'))));
+    p.appendChild(h('div', { class: 'card' }, h('h3', null, 'How I work'), h('p', { class: 'note', style: 'margin-top:6px;color:#D7DEEF' }, 'I never send anything without your OK. Refunds, cancellations and disputes are always yours to decide.')));
+  }
+  if(S.sel === 'manager') p.appendChild(h('div', { class: 'card' }, h('h3', null, 'How I work'),
+    h('p', { class: 'note', style: 'margin-top:6px;color:#D7DEEF' }, 'I check your orders every day and write you a report every Monday. I only read your orders. I never change anything in your store, and I never contact your customers.')));
+  if(S.sel === 'designer') p.appendChild(h('div', { class: 'card' }, h('h3', null, 'How I work'), h('p', { class: 'note', style: 'margin-top:6px;color:#D7DEEF' }, w.name + ' never changes your store. The ads are yours to download and use.')));
+}
+
+function narrowed(tab, list){ return S.f && S.f.tab === tab ? list.filter(S.f.test) : list; }
+
+function renderBanner(){
+  var b = clear($('banner')), st = S.office.store_state;
+  if(st === 'not_activated') b.appendChild(h('div', { class: 'banner warn' }, 'Your store isn\'t live yet. Your team starts the moment it is. ', h('a', { href: '/members' }, 'Activate your store →')));
+  else if(st === 'token_problem') b.appendChild(h('div', { class: 'banner bad' }, 'I lost access to your Shopify store, so your team is paused. Open your Shopify app list and make sure DropStart is still installed, or reply to any of our emails and we\'ll sort it out.'));
+  else if(st === 'uninstalled') b.appendChild(h('div', { class: 'banner bad' }, 'DropStart was removed from your Shopify store, so your team is paused. Install it again and they will carry on where they left off.'));
+}
+function statusOf(hire){
+  var e = hire.employee;
+  if(!e) return ['Waiting for your store', 'wait'];
+  if(e.status === 'token_problem') return ['Needs attention', 'bad'];
+  if(e.status === 'paused') return [e.paused_reason === 'uninstalled' ? 'Store disconnected' : 'Paused', 'bad'];
+  if(!e.onboarded) return ['Getting started', 'wait'];
+  if(hire.role === 'manager' && permissionNeeded(e.card)) return ['Needs your approval', 'wait'];   /* Nora cannot do anything without order access; Sam still answers emails, so he stays 'Working' */
+  return ['Working', 'ok'];
+}
+/* one first-person line: what they are doing or will do next */
+function sayLine(hire){
+  var e = hire.employee, c = (e && e.card) || {};
+  if(!e) return 'I\'ll start the moment your store is live.';
+  if(e.status === 'token_problem') return 'I can\'t reach your store right now. I need access again before I can carry on.';
+  if(e.status === 'paused') return e.paused_reason === 'uninstalled' ? 'DropStart was removed from your store, so I\'m waiting. Install it again and I\'ll carry on.' : 'I\'m on pause. Tap Resume and I\'ll get back to work.';
+  if(!e.onboarded) return 'I\'m getting to know your store and your products.';
+  if(hire.role === 'manager'){
+    if(permissionNeeded(c)) return 'I can\'t see your orders yet. Your store needs to approve DropStart\'s new permissions first.';
+    if(c.waiting_for_order_access) return 'I can\'t see your orders yet. As soon as order access is on, I start watching them.';
+    if(c.flags_open) return 'I found ' + plural(c.flags_open, 'thing') + ' in your orders worth a look.';
+    if(c.last_check) return 'All clear. I check your orders every day and write you a report every Monday.';
+    return 'I\'m getting to know your orders.';
+  }
+  if(hire.role === 'support'){
+    if(c.needs_your_decision || c.waiting_for_you){
+      var bits = [];
+      if(c.waiting_for_you) bits.push(plural(c.waiting_for_you, 'reply', 'replies') + ' ready to send');
+      if(c.needs_your_decision) bits.push(plural(c.needs_your_decision, 'email') + ' that need' + (c.needs_your_decision === 1 ? 's' : '') + ' your answer');
+      return 'I have ' + bits.join(' and ') + '.';
+    }
+    return 'Your inbox is clear. When a customer writes, I draft a reply and wait for your OK before anything is sent.';
+  }
+  if(c.next_job) return 'Next up: ' + (JOB[c.next_job.kind] || 'my next task') + ' ' + inTime(c.next_job.at) + '.';
+  return hire.role === 'designer' ? 'All caught up. I\'ll make a fresh set of ads every month.' : 'All caught up. I check your store every day.';
+}
+/* a number; with `go` it is a button that jumps to the items behind it */
+function num(k, v, gold, go){
+  var inner = [h('div', { class: 'k' }, k), h('div', { class: 'v' + (gold ? ' gold' : '') }, v)];
+  if(!go) return h('div', { class: 'num' }, inner);
+  return h('button', { class: 'num nb', type: 'button', 'aria-label': k + ': ' + v + '. Show them.', on: { click: go } }, inner, h('span', { class: 'nb-go', 'aria-hidden': 'true' }, '›'));
+}
+function verbsWords(){
+  var m = { description: 'product descriptions', title: 'product titles' }, v = (S.office.autopilot_verbs || ['description', 'title']).map(function(x){ return m[x] || x; });
+  return v.length > 1 ? v.slice(0, -1).join(', ') + ' and ' + v[v.length - 1] : (v[0] || 'product text');
+}
+function modeNote(m, w){
+  return m === 'autopilot'
+    ? w.name + ' updates short, plain ' + verbsWords() + ' without asking. Articles, richer descriptions and anything you wrote yourself still wait for you, and every change can be undone.'
+    : w.name + ' asks before changing anything your customers will see.';
+}
+function modeControl(e, w, role){
+  var avail = S.office.autopilot_available, cur = autoOn(e) ? 'autopilot' : 'approval', busy = false;
+  var note = h('p', { class: 'note' }, modeNote(cur, w));
+  var btns = {};
+  function paint(m){
+    seg.setAttribute('data-on', m);
+    ['approval', 'autopilot'].forEach(function(k){ btns[k].classList.toggle('on', k === m); btns[k].setAttribute('aria-pressed', String(k === m)); });
+    note.textContent = modeNote(m, w);
+  }
+  function lock(on){ ['approval', 'autopilot'].forEach(function(k){ btns[k].disabled = on || (k === 'autopilot' && !avail); }); }
+  /* the pill slides at once; the server is told while it moves, and the page redraws only after the slide is over */
+  function switchTo(m){
+    busy = true; paint(m); lock(true);
+    var t0 = Date.now();
+    api('mode', { method: 'POST', q: { employee: e.id }, body: { mode: m } }).then(function(r){
+      setTimeout(function(){
+        busy = false;
+        if(r.j && r.j.ok !== false && r.status < 400){ toast(m === 'autopilot' ? w.name + ' is on autopilot' : w.name + ' will ask first again'); loadAll(); return; }
+        paint(cur); lock(false);
+        toast((r.j && r.j.error) || 'That didn\'t work. Please try again.');
+      }, Math.max(0, 360 - (Date.now() - t0)));
+    });
+  }
+  function set(m){
+    if(busy || m === cur) return;
+    if(m !== 'autopilot'){ switchTo(m); return; }
+    confirmModal({
+      role: role, title: 'Put ' + w.name + ' on autopilot?', text: w.name + ' will update your ' + verbsWords() + ' without asking first.',
+      points: [['✏️', 'Short, plain product descriptions are updated as soon as they\'re ready.'], ['✋', 'Blog articles, longer or richer descriptions (pictures, links), and any text you wrote yourself still wait for your OK.'], ['↩️', 'Any change can be undone from the Activity tab for 30 days.']],
+      ok: 'Turn on autopilot', cancel: 'Keep asking me first'
+    }).then(function(yes){ if(yes) switchTo(m); });
+  }
+  btns.approval = h('button', { class: cur === 'approval' ? 'on' : '', type: 'button', 'data-m': 'approval', 'aria-pressed': String(cur === 'approval'), on: { click: function(){ set('approval'); } } }, 'Ask me first');
+  btns.autopilot = h('button', { class: cur === 'autopilot' ? 'on' : '', type: 'button', 'data-m': 'autopilot', 'aria-pressed': String(cur === 'autopilot'), disabled: avail ? null : 'disabled', title: avail ? null : 'Not available yet', on: { click: function(){ set('autopilot'); } } }, avail ? 'Autopilot' : 'Autopilot · soon');
+  var seg = h('div', { class: 'seg', 'data-on': cur, role: 'group', 'aria-label': 'How should ' + w.name + ' work?' }, h('span', { class: 'seg-pill', 'aria-hidden': 'true' }), btns.approval, btns.autopilot);
+  return h('div', { class: 'modebox' }, seg, note);
+}
+
+function instructionsBox(e, w){
+  var ta = h('textarea', { placeholder: 'One instruction per line, for example:\nAlways mention free returns\nNever write about pets', maxlength: '5200', rows: '4', 'aria-label': 'What ' + w.name + ' should always do' });
+  ta.value = (e.instructions || []).join('\n');
+  ta.addEventListener('input', function(){ ta.setAttribute('data-dirty', '1'); });
+  return h('details', { class: 'ins' }, h('summary', null, 'What ' + w.name + ' should always do', e.instructions && e.instructions.length ? h('span', { class: 'cnt' }, String(e.instructions.length)) : null),
+    h('p', { class: 'note', style: 'margin:8px 0 10px' }, 'Standing instructions ' + w.name + ' follows every time (up to 10 lines).'), ta,
+    h('div', { class: 'row' }, h('button', { class: 'btn-gold btn-sm', type: 'button', on: { click: function(){
+      var lines = ta.value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean).slice(0, 10);
+      ta.removeAttribute('data-dirty'); act('instructions', { employee: e.id }, 'Saved', { instructions: lines });
+    } } }, 'Save')));
+}
+function todosCard(){
+  var todos = (S.office.todos || []).filter(function(t){ return t.source !== 'manager' && t.source !== 'support'; });
+  if(!todos.length) return null;
+  var c = h('div', { class: 'card' }, h('h3', null, 'Things to know'));
+  todos.slice(0, 5).forEach(function(x){ c.appendChild(h('p', { class: 'note', style: 'margin-top:8px;color:#D7DEEF' }, '• ' + x.summary)); });
+  return c;
+}
+function whoRow(a, extra){
+  var w = who(a.role);
+  return h('div', { class: 'whorow' }, av(a.role, 'xs'), h('span', null, h('b', null, w.name), extra ? ' · ' + extra : ''));
+}
+function renderApprovals(paneId, opt){
+  opt = opt || {};
+  var p = opt.append ? $(paneId) : clear($(paneId || 'pane-approvals')), all = opt.skipReply ? S.approvals.filter(function(a){ return a.verb !== 'reply_send'; }) : S.approvals, items = narrowed('approvals', scoped(all)), bar = scopeBar('approvals');
+  if(bar) p.appendChild(bar);
+  if(!items.length){ if(opt.append) return; p.appendChild(h('div', { class: 'empty' }, bar ? 'Nothing matches that right now.' : 'All clear. When your team has new product text or an article ready, it lands here with a before and after.')); return; }
+  var sendable = items.filter(function(x){ return x.verb !== 'reply_send'; }), every = !bar && sendable.length > 0;
+  p.appendChild(h('div', { class: 'row', style: 'justify-content:space-between' },
+    h('span', { class: 'note' }, items.length + ' waiting. Nothing goes live until you approve it.'),
+    every ? h('button', { class: 'btn-gold btn-sm', type: 'button', on: { click: function(){
+      confirmModal({ title: 'Approve all ' + sendable.length + ' waiting change' + (sendable.length > 1 ? 's' : '') + '?', text: 'They are applied to your store now. Product text and search changes can be undone afterwards from the Activity tab; a published article can\'t be undone from here.', ok: 'Approve all', cancel: 'Not yet' })
+        .then(function(yes){ if(yes) act('bulk', {}, 'All approved', { decision: 'approve', ids: sendable.map(function(x){ return x.id; }) }); });
+    } } }, 'Approve all') : null));
+  items.forEach(function(a){
+    if(a.verb === 'reply_send'){ p.appendChild(replyItem(a)); return; }
+    var d = describe(a), box = h('div', { class: 'item' });
+    box.appendChild(whoRow(a, (VERB[a.verb] || '') + ' · ' + ago(a.at) + (a.expires_at ? ' · decide ' + inTime(a.expires_at) : '')));
+    box.appendChild(h('div', { class: 'it-top' }, h('div', { class: 'it-sum' }, a.summary), h('span', { class: 'tag proposed' }, 'Waiting')));
+    if(d.before || d.after){
+      box.appendChild(h('div', { class: 'ba' },
+        a.verb === 'article' ? null : h('div', { class: 'col' }, h('b', { class: 'lbl' }, 'Now'), d.before || '(nothing)'),
+        h('div', { class: 'col new' }, h('b', { class: 'lbl' }, a.verb === 'article' ? 'Article' : 'Proposed'), d.after)));
+      if(d.warn) box.appendChild(h('p', { class: 'warnline' }, '⚠ ' + d.warn));
+      if(d.cut) box.appendChild(h('p', { class: 'note', style: 'margin-top:6px' }, 'This preview is shortened. The full text is what gets applied.'));
+    }
+    var reason = h('input', { type: 'text', placeholder: 'Optional: tell me what to do differently', maxlength: '200' });
+    reason.addEventListener('input', function(){ reason.setAttribute('data-dirty', '1'); });
+    var rrow = h('div', { class: 'reasonrow', hidden: true }, reason, h('button', { class: 'btn-red btn-sm', on: { click: function(){ act('reject', { id: a.id }, 'Got it, I\'ll remember that', { reason: reason.value }); } } }, 'Send'));
+    box.appendChild(h('div', { class: 'row' },
+      h('button', { class: 'btn-gold btn-sm', on: { click: function(ev){ ev.target.disabled = true; act('approve', { id: a.id }, 'Approved and applied'); } } }, 'Approve'),
+      h('button', { class: 'btn-sm', on: { click: function(){ rrow.hidden = !rrow.hidden; if(!rrow.hidden) reason.focus(); } } }, 'Not now'),
+      safeUrl(a.admin_link) ? h('a', { class: 'btn btn-sm', href: safeUrl(a.admin_link), target: '_blank', rel: 'noopener noreferrer' }, 'Open in Shopify') : null));
+    box.appendChild(rrow);
+    p.appendChild(box);
+  });
+}
+
+function dayLabel(iso){
+  var d = new Date(iso), n = new Date(), y = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1);
+  if(d.toDateString() === n.toDateString()) return 'Today';
+  if(d.toDateString() === y.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+function renderActivity(){
+  var p = clear($('pane-activity')), all = S.ledger, items = narrowed('activity', scoped(all)), bar = scopeBar('activity');
+  if(!all.length){ p.appendChild(h('div', { class: 'empty' }, 'Nothing yet. As soon as your team starts working, every step is listed here.')); return; }
+  if(bar) p.appendChild(bar);
+  var week = scoped(all).filter(function(a){ return a.status === 'applied' && a.applied_at && Date.now() - new Date(a.applied_at).getTime() < 6048e5; }).length;
+  if(week && !bar) p.appendChild(h('div', { class: 'weekbar' }, num('Changes this week', week + (S.cursor ? '+' : ''), true), num('Waiting for you', scoped(S.approvals).length, false, function(){ goTo('approvals', null); })));
+  if(!items.length) p.appendChild(h('div', { class: 'empty' }, 'Nothing matches that yet.'));
+  var last = '';
+  items.forEach(function(a){
+    var day = dayLabel(a.at); if(day !== last){ p.appendChild(h('div', { class: 'dayh' }, day)); last = day; }
+    p.appendChild(activityItem(a));
+  });
+  if(S.cursor) p.appendChild(h('p', { style: 'text-align:center;margin-top:14px' }, h('button', { class: 'btn-sm', on: { click: function(ev){
+    ev.target.disabled = true;
+    api('ledger', { q: { cursor: S.cursor } }).then(function(r){ if(r.j && r.j.ok){ S.ledger = S.ledger.concat(r.j.items); S.cursor = r.j.next_cursor; renderActivity(); } else { ev.target.disabled = false; toast(errMsg(r)); } });
+  } } }, 'Show older')));
+}
+function activityItem(a){
+  var tagTxt = a.auto ? 'Done by itself' : (a.verb === 'reply_send' && a.status === 'applied' ? 'Sent' : (STATUS[a.status] || '')), box = h('div', { class: 'item' });
+  box.appendChild(whoRow(a, ago(a.at)));
+  box.appendChild(h('div', { class: 'it-top' }, h('div', { class: 'it-sum' }, a.summary), tagTxt ? h('span', { class: 'tag ' + a.status }, tagTxt) : null));
+  var d = (a.status === 'applied' || a.status === 'rejected' || a.status === 'undone') && (a.before || a.after) ? describe(a) : null;
+  if(d && (d.before || d.after)){
+    box.appendChild(h('details', { style: 'margin-top:8px' }, h('summary', { class: 'note', style: 'cursor:pointer;font-weight:800' }, 'Show the change'),
+      h('div', { class: 'ba' }, a.verb === 'article' ? null : h('div', { class: 'col' }, h('b', { class: 'lbl' }, 'Before'), d.before || '(empty)'), h('div', { class: 'col new' }, h('b', { class: 'lbl' }, 'After'), d.after))));
+  }
+  if(a.decision_reason) box.appendChild(h('p', { class: 'note', style: 'margin-top:6px' }, 'Your note: ' + a.decision_reason));
+  if(a.can_undo) box.appendChild(h('button', { class: 'btn-sm btn-undo', type: 'button', on: { click: function(ev){
+    var btn = ev.currentTarget;
+    confirmModal({ role: a.role, title: 'Put the original text back?', text: 'This takes back ' + who(a.role).name + '\'s change. If you have edited it yourself since, nothing is touched.', ok: 'Put it back', cancel: 'Keep the new text' })
+      .then(function(yes){ if(!yes) return; btn.disabled = true; act('undo', { id: a.id }, 'Undone. Your original is back'); });
+  } } }, '↩ Undo'));
+  if(safeUrl(a.admin_link) && (a.status === 'applied' || a.status === 'undone')) box.appendChild(h('p', { style: 'margin-top:8px' }, h('a', { class: 'note', href: safeUrl(a.admin_link), target: '_blank', rel: 'noopener noreferrer' }, 'View in Shopify →')));
+  return box;
+}
+
+/* ---------- gallery ---------- */
+function setLabel(k){
+  var m = /^monthly-(\d{4})-(\d{2})$/.exec(k);
+  if(k === 'launch') return 'Your launch set';
+  if(m) return 'Monthly refresh · ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m[2], 10) - 1] + ' ' + m[1];
+  if(/^seasonal/.test(k)) return 'Seasonal set';
+  if(/^product-/.test(k)) return 'New product set';
+  return k;
+}
+var ANG = { problem_solution:'Problem → solution', trusted_favorite:'Trusted favorite', feature_closeup:'Feature close-up', lifestyle:'Lifestyle', value:'Great value' };
+function copyText(t){
+  var done = function(){ toast('Copied'); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+  function fallback(){ var ta = h('textarea', { style: 'position:fixed;opacity:0' }); ta.value = t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); done(); }catch(e){} ta.remove(); }
+}
+function renderGallery(){
+  var p = clear($('pane-gallery')), hasDesigner = S.office.hires.some(function(x){ return x.role === 'designer'; });
+  if(!hasDesigner){ p.appendChild(h('div', { class: 'empty' }, 'Your Ad Creative Designer makes ready-to-run ad images and ad copy from your product photos. ', h('a', { href: '/hire' }, 'Hire the designer →'))); return; }
+  var imgs = S.creatives.filter(function(c){ return c.kind === 'image'; }), copies = S.creatives.filter(function(c){ return c.kind === 'copy'; }), bar = scopeBar('gallery'), shown = 0;
+  if(bar) p.appendChild(bar);
+  if(!imgs.length){ p.appendChild(h('div', { class: 'empty' }, h('span', { class: 'spin' }), ' Your designer is making your first set of ads. This usually takes a couple of hours once your store is live — we\'ll show them here.')); return; }
+  var sets = {}, order = [];
+  imgs = imgs.slice().sort(function(a, b){ return a.id - b.id; }); /* oldest first inside a set (the launch order); newest SET first below */
+  imgs.forEach(function(c){
+    var key = c.set; if(!sets[key]){ sets[key] = {}; order.push(key); }
+    var g = c.group || String(c.id);
+    sets[key][g] = sets[key][g] || { angle: c.angle, sizes: {} };
+    sets[key][g].sizes[c.format] = c;
+  });
+  order.reverse();
+  order.forEach(function(key){
+    var sec = h('div', { class: 'gset' }, h('h4', null, setLabel(key))), grid = h('div', { class: 'grid' });
+    Object.keys(sets[key]).forEach(function(g){
+      var it = sets[key][g], main = it.sizes['1:1'] || it.sizes[Object.keys(it.sizes)[0]];
+      if(!main || !safeUrl(main.file)) return;
+      if(S.f && S.f.tab === 'gallery' && !S.f.test(main)) return;
+      shown++;
+      var up = main.feedback === 'up', down = main.feedback === 'down';
+      var vote = function(v){ api('feedback', { method: 'POST', q: { creative: main.id }, body: { feedback: main.feedback === v ? '' : v } }).then(function(){ return loadAll({ creatives: true }); }).then(function(){ toast(v === 'up' ? 'Thanks — I\'ll make more like it' : 'Noted'); }); };
+      var tile = h('div', { class: 'tile' }, h('img', { src: safeUrl(main.file), alt: (ANG[it.angle] || 'Ad') + ' ad image', loading: 'lazy' }),
+        h('div', { class: 'tb' }, h('div', { class: 'ang' }, ANG[it.angle] || it.angle || ''),
+          h('div', { class: 'tbtns' },
+            ['1:1', '4:5', '9:16'].filter(function(f){ return it.sizes[f] && safeUrl(it.sizes[f].file); }).map(function(f){ return h('a', { class: 'btn dlbtn', href: safeUrl(it.sizes[f].file) + '&dl=1', rel: 'noopener noreferrer' }, '⬇ ' + f); }),
+            h('button', { class: up ? 'on' : '', title: 'More like this', on: { click: function(){ vote('up'); } } }, '👍'),
+            h('button', { class: down ? 'on dn' : '', title: 'Not for me', on: { click: function(){ vote('down'); } } }, '👎'),
+            h('button', { title: 'Make two more like this', on: { click: function(ev){ ev.target.disabled = true; api('more', { method: 'POST', q: { creative: main.id } }).then(function(r){ toast(r.j && r.j.ok ? 'On it — new ones will appear here' : (r.j && r.j.error) || 'Couldn\'t start that'); ev.target.disabled = false; }); } } }, '＋ More'))));
+      grid.appendChild(tile);
+    });
+    if(!grid.childNodes.length) return;
+    sec.appendChild(grid);
+    var cp = S.f && S.f.tab === 'gallery' ? null : copies.filter(function(c){ return c.set === key; })[0];
+    if(cp && cp.copy){
+      var box = h('div', { class: 'card' }, h('h3', null, 'Ad copy for this set'));
+      if(cp.copy.test_first) box.appendChild(h('p', { class: 'note', style: 'margin:8px 0 6px;color:#D7DEEF' }, h('b', null, 'Where to start: '), cp.copy.test_first));
+      [['headlines', 'Headlines'], ['primary_texts', 'Primary text'], ['descriptions', 'Descriptions']].forEach(function(g){
+        var list = cp.copy[g[0]] || []; if(!list.length) return;
+        box.appendChild(h('h4', { style: 'font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:14px' }, g[1]));
+        list.forEach(function(x){ box.appendChild(h('div', { class: 'copyrow' }, h('div', { class: 't' }, h('span', { class: 'a' }, ANG[x.angle] || x.angle || ''), x.text), h('button', { class: 'btn-sm', on: { click: function(){ copyText(x.text); } } }, 'Copy'))); });
+      });
+      sec.appendChild(box);
+    }
+    p.appendChild(sec);
+  });
+  if(!shown) p.appendChild(h('div', { class: 'empty' }, 'Nothing matches that yet.'));
+  p.appendChild(h('details', { class: 'guide' }, h('summary', null, 'How to use these in Meta Ads Manager'),
+    h('div', { class: 'gb' }, h('ol', null,
+      h('li', null, 'Download the sizes you need: 1:1 for the feed, 4:5 for taller feed ads, 9:16 for Stories and Reels.'),
+      h('li', null, 'In Meta Ads Manager create a new ad, choose "Create ad", and upload the image.'),
+      h('li', null, 'Paste a headline and a primary text from the matching angle above.'),
+      h('li', null, 'Start with the angle your designer recommends under "Where to start", run it for a few days, then give the ads you like a 👍 so next month\'s set follows what works.'),
+      h('li', null, 'Your team never posts anything for you — you stay in control of what runs and what you spend.')))));
+}
+
+/* ---------- settings ---------- */
+function renderSettings(){
+  var p = clear($('pane-settings'));
+  if(!S.office.hires.some(function(x){ return x.employee; })){ p.appendChild(h('div', { class: 'empty' }, 'Settings appear once your team is working on your store.')); return; }
+  p.appendChild(h('div', { class: 'card' }, h('h3', null, 'How your team works'),
+    h('p', { class: 'note', style: 'margin:6px 0 0;color:#D7DEEF' }, 'Anything your customers will see waits for your OK, unless you put someone on autopilot. Everything your team does is written down in Activity, and most of it can be undone.')));
+  p.appendChild(h('div', { class: 'card' }, h('h3', null, 'Each person\'s settings'),
+    h('p', { class: 'note', style: 'margin:6px 0 10px;color:#D7DEEF' }, 'Open someone from Home to change how they work, their voice and standing instructions.'),
+    h('div', { class: 'row' }, S.office.hires.map(function(x){ var w = who(x.role); return h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ navTo('emp', x.role, 'esettings'); } } }, w.name); }))));
+  p.appendChild(h('div', { class: 'card' }, h('h3', null, 'Pause everything'),
+    h('p', { class: 'note', style: 'margin:6px 0 10px' }, 'Stops all your AI employees right away. Nothing is deleted, and you can resume each one from their screen.'),
+    h('button', { class: 'btn-red btn-sm', type: 'button', on: { click: function(){
+      confirmModal({ title: 'Pause your whole team?', text: 'Everyone stops right away. Nothing is deleted, and you can resume each person from their screen.', ok: 'Pause everyone', cancel: 'Keep them working', danger: true })
+        .then(function(yes){ if(yes) act('disconnect', {}, 'Everything paused'); });
+    } } }, 'Pause all')));
+}
+
+/* ---------- Nora (Store Manager) and Sam (Customer Support Rep) ---------- */
+var INTENT = { order_status: 'Order status', shipping: 'Shipping', returns: 'Return or exchange', product: 'Product question', refund: 'Refund request', cancel: 'Cancellation',
+  legal: 'Legal or dispute', privacy: 'Privacy request', complaint: 'Complaint', other: 'Question' };
+var ESCALATION = {
+  legal_or_dispute: 'They mention a dispute or legal action, so I haven\'t written a reply. How you answer is up to you.',
+  privacy_request: 'This is a privacy request, for example deleting someone\'s data. It needs you, so I haven\'t written a reply.',
+  refund_request: 'They are asking for a refund. I wrote a draft, but only you can decide what to offer.',
+  cancel_request: 'They want to cancel an order. I wrote a draft, but only you can change an order.',
+  angry_customer: 'This customer is upset. I wrote a careful draft, so please read it before it goes out.',
+  faulty_or_wrong_item: 'A damaged or wrong item. Please decide on a replacement or refund. I wrote a draft you can adjust.'
+};
+var TSTATUS = { 'new': ['Reading', 'wait'], draft_ready: ['Ready to send', 'gold'], needs_owner: ['Needs your answer', 'warn'], replied: ['Replied', 'ok'], closed: ['Closed', 'dim'] };
+var SENDER = { pass: ['✓ Sender verified', 'ok'], fail: ['⚠ Sender could not be verified', 'warn'], unknown: ['Sender not verified', 'dim'] };
+var FLAG = {
+  unfulfilled_late: { label: 'Late to ship', tip: 'Open these orders in Shopify and mark them shipped, or let the customer know.' },
+  partial_stuck: { label: 'Partly shipped', tip: 'Some items went out but others are stuck. Check what is left.' },
+  payment_pending_old: { label: 'Payment pending', tip: 'Follow up with the customer, or cancel the order.' },
+  refund_spike: { label: 'Many refunds', tip: 'Look for what these orders share: one product, one supplier or a shipping problem.' },
+  cancel_spike: { label: 'Many cancellations', tip: 'Look for a pattern, for example stock, price changes or slow shipping.' },
+  quiet: { label: 'Quiet store', tip: 'Check that your store, ads and checkout still work.' }
+};
+var SEV = { high: ['High', 'bad'], medium: ['Medium', 'gold'], low: ['Low', 'dim'] };
+
+/* the privacy tables keep UTC times as "2026-11-16 22:21:19" */
+function utc(s){ return s && /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(s) ? s.replace(' ', 'T') + 'Z' : s; }
+function initials(n){
+  var p = String(n || '?').replace(/@.*/, '').replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/);
+  return ((p[0] || '?').charAt(0) + (p.length > 1 ? p[p.length - 1].charAt(0) : '')).toUpperCase();
+}
+function money(v, cur){
+  try{ return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur, minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(v); }catch(e){ return (cur ? cur + ' ' : '') + v; }
+}
+function plural(n, one, many){ return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+/* an address that wraps at the @, never inside the name */
+function addrText(a){
+  var i = String(a).indexOf('@');
+  if(i < 0) return String(a);
+  var local = document.createElement('span'); local.style.whiteSpace = 'nowrap'; local.textContent = String(a).slice(0, i);
+  return [local, document.createElement('wbr'), String(a).slice(i)];
+}
+function copyBtn(text, label){
+  return h('button', { class: 'btn-sm copybtn', type: 'button', 'aria-label': label || 'Copy', on: { click: function(){ copyText(text); } } }, 'Copy');
+}
+
+/* ----- Nora: what she found + her weekly report ----- */
+function managerFlags(){
+  var rank = { high: 0, medium: 1, low: 2 };
+  return (S.office.todos || []).filter(function(t){ return t.source === 'manager' && t.type && t.type !== 'waiting'; })
+    .sort(function(a, b){ return (rank[a.severity] === undefined ? 3 : rank[a.severity]) - (rank[b.severity] === undefined ? 3 : rank[b.severity]); });
+}
+function reportsList(){ return (S.mgrLedger && S.mgrLedger.length ? S.mgrLedger : S.ledger).filter(function(a){ return a.verb === 'report' && a.after && a.after.source === 'manager' && a.after.kind === 'weekly'; }); }
+function delta(a, b){
+  if(typeof a !== 'number' || typeof b !== 'number') return '';
+  var d = a - b; if(d === 0) return 'same as the week before';
+  return (d > 0 ? '▲ ' : '▼ ') + Math.abs(d) + ' vs. the week before';
+}
+function moneyDelta(a, b, cur){
+  var d = Math.round(a - b); if(!d) return 'same as the week before';
+  return (d > 0 ? '▲ ' : '▼ ') + money(Math.abs(d), cur) + ' vs. the week before';
+}
+function reportCard(a, hero){
+  var af = a.after || {}, m = af.metrics || {}, pv = af.previous || {}, cur = Object.keys(m.revenue || {})[0], pcur = Object.keys(pv.revenue || {})[0];
+  var head = String(a.summary || '').replace(/^Weekly summary:\s*/, '') || 'Weekly report';
+  var tiles = [];
+  tiles.push(h('div', { class: 'mt' }, h('div', { class: 'k' }, 'Orders'), h('div', { class: 'v' }, String(m.orders || 0)), h('div', { class: 'd' }, delta(m.orders, pv.orders))));
+  if(cur) tiles.push(h('div', { class: 'mt' }, h('div', { class: 'k' }, 'Sales'), h('div', { class: 'v gold' }, money(m.revenue[cur], cur)), h('div', { class: 'd' }, cur === pcur ? moneyDelta(m.revenue[cur], pv.revenue[pcur], cur) : '')));
+  if(typeof m.avg_order === 'number' && cur) tiles.push(h('div', { class: 'mt' }, h('div', { class: 'k' }, 'Average order'), h('div', { class: 'v' }, money(m.avg_order, cur)), h('div', { class: 'd' }, '')));
+  tiles.push(h('div', { class: 'mt' }, h('div', { class: 'k' }, 'Refunded'), h('div', { class: 'v' }, String(m.refunded || 0)), h('div', { class: 'd' }, m.cancelled ? plural(m.cancelled, 'cancelled order') : '')));
+  var top = m.top_products ? Object.keys(m.top_products).sort(function(x, y){ return m.top_products[y] - m.top_products[x]; }) : [];
+  var box = h('div', { class: 'card report' + (hero ? ' glow' : '') },
+    h('div', { class: 'rhead' }, av('manager', 'xs'), h('span', { class: 'rk' }, hero ? 'This week\'s report' : 'Report'), h('time', null, ago(a.at))),
+    h('h3', { class: 'rh' }, head),
+    (af.bullets || []).length ? h('ul', { class: 'rb' }, af.bullets.map(function(b){ return h('li', null, String(b)); })) : null,
+    h('div', { class: 'mts' }, tiles),
+    top.length ? h('p', { class: 'note', style: 'margin-top:10px' }, h('b', { style: 'color:var(--text)' }, 'Best sellers: '), top.map(function(t){ return t + ' (' + m.top_products[t] + ')'; }).join(', ')) : null);
+  return box;
+}
+function flagCard(f){
+  var shop = S.office.shop, meta = FLAG[f.type] || { label: 'Worth a look', tip: '' }, sev = SEV[f.severity] || SEV.low;
+  return h('div', { class: 'flag sev-' + (f.severity || 'low') }, h('span', { class: 'sevbar', 'aria-hidden': 'true' }),
+    h('div', { class: 'fb' },
+      h('div', { class: 'fl' }, h('span', { class: 'tg ' + sev[1] }, sev[0]), h('span', { class: 'fk' }, meta.label), h('time', null, ago(f.at))),
+      h('div', { class: 'fsum' }, f.summary),
+      meta.tip ? h('p', { class: 'note', style: 'margin-top:6px' }, meta.tip) : null,
+      shop && safeUrl('https://' + shop + '/admin/orders') && /^(unfulfilled_late|partial_stuck|payment_pending_old)$/.test(f.type) ? h('a', { class: 'btn btn-sm', style: 'margin-top:10px', href: safeUrl('https://' + shop + '/admin/orders'), target: '_blank', rel: 'noopener noreferrer' }, 'Open orders in Shopify') : null));
+}
+function renderFlags(){
+  var p = clear($('pane-flags'));
+  if(!hasRole('manager')) return;
+  var hire = hireOf('manager'), e = hire.employee, c = (e && e.card) || {}, flags = managerFlags();
+  if(!e){ p.appendChild(h('div', { class: 'empty' }, 'Nora starts the moment your store is live.')); return; }
+  if(permissionNeeded(c)){ p.appendChild(permissionBox(c, 'Nora')); }
+  else if(c.waiting_for_order_access){
+    p.appendChild(h('div', { class: 'card' }, h('div', { class: 'rhead' }, av('manager', 'xs'), h('span', { class: 'rk' }, 'Waiting for order access')),
+      h('p', { class: 'note', style: 'margin-top:8px;color:#D7DEEF' }, 'I can\'t see your orders yet, so I have nothing to watch. The moment order access is switched on for your store I start checking them every day.')));
+  }
+  if(!flags.length){
+    p.appendChild(h('div', { class: 'allclear' }, h('span', { class: 'ok-ic', 'aria-hidden': 'true' }, '✓'),
+      h('div', null, h('b', null, c.last_check ? 'All clear' : 'Nothing yet'),
+        h('span', null, c.last_check ? 'Last checked ' + ago(c.last_check) + (c.orders_seen ? ' · ' + plural(c.orders_seen, 'order') + ' in the last 30 days' : ' · no orders in the last 30 days') : 'I\'m getting to know your orders. I\'ll list anything that needs you here.'))));
+    return;
+  }
+  p.appendChild(h('p', { class: 'note', style: 'margin-top:12px' }, 'I check again every day and clear each one once it\'s sorted.'));
+  flags.forEach(function(f){ p.appendChild(flagCard(f)); });
+}
+function renderWeekly(){
+  var p = clear($('pane-weekly'));
+  if(!hasRole('manager')) return;
+  var reps = reportsList();
+  if(!reps.length){
+    p.appendChild(h('div', { class: 'empty' }, 'My first weekly report arrives on Monday. It covers your orders, sales, refunds and best sellers.'));
+    return;
+  }
+  p.appendChild(reportCard(reps[0], true));
+  if(reps.length > 1){
+    var older = h('details', { class: 'ins' }, h('summary', null, 'Earlier reports', h('span', { class: 'cnt' }, String(Math.min(reps.length - 1, 4)))));
+    reps.slice(1, 5).forEach(function(a){ older.appendChild(h('div', { style: 'padding-bottom:12px' }, reportCard(a, false))); });
+    p.appendChild(older);
+  }
+}
+
+/* ----- Sam: the support inbox ----- */
+function mergeThreads(res){
+  var first = res[0].j, map = {}, ids = [];
+  [first, res[1] && res[1].j, res[2] && res[2].j].forEach(function(j){ ((j && j.ok && j.items) || []).forEach(function(t){ map[t.id] = t; }); });
+  (first.items || []).forEach(function(t){ ids.push(t.id); });
+  var cursor = first.next_cursor || null, minFirst = ids.length ? Math.min.apply(null, ids) : 0;
+  if(cursor) S.threads.forEach(function(t){ if(t.id < minFirst && !map[t.id]) map[t.id] = t; });
+  S.threadCursor = cursor && S.threads.some(function(t){ return t.id < minFirst; }) ? (S.threadCursor && S.threadCursor < minFirst ? S.threadCursor : cursor) : cursor;
+  S.threads = Object.keys(map).map(function(k){ return map[k]; }).sort(function(a, b){ return b.id - a.id; });
+}
+function supportHire(){ return hasRole('support') ? hireOf('support') : null; }
+function needsYou(t){ return t.status === 'draft_ready' || t.status === 'needs_owner'; }
+function threadFilters(){
+  var all = S.threads, n = function(f){ return all.filter(f).length; };
+  return [['needs', 'Needs you', n(needsYou)], ['replied', 'Replied', n(function(t){ return t.status === 'replied'; })], ['closed', 'Closed', n(function(t){ return t.status === 'closed'; })], ['all', 'All', all.length]];
+}
+var TFSCOPE = { ready: ['Ready to send', 'draft_ready'], answer: ['Need your answer', 'needs_owner'] };
+function threadRow(t){
+  var st = TSTATUS[t.status] || [t.status, 'dim'], name = t.customer || 'Customer';
+  return h('button', { class: 'trow', type: 'button', 'aria-label': name + ': ' + (t.subject || 'no subject') + '. ' + st[0], on: { click: function(){ openThread(t.id, { name: name, subject: t.subject }); } } },
+    h('span', { class: 'cav c' + (t.id % 6) }, initials(name)),
+    h('span', { class: 'tmain' },
+      h('span', { class: 'tl1' }, h('b', null, name), h('time', null, ago(utc(t.last_message_at)))),
+      h('span', { class: 'tsub' }, t.subject || '(no subject)'),
+      h('span', { class: 'tmeta' }, h('span', { class: 'tg ' + st[1] }, st[0]), t.intent && INTENT[t.intent] ? h('span', { class: 'tg dim' }, INTENT[t.intent]) : null, t.order_name ? h('span', { class: 'tg dim' }, t.order_name) : null)),
+    h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
+}
+function renderConvos(){
+  var p = clear($('pane-convos')), hire = supportHire();
+  if(!hire) return;
+  var e = hire.employee, c = (e && e.card) || {};
+  if(!e){ p.appendChild(h('div', { class: 'empty' }, 'Sam starts the moment your store is live.')); return; }
+  var sTodos = (S.office.todos || []).filter(function(t){ return t.source === 'support'; });
+  if(sTodos.length){
+    var urgent = sTodos.some(function(x){ return /may or may not/i.test(x.summary || ''); });
+    var tc = h('details', { class: 'ins notes', open: urgent ? 'open' : null }, h('summary', null, urgent ? '⚠ Please check' : 'Notes from ' + who('support').name, h('span', { class: 'cnt' }, String(sTodos.length))));
+    sTodos.slice(0, 6).forEach(function(x){ tc.appendChild(h('p', { class: 'note', style: 'margin:0 0 10px;color:#D7DEEF' }, '• ' + x.summary)); });
+    p.appendChild(tc);
+  }
+  var filters = threadFilters(), cur = S.tf;
+  if(cur === 'needs' && !S.threads.some(needsYou) && S.threads.length && !S.tfTouched) cur = 'all';
+  var list = S.threads.filter(function(t){ return cur === 'all' ? true : (cur === 'needs' ? needsYou(t) : (TFSCOPE[cur] ? t.status === TFSCOPE[cur][1] : t.status === cur)); });
+  p.appendChild(h('div', { class: 'fchips', role: 'group', 'aria-label': 'Filter conversations' }, filters.map(function(f){
+    return h('button', { class: 'fchip' + (cur === f[0] ? ' on' : ''), type: 'button', 'aria-pressed': String(cur === f[0]), on: { click: function(){ S.tf = f[0]; S.tfTouched = true; renderConvos(); } } }, f[1], h('span', { class: 'n' }, String(f[2])));
+  })));
+  if(TFSCOPE[cur]) p.appendChild(h('div', { class: 'filterbar' }, h('span', null, 'Showing: ', h('b', null, TFSCOPE[cur][0])),
+    h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ S.tf = 'needs'; S.tfTouched = true; renderConvos(); } } }, 'Show everything that needs me ✕')));
+  if(!S.threads.length){
+    p.appendChild(h('div', { class: 'empty' }, h('div', { class: 'faces' }, av('support')), 'No customer emails yet. ', c.address ? h('span', null, 'Forward your store\'s support email to ', h('b', { style: 'color:var(--text)' }, addrText(c.address)), ' and they appear here. To test it, send a message to your store\'s support email from a different address.') : 'Once your support address is ready, they appear here.'));
+    return;
+  }
+  if(!list.length) p.appendChild(h('div', { class: 'empty' }, cur === 'needs' ? 'Nothing needs you right now. 🎉' : 'Nothing here.'));
+  var box = h('div', { class: 'tlist' }); list.forEach(function(t){ box.appendChild(threadRow(t)); });
+  if(list.length) p.appendChild(box);
+  if(S.threadCursor) p.appendChild(h('p', { style: 'text-align:center;margin-top:14px' }, h('button', { class: 'btn-sm', type: 'button', on: { click: function(ev){
+    ev.target.disabled = true;
+    api('threads', { q: { cursor: S.threadCursor } }).then(function(r){ if(r.j && r.j.ok){ S.threads = S.threads.concat(r.j.items || []); S.threadCursor = r.j.next_cursor; renderConvos(); syncTabs(); } else { ev.target.disabled = false; toast(errMsg(r)); } });
+  } } }, 'Show older')));
+}
+
+/* a customer's reply waiting in the Inbox: what they wrote, what I'd say, one tap to send */
+function replyItem(a){
+  var s = a.support || {}, w = who(a.role), box = h('div', { class: 'item reply' });
+  box.appendChild(whoRow(a, 'Reply ready · ' + ago(a.at) + (a.expires_at ? ' · decide ' + inTime(a.expires_at) : '')));
+  if(s.removed || s.unavailable){
+    box.appendChild(h('div', { class: 'it-top' }, h('div', { class: 'it-sum' }, s.removed ? 'This conversation was removed.' : 'I can\'t show this one right now.'), h('span', { class: 'tag proposed' }, 'Waiting')));
+    box.appendChild(h('div', { class: 'row' }, h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ act('reject', { id: a.id }, 'Dismissed'); } } }, 'Dismiss')));
+    return box;
+  }
+  var who2 = (s.customer && (s.customer.name || s.customer.email)) || 'A customer';
+  box.appendChild(h('div', { class: 'it-top' }, h('span', { class: 'cav sm c' + ((s.thread_id || 0) % 6) }, initials(who2)),
+    h('div', { style: 'min-width:0' }, h('div', { class: 'it-sum' }, who2), (s.customer && s.customer.email && s.customer.email !== who2) ? h('div', { class: 'note', style: 'overflow-wrap:anywhere' }, s.customer.email) : null, h('div', { class: 'tsub' }, s.subject || '(no subject)')), h('span', { class: 'tag proposed' }, 'Waiting')));
+  var tags = h('div', { class: 'tmeta', style: 'margin-top:8px' }, s.intent && INTENT[s.intent] ? h('span', { class: 'tg dim' }, INTENT[s.intent]) : null, s.order_name ? h('span', { class: 'tg dim' }, s.order_name) : null,
+    s.sender_check && SENDER[s.sender_check] ? h('span', { class: 'tg ' + SENDER[s.sender_check][1] }, SENDER[s.sender_check][0]) : null);
+  box.appendChild(tags);
+  if(s.escalation) box.appendChild(h('p', { class: 'warnline' }, '⚠ ' + (ESCALATION[s.escalation] || 'This one needs your decision.')));
+  box.appendChild(h('div', { class: 'ba' },
+    h('div', { class: 'col' }, h('b', { class: 'lbl' }, 'They wrote'), s.customer_message || '(nothing)'),
+    h('div', { class: 'col new' }, h('b', { class: 'lbl' }, w.name + '\'s reply'), s.draft || '(nothing)')));
+  if(s.warnings) box.appendChild(h('p', { class: 'note', style: 'margin-top:8px' }, 'Note: ' + s.warnings));
+  box.appendChild(h('div', { class: 'row' },
+    h('button', { class: 'btn-gold btn-sm', type: 'button', on: { click: function(){ approveReply(a, who2, s.customer && s.customer.email); } } }, 'Approve & send'),
+    h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ openThread(s.thread_id, { edit: true, name: who2, subject: s.subject }); } } }, 'Edit'),
+    h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ openThread(s.thread_id, { name: who2, subject: s.subject }); } } }, 'Open')));
+  return box;
+}
+function approveReply(a, name, email){
+  return confirmModal({ role: 'support', title: 'Send this reply to ' + name + '?', text: 'It goes to ' + (email || 'the customer') + ' by email right away, and a sent email can\'t be taken back.', ok: 'Approve & send', cancel: 'Not yet' })
+    .then(function(yes){ if(!yes) return false; return act('approve', { id: a.id }, 'Reply sent', undefined, { reply: true }).then(function(){ return true; }); });
+}
+
+/* the conversation sheet: full screen on a phone, a centred panel on larger screens */
+var sheetOpen = false;
+function openThread(id, opt){
+  opt = opt || {};
+  if(sheetOpen || !id) return;
+  sheetOpen = true;
+  var prev = document.activeElement, closed = false, T = null, edit = !!opt.edit, wait = null, polls = 0, pollT = null;
+  var back = h('div', { class: 'tback' }), sheet = h('div', { class: 'tsheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Conversation' + (opt.name ? ' with ' + opt.name : ''), tabindex: '-1' });
+  var headBox = h('div', { class: 'tsh-head' }), scroll = h('div', { class: 'tsh-scroll' }), foot = h('div', { class: 'tsh-foot' });
+  sheet.appendChild(headBox); sheet.appendChild(scroll); sheet.appendChild(foot); back.appendChild(sheet);
+  function onKey(ev){
+    if(ev.key === 'Escape' && !modalOpen){ ev.preventDefault(); if(!sheet.querySelector('[data-dirty]')) close(); return; }
+    if(ev.key !== 'Tab' || modalOpen) return;
+    var f = [].filter.call(sheet.querySelectorAll('button:not([disabled]),a[href],textarea,input'), function(x){ return x.offsetParent !== null; }); if(!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); } else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+  }
+  function close(fromPop){
+    if(closed) return; closed = true;
+    curSheetClose = null;
+    if(fromPop !== true && history.state && history.state.sheet){ try{ history.back(); }catch(e){} }
+    document.removeEventListener('keydown', onKey, true);
+    back.classList.remove('in'); document.body.classList.remove('modal-on');
+    setTimeout(function(){ if(back.parentNode) back.parentNode.removeChild(back); sheetOpen = false; if(prev && prev.focus){ try{ prev.focus(); }catch(e){} } }, 310);
+    loadAll({ threads: true });
+  }
+  function tryClose(){
+    if(!sheet.querySelector('[data-dirty]')){ close(); return; }
+    confirmModal({ role: 'support', title: 'Discard your changes?', text: 'Your edits to the reply haven\'t been saved.', ok: 'Discard', cancel: 'Keep editing', danger: true }).then(function(y){ if(y) close(); });
+  }
+  function poll(){
+    clearTimeout(pollT);
+    if(closed || polls >= 12){ wait = null; return; }
+    polls++; pollT = setTimeout(function(){ if(!closed && !edit) load(); }, 3500);
+  }
+  function approvalFor(tid){ return S.approvals.filter(function(a){ return a.verb === 'reply_send' && a.support && a.support.thread_id === tid; })[0] || null; }
+  function load(){
+    return Promise.all([api('thread', { q: { id: id } }), api('approvals')]).then(function(r){
+      if(!r[0].j || !r[0].j.ok){ clear(scroll); scroll.appendChild(h('div', { class: 'empty' }, 'I couldn\'t open that conversation just now.')); return; }
+      T = r[0].j.thread; if(r[1].j && r[1].j.items) S.approvals = r[1].j.items;
+      paint();
+    });
+  }
+  function run(route, q, okMsg, body){
+    return api(route, { method: 'POST', q: q, body: body }).then(function(r){
+      var j = r.j || {}; if(j.ok === false || r.status >= 400){ toast(errMsg(r)); return false; }
+      toast(okMsg || 'Done'); return true;
+    });
+  }
+  function paint(){
+    var cust = T.customer || {}, name = cust.name || cust.email || 'Customer', st = TSTATUS[T.status] || [T.status, 'dim'];
+    var appr = approvalFor(T.id) || (T.approval_id ? { id: T.approval_id } : null), msgs = (T.messages || []).filter(function(m){ return m.status !== 'discarded'; }), draft = null;
+    for(var i = msgs.length - 1; i >= 0; i--){ if(msgs[i].direction === 'out' && msgs[i].status === 'draft'){ draft = msgs[i]; break; } }
+    var lastIn = null; for(var k = msgs.length - 1; k >= 0; k--){ if(msgs[k].direction === 'in'){ lastIn = msgs[k]; break; } }
+    clear(headBox); clear(scroll); clear(foot);
+    headBox.appendChild(h('button', { class: 'tsh-x', type: 'button', 'aria-label': 'Close conversation', on: { click: tryClose } }, '✕'));
+    headBox.appendChild(h('span', { class: 'cav c' + (T.id % 6) }, initials(name)));
+    headBox.appendChild(h('div', { class: 'tsh-who' }, h('b', null, name), cust.email && cust.email !== name ? h('span', null, cust.email) : null));
+    scroll.appendChild(h('h2', { class: 'tsh-sub' }, T.subject || '(no subject)'));
+    var meta = h('div', { class: 'tmeta' }, h('span', { class: 'tg ' + st[1] }, st[0]), T.intent && INTENT[T.intent] ? h('span', { class: 'tg dim' }, INTENT[T.intent]) : null,
+      T.order_name ? h('span', { class: 'tg ' + (T.order_verified ? 'ok' : 'dim') }, T.order_name + (T.order_verified ? ' · confirmed' : ' · not checked')) : null,
+      lastIn && lastIn.sender_check && SENDER[lastIn.sender_check] ? h('span', { class: 'tg ' + SENDER[lastIn.sender_check][1] }, SENDER[lastIn.sender_check][0]) : null);
+    scroll.appendChild(meta);
+    if(T.escalation && T.status !== 'replied' && T.status !== 'closed') scroll.appendChild(h('p', { class: 'warnline' }, '⚠ ' + (ESCALATION[T.escalation] || 'This one needs your decision.')));
+    msgs.forEach(function(m){
+      var out = m.direction === 'out', isDraft = out && m.status === 'draft';
+      var lab = out ? (isDraft ? who('support').name + '\'s draft' : (m.status === 'sent' ? 'Sent' : (m.status === 'failed' ? 'Not sent' : who('support').name))) : name;
+      var when = ago(utc(m.sent_at || m.at));
+      var bub = h('div', { class: 'msg ' + (out ? 'out' : 'in') + (isDraft ? ' draft' : '') });
+      bub.appendChild(h('div', { class: 'mh' }, out ? av('support', 'xs') : null, h('b', null, lab), h('time', null, when)));
+      if(isDraft && edit){
+        var ta = h('textarea', { 'aria-label': 'Edit the reply', maxlength: '8000', rows: '9' }); ta.value = m.text || '';
+        ta.addEventListener('input', function(){ ta.setAttribute('data-dirty', '1'); });
+        bub.appendChild(ta);
+        bub.appendChild(h('div', { class: 'row' },
+          h('button', { class: 'btn-gold btn-sm', type: 'button', on: { click: function(ev){
+            var txt = ta.value.trim(); if(!txt){ toast('The reply can\'t be empty.'); return; }
+            ev.target.disabled = true;
+            run('tdraft', { id: T.id }, 'Saved', { text: txt }).then(function(ok){ if(ok){ edit = false; return load(); } ev.target.disabled = false; });
+          } } }, 'Save changes'),
+          h('button', { class: 'btn-sm', type: 'button', on: { click: function(){ edit = false; paint(); } } }, 'Cancel')));
+        setTimeout(function(){ ta.focus(); try{ ta.setSelectionRange(0, 0); ta.scrollTop = 0; }catch(e){} }, 60);
+      }else{
+        if(m.warnings && isDraft) bub.appendChild(h('p', { class: 'mwarn top' }, '⚠ ' + m.warnings));
+        bub.appendChild(h('div', { class: 'mtxt' }, m.text || ''));
+      }
+      scroll.appendChild(bub);
+    });
+    /* actions */
+    var main = h('div', { class: 'tsh-main' }), more = [];
+    if(wait && draft && wait.draftId !== draft.id) wait = null; /* the fresh draft has arrived */
+    var writing = T.status === 'new' || !!wait;
+    if(writing){
+      main.appendChild(h('p', { class: 'note', style: 'flex:1;align-self:center;display:flex;align-items:center;gap:10px' }, h('span', { class: 'spin' }), who('support').name + ' is writing a reply…'));
+      poll();
+    }else if(T.status === 'replied' || T.status === 'closed'){
+      main.appendChild(h('p', { class: 'note', style: 'flex:1;align-self:center' }, T.status === 'replied' ? 'Replied. If they write again it comes back here.' : 'This conversation is closed.'));
+    }else if(appr){
+      if(edit){ main.appendChild(h('p', { class: 'note', style: 'flex:1;align-self:center' }, 'Save your changes, then approve.')); }
+      else{
+        main.appendChild(h('button', { class: 'btn-gold', type: 'button', on: { click: function(){ approveReply(appr, name, cust.email).then(function(done){ if(done) load(); }); } } }, 'Approve & send'));
+        if(draft) main.appendChild(h('button', { type: 'button', on: { click: function(){ edit = true; paint(); } } }, 'Edit'));
+        main.appendChild(h('button', { type: 'button', on: { click: function(){ run('reject', { id: appr.id }, 'Okay, I\'ll hold off').then(function(ok){ if(ok) load(); }); } } }, 'Not now'));
+      }
+    }else if(draft){
+      main.appendChild(h('button', { class: 'btn-gold', type: 'button', on: { click: function(ev){ ev.target.disabled = true; run('tpropose', { id: T.id }, 'Ready for your OK').then(function(ok){ if(ok) load(); else ev.target.disabled = false; }); } } }, 'Get it ready to send'));
+      if(!edit) main.appendChild(h('button', { type: 'button', on: { click: function(){ edit = true; paint(); } } }, 'Edit'));
+    }else{
+      var esc = !!T.escalation;
+      if(esc && cust.email) main.appendChild(h('a', { class: 'btn btn-gold-ghost', href: 'mailto:' + encodeURIComponent(cust.email) + '?subject=' + encodeURIComponent('Re: ' + (T.subject || '')) }, 'Reply from my email'));
+      main.appendChild(h('button', { class: esc ? '' : 'btn-gold', type: 'button', on: { click: function(ev){ ev.target.disabled = true; run('tallow', { id: T.id }, 'Writing a draft now').then(function(ok){ if(ok){ wait = { draftId: draft ? draft.id : null }; polls = 0; load(); } else ev.target.disabled = false; }); } } }, 'Write a reply anyway'));
+    }
+    if(T.status !== 'closed' && T.status !== 'replied'){
+      if(draft || lastIn) more.push(['Rewrite the draft', function(){ run('tredraft', { id: T.id }, 'Writing a fresh draft').then(function(ok){ if(ok){ wait = { draftId: draft ? draft.id : null }; polls = 0; load(); } }); }]);
+      more.push(['Close this conversation', function(){ run('tclose', { id: T.id }, 'Closed').then(function(ok){ if(ok) close(); }); }]);
+      more.push(['Block this sender', function(){
+        confirmModal({ role: 'support', title: 'Block ' + name + '?', text: 'I close this conversation and ignore any future email from this address.', ok: 'Block sender', cancel: 'Keep them', danger: true })
+          .then(function(yes){ if(yes) run('tblock', { id: T.id }, 'Blocked').then(function(ok){ if(ok) close(); }); });
+      }, true]);
+    }else if(T.status === 'closed'){
+      more.push(['Let their mail in again', function(){ run('tunblock', { id: T.id }, 'They can write to you again').then(function(ok){ if(ok) load(); }); }]);
+    }
+    if(more.length){
+      var menu = h('div', { class: 'moremenu', hidden: true }), btn = h('button', { class: 'morebtn', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-label': 'More actions', on: { click: function(){ var o = menu.hidden; menu.hidden = !o; btn.setAttribute('aria-expanded', String(o)); } } }, '⋯');
+      more.forEach(function(m){ menu.appendChild(h('button', { class: m[2] ? 'danger' : '', type: 'button', on: { click: function(){ menu.hidden = true; m[1](); } } }, m[0])); });
+      main.appendChild(h('div', { class: 'morewrap' }, btn, menu));
+    }
+    foot.appendChild(main);
+  }
+  if(opt.name){
+    headBox.appendChild(h('button', { class: 'tsh-x', type: 'button', 'aria-label': 'Close conversation', on: { click: tryClose } }, '✕'));
+    headBox.appendChild(h('span', { class: 'cav c' + (id % 6) }, initials(opt.name)));
+    headBox.appendChild(h('div', { class: 'tsh-who' }, h('b', null, opt.name)));
+    scroll.appendChild(h('h2', { class: 'tsh-sub' }, opt.subject || ''));
+    scroll.appendChild(h('div', { class: 'skel', style: 'height:92px' }));
+  }
+  try{ history.pushState({ sheet: 1 }, ''); }catch(e){}
+  curSheetClose = function(){ close(true); };
+  document.body.appendChild(back); document.body.classList.add('modal-on');
+  document.addEventListener('keydown', onKey, true);
+  back.addEventListener('mousedown', function(ev){ if(ev.target === back && !document.querySelector('[data-dirty]')) close(); });
+  requestAnimationFrame(function(){ back.classList.add('in'); sheet.focus(); });
+  load();
+}
+
+/* ---------- guided setup: "Get Sam ready" (forward the support email, then send a test) and Nora's one permission step ---------- */
+var GD = { provider: 'gmail', test: 'idle', err: '', askTo: false, toValue: '', toMasked: '', sentAt: 0, poll: null, ready: false, stage: 'fwd' };
+try{ GD.stage = localStorage.getItem('emp_setup_stage') === 'test' ? 'test' : 'fwd'; }catch(e){}
+var GLINK = { gmail: 'https://mail.google.com/mail/u/0/#settings/fwdandpop', outlook: 'https://outlook.live.com/mail/0/options/mail/forwarding' };
+var GLABEL = { gmail: 'Open Gmail settings', outlook: 'Open Outlook settings' };
+var PSTEPS = {
+  gmail: [
+    'Tap "Open Gmail settings" below. If you use several Google accounts, pick the one your customers write to.',
+    'Click "Add a forwarding address" and paste Sam\'s address.',
+    'Gmail sends Sam a confirmation code. It shows up on this screen in a moment: copy it into Gmail and press Verify.',
+    'Back in Gmail choose "Forward a copy of incoming mail to" Sam\'s address, then press Save changes.'],
+  outlook: [
+    'Tap "Open Outlook settings" below.',
+    'Turn on "Enable forwarding" and paste Sam\'s address.',
+    'Keep "Keep a copy of forwarded messages" ticked if you still want to read them yourself, then press Save.'],
+  other: [
+    'Open your email provider\'s settings and look for "Forwarding" (sometimes "Auto-forward" or "Mail routing").',
+    'Forward a copy of every incoming message to Sam\'s address.',
+    'Not sure which address your customers write to? In Shopify open Settings, then Notifications, and look at "Customer email".']
+};
+function confirmUrl(u){ try{ var x = new URL(u); return x.protocol === 'https:' && x.hostname === 'mail-settings.google.com' ? x.href : ''; }catch(e){ return ''; } }
+function setStage(s){ GD.stage = s; try{ localStorage.setItem('emp_setup_stage', s); }catch(e){} }
+
+function setupSteps(hire){
+  var e = hire && hire.employee, c = (e && e.card) || {};
+  if(!e) return [];
+  if(hire.role === 'manager') return permissionNeeded(c) ? [{ id: 'perm', title: 'Approve order access', done: false }] : [];
+  if(hire.role !== 'support') return [];
+  var ok = c.forwarding === 'connected';
+  var steps = [{ id: 'fwd', title: 'Forward your support email to ' + who('support').name, done: ok || GD.stage === 'test' }, { id: 'test', title: 'Send a test email', done: ok }];
+  if(permissionNeeded(c)) steps.push({ id: 'perm', title: 'Let ' + who('support').name + ' see order details', done: false });
+  return steps;
+}
+function setupLeft(hire){ return setupSteps(hire).filter(function(s){ return !s.done; }).length; }
+
+function stepFwd(c, w){
+  var a = c.address, box = h('div', { class: 'gbody' });
+  box.appendChild(h('p', { class: 'gtext' }, 'Customers write to your store\'s support email. Send a copy of those emails to ' + w.name + '\'s private address:'));
+  box.appendChild(h('div', { class: 'addrbox' }, h('div', { class: 'addr' }, h('code', null, addrText(a)), copyBtn(a, 'Copy the support address'))));
+  var fc = c.forwarding_confirm;
+  if(fc && (fc.code || fc.link)){
+    var cl = fc.link ? confirmUrl(fc.link) : '';
+    box.appendChild(h('div', { class: 'confirmbox' }, h('b', null, 'Gmail sent you a confirmation code'),
+      fc.code ? h('div', { class: 'addrbox flat' }, h('div', { class: 'addr' }, h('code', null, fc.code), copyBtn(fc.code, 'Copy the confirmation code'))) : null,
+      h('p', { class: 'note' }, 'Type it into Gmail where it asks you to verify the forwarding address.' + (cl ? ' Or use the link:' : '')),
+      cl ? h('a', { class: 'btn btn-sm', href: cl, target: '_blank', rel: 'noopener noreferrer' }, 'Open the confirmation link') : null));
+  }
+  box.appendChild(h('div', { class: 'pchips', role: 'group', 'aria-label': 'Your email service' }, ['gmail', 'outlook', 'other'].map(function(k){
+    return h('button', { class: 'fchip' + (GD.provider === k ? ' on' : ''), type: 'button', 'aria-pressed': String(GD.provider === k), on: { click: function(){ GD.provider = k; render(); } } },
+      { gmail: 'Gmail or Google Workspace', outlook: 'Outlook', other: 'Something else' }[k]);
+  })));
+  var ol = h('ol', { class: 'pst' }); PSTEPS[GD.provider].forEach(function(t){ ol.appendChild(h('li', null, t)); });
+  box.appendChild(ol);
+  if(GLINK[GD.provider]) box.appendChild(h('a', { class: 'btn btn-sm', style: 'margin-top:10px', href: GLINK[GD.provider], target: '_blank', rel: 'noopener noreferrer' }, GLABEL[GD.provider]));
+  box.appendChild(h('div', { class: 'grow' }, h('button', { class: 'btn btn-gold gbig', type: 'button', on: { click: function(){ setStage('test'); render(); } } }, 'I\'ve set it up, test it')));
+  return box;
+}
+
+function sendTest(to){
+  GD.test = 'sending'; GD.err = ''; render();
+  api('stest', { method: 'POST', body: to ? { to: to } : {} }).then(function(r){
+    var j = r.j || {};
+    if(j.ok){ GD.test = 'waiting'; GD.toMasked = j.sent_to_masked || ''; GD.sentAt = Date.now(); GD.askTo = false; startPoll(); }
+    else{
+      GD.test = 'idle';
+      if(j.error === 'no_address' || j.error === 'bad_address'){ GD.askTo = true; GD.err = j.error === 'bad_address' ? 'That doesn\'t look like an email address. Please check it.' : ''; }
+      else GD.err = j.error === 'too_many' ? 'That was quite a few tests. Please wait a few minutes, then try again.' : 'We couldn\'t send the test just now. Please try again in a minute.';
+    }
+    render();
+  });
+}
+function startPoll(){ stopPoll(); GD.poll = setInterval(function(){ loadAll(); }, 5000); }
+function stopPoll(){ if(GD.poll){ clearInterval(GD.poll); GD.poll = null; } }
+/* runs after every render: notice the test arriving, or give up waiting politely */
+function guideTick(){
+  var hire = hasRole('support') ? hireOf('support') : null, c = (hire && hire.employee && hire.employee.card) || {}, t = c.forwarding_test || {};
+  var fresh = t.sent_at && !t.verified_at && (Date.now() / 1000 - t.sent_at) < 180;
+  if(GD.test === 'idle' && fresh){ GD.test = 'waiting'; GD.sentAt = t.sent_at * 1000; GD.toMasked = t.to_masked || ''; startPoll(); }
+  if(GD.test === 'waiting' || GD.test === 'slow'){
+    if(c.forwarding === 'connected'){ GD.test = 'ok'; GD.ready = true; stopPoll(); setStage('test'); toast('✓ It works! ' + who('support').name + ' will now see your customers\' emails.'); }
+    else if(Date.now() - GD.sentAt > 180000){ GD.test = 'idle'; stopPoll(); }
+    else if(Date.now() - GD.sentAt > 90000 && GD.test === 'waiting'){ GD.test = 'slow'; render(); }
+  }
+}
+
+function stepTest(c, w){
+  var box = h('div', { class: 'gbody' }), busy = GD.test === 'sending', waiting = GD.test === 'waiting' || GD.test === 'slow';
+  if(waiting){
+    box.appendChild(h('div', { class: 'waitrow' }, h('span', { class: 'spin', 'aria-hidden': 'true' }),
+      h('div', null, h('b', null, GD.test === 'slow' ? 'Still waiting…' : 'Test email sent'),
+        h('span', null, 'We sent it to ' + (GD.toMasked || 'your support address') + '. Looking for it in ' + w.name + '\'s inbox now. This usually takes under a minute.'))));
+    if(GD.test === 'slow'){
+      box.appendChild(h('p', { class: 'gtext', style: 'margin-top:10px' }, 'Not here yet? Check that forwarding is switched on and saved, and look in your spam folder. Gmail also needs the confirmation code from the previous step.'));
+      box.appendChild(h('div', { class: 'grow2' },
+        h('button', { class: 'btn btn-sm', type: 'button', on: { click: function(){ GD.test = 'idle'; sendTest(null); } } }, 'Send it again'),
+        h('button', { class: 'btn btn-sm', type: 'button', on: { click: function(){ stopPoll(); GD.test = 'idle'; setStage('fwd'); render(); } } }, 'Show me the steps again')));
+    }
+    return box;
+  }
+  box.appendChild(h('p', { class: 'gtext' }, 'We\'ll email a short test message to your store\'s support address. If forwarding works, it reaches ' + w.name + ' and this screen turns green.'));
+  if(GD.err) box.appendChild(h('p', { class: 'gerr', role: 'alert' }, GD.err));
+  if(GD.askTo){
+    var inp = h('input', { class: 'gin', type: 'email', inputmode: 'email', autocomplete: 'email', placeholder: 'the email your customers write to', 'aria-label': 'Your support email address', value: GD.toValue || '' });
+    inp.addEventListener('input', function(){ GD.toValue = inp.value; });
+    box.appendChild(h('p', { class: 'gtext' }, 'Which email address do your customers write to?'));
+    box.appendChild(inp);
+    box.appendChild(h('div', { class: 'grow' }, h('button', { class: 'btn btn-gold gbig', type: 'button', disabled: busy ? 'd' : null, on: { click: function(){ sendTest((inp.value || '').trim()); } } }, busy ? 'Sending…' : 'Send test email')));
+  }else{
+    box.appendChild(h('div', { class: 'grow' }, h('button', { class: 'btn btn-gold gbig', type: 'button', disabled: busy ? 'd' : null, on: { click: function(){ sendTest(null); } } }, busy ? 'Sending…' : 'Send test email')));
+    box.appendChild(h('button', { class: 'linkbtn', type: 'button', on: { click: function(){ GD.askTo = true; render(); } } }, 'Send it to a different address'));
+  }
+  box.appendChild(h('button', { class: 'linkbtn', type: 'button', on: { click: function(){ setStage('fwd'); render(); } } }, '‹ Back to the forwarding steps'));
+  return box;
+}
+
+function stepBody(id, hire, c, w){
+  if(id === 'fwd') return stepFwd(c, w);
+  if(id === 'test') return stepTest(c, w);
+  var url = c.order_access && c.order_access.approve_url ? safeUrl(c.order_access.approve_url) : '';
+  return h('div', { class: 'gbody' }, h('p', { class: 'gtext' }, 'Your store hasn\'t approved DropStart\'s new order permission yet' + (hire.role === 'support' ? ', so ' + w.name + ' can\'t look up orders when customers ask.' : ', so ' + w.name + ' can\'t see your orders.')),
+    h('ol', { class: 'pst' }, [h('li', null, 'Open your Shopify apps page (button below).'), h('li', null, 'Choose DropStart.'), h('li', null, 'Approve the new permissions.')]),
+    url ? h('a', { class: 'btn btn-gold gbig', style: 'margin-top:12px;display:inline-block', href: url, target: '_blank', rel: 'noopener noreferrer' }, 'Open my Shopify apps') : null,
+    h('p', { class: 'note', style: 'margin-top:8px' }, 'This page updates by itself once you have approved.'));
+}
+
+/* the full guide, on the person's own screen */
+function guideCard(hire){
+  var steps = setupSteps(hire), left = steps.filter(function(s){ return !s.done; }), w = who(hire.role), c = (hire.employee && hire.employee.card) || {};
+  if(!left.length) return GD.ready && hire.role === 'support' ? h('div', { class: 'card ready' }, h('span', { class: 'ok-ic', 'aria-hidden': 'true' }, '✓'),
+    h('div', null, h('b', null, w.name + ' is ready'), h('span', null, 'Your forwarding works. Every customer email now shows up in ' + w.name + '\'s inbox and he writes a reply for you to approve.'))) : null;
+  var cur = left[0], idx = steps.indexOf(cur) + 1, doneN = steps.length - left.length;
+  var box = h('div', { class: 'card guide' });
+  box.appendChild(h('div', { class: 'ghead' }, av(hire.role, 'xs'), h('div', { class: 'gtt' },
+    h('b', null, hire.role === 'support' ? 'Get ' + w.name + ' ready' : 'One step to get ' + w.name + ' working'), h('span', null, steps.length > 1 ? 'Step ' + idx + ' of ' + steps.length + ' · about a minute' : 'Takes about a minute'))));
+  if(steps.length > 1) box.appendChild(h('div', { class: 'gbar', 'aria-hidden': 'true' }, h('i', { style: 'width:' + Math.round(100 * doneN / steps.length) + '%' })));
+  var ol = h('ol', { class: 'gsteps' });
+  steps.forEach(function(s, i){
+    var on = s === cur;
+    ol.appendChild(h('li', { class: 'gstep' + (s.done ? ' done' : '') + (on ? ' cur' : '') },
+      h('span', { class: 'gnum', 'aria-hidden': 'true' }, s.done ? '✓' : String(i + 1)),
+      h('div', { class: 'gmain' }, h('div', { class: 'gtitle' }, s.title), on ? stepBody(s.id, hire, c, w) : null)));
+  });
+  box.appendChild(ol);
+  return box;
+}
+/* the short version on Home: one tap takes them to the guide */
+function guideHome(hire){
+  var n = setupLeft(hire), w = who(hire.role);
+  if(!n) return null;
+  return h('button', { class: 'card setupcard', type: 'button', on: { click: function(){ navTo('emp', hire.role, firstSec(hire.role)); } } }, av(hire.role, 'xs'),
+    h('div', { class: 'stx' }, h('b', null, 'Finish setting up ' + w.name), h('span', null, plural(n, 'step') + ' left · about a minute')), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'));
+}
+
+/* ----- a store that never approved DropStart's order permission (installed before Oct 29): say exactly what to do ----- */
+function permissionNeeded(c){ var oa = (c && c.order_access) || {}; return !!oa.permission_needed; }
+function permissionBox(c, name){
+  if(!permissionNeeded(c)) return null;
+  var url = c.order_access.approve_url ? safeUrl(c.order_access.approve_url) : '';
+  return h('div', { class: 'card' }, h('div', { class: 'rhead' }, h('span', { class: 'rk' }, 'One step needed from you')),
+    h('p', { class: 'note', style: 'margin-top:8px;color:#D7DEEF' }, 'Your store hasn\'t approved DropStart\'s new order permission yet, so ' + name + ' can\'t see your orders. In Shopify open Settings, then Apps and sales channels, choose DropStart and approve the new permissions. ' + name + ' starts by himself or herself as soon as you have. This page updates by itself.'.replace('himself or herself', name === 'Nora' ? 'herself' : 'himself')),
+    url ? h('a', { class: 'btn btn-sm', style: 'margin-top:10px', href: url, target: '_blank', rel: 'noopener noreferrer' }, 'Open my Shopify apps') : null);
+}
+
+/* has the merchant's email forwarding started working? (the server counts customer emails that reached Sam's address) */
+function forwardingNote(c){
+  if(c.forwarding === 'connected') return h('p', { class: 'note', style: 'margin-top:8px;color:#9FE3B5' }, '✓ Forwarding works: ' + plural(c.emails_received || 0, 'email') + ' received' + (c.last_email_at ? ', the last one ' + ago(c.last_email_at) : '') + '.');
+  if(c.forwarding === 'waiting') return h('p', { class: 'note', style: 'margin-top:8px' }, 'Waiting for the first email. In your email settings forward your store\'s support email to this address, then send a test message to your store\'s support email from a different address. It shows up here within a minute.');
+  return null;
+}
+
+/* ----- Sam's card: the address to forward to, and where order details stand ----- */
+function addressBox(e, w){
+  var c = e.card || {}, a = c.address;
+  if(!a) return null;
+  return h('div', { class: 'addrbox' }, h('div', { class: 'k' }, 'Your support address'),
+    h('div', { class: 'addr' }, h('code', null, addrText(a)), copyBtn(a, 'Copy the support address')),
+    h('p', { class: 'note' }, 'Forward your store\'s support email to this address. ' + w.name + ' reads each message, writes a reply and waits for your OK before anything is sent.'),
+    c.forwarding === 'connected'
+      ? h('p', { class: 'note', style: 'margin-top:8px' }, 'Forwarding works: ' + plural(c.emails_received || 0, 'email') + ' received' + (c.last_email_at ? ', the last one ' + ago(c.last_email_at) : '') + '.')
+      : (c.forwarding === 'waiting' ? h('p', { class: 'note', style: 'margin-top:8px' }, 'Waiting for the first email. Set up the forwarding, then send a test message to your store\'s support email from a different address. It shows up here within a minute.') : null),
+    permissionNeeded(c)
+      ? h('p', { class: 'note', style: 'margin-top:8px' }, 'Order details: your store needs to approve DropStart\'s new permissions first (see Settings). Until then I write order replies without them and say so.')
+      : (c.orders_connected === false ? h('p', { class: 'note', style: 'margin-top:8px' }, 'Order details: not connected yet. For order questions I write the reply without them and say so, so you can add the details.') : null));
+}
+
+/* ----- Sam's settings: his voice, and the private address ----- */
+function supportSettings(){
+  var hire = supportHire(), e = hire && hire.employee, s = S.sset;
+  if(!e || !s) return null;
+  var w = who('support'), tone = s.tone || 'friendly', busy = false;
+  var tones = { friendly: ['Friendly', 'Warm and relaxed'], professional: ['Professional', 'Polished and to the point'], casual: ['Casual', 'Short and conversational'] };
+  var toneBtns = (s.tones || Object.keys(tones)).map(function(k){
+    return h('button', { class: 'tonebtn' + (tone === k ? ' on' : ''), type: 'button', 'data-k': k, 'aria-pressed': String(tone === k), on: { click: function(){
+      tone = k; toneBtns.forEach(function(b){ var on = b.getAttribute('data-k') === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); toneNote.textContent = (tones[k] || ['', ''])[1]; form.setAttribute('data-dirty', '1');
+    } } }, h('b', null, (tones[k] || [k])[0]));
+  });
+  var toneNote = h('p', { class: 'note', style: 'margin-top:-2px' }, (tones[tone] || ['', ''])[1]);
+  var nameI = h('input', { type: 'text', maxlength: '80', 'aria-label': 'Store name' }); nameI.value = s.store_name || '';
+  var signI = h('input', { type: 'text', maxlength: '60', 'aria-label': 'Sign-off', placeholder: 'For example: Warm regards, the team' }); signI.value = s.signoff || '';
+  var pol = h('textarea', { maxlength: '1500', rows: '6', 'aria-label': 'Your policies', placeholder: 'Shipping times, returns, refunds, what you never offer. I only promise what is written here.' }); pol.value = s.policy || '';
+  var cnt = h('span', { class: 'cc2' }, pol.value.length + ' / 1500');
+  pol.addEventListener('input', function(){ cnt.textContent = pol.value.length + ' / 1500'; });
+  var form = h('div', { class: 'sform' });
+  [nameI, signI, pol].forEach(function(x){ x.addEventListener('input', function(){ form.setAttribute('data-dirty', '1'); }); });
+  form.appendChild(h('label', { class: 'fl2' }, 'Store name', h('span', { class: 'hint' }, 'Used in sign-offs, never a web address.'), nameI));
+  form.appendChild(h('div', { class: 'fl2' }, 'Tone of voice', h('div', { class: 'tones' }, toneBtns), toneNote));
+  form.appendChild(h('label', { class: 'fl2' }, 'Sign-off', signI));
+  form.appendChild(h('label', { class: 'fl2' }, 'Your policies', h('span', { class: 'hint' }, 'Shipping, returns and refunds, in your own words. ' + w.name + ' only promises what is written here.'), pol, cnt));
+  form.appendChild(h('div', { class: 'row' }, h('button', { class: 'btn-gold btn-sm', type: 'button', on: { click: function(ev){
+    if(busy) return; busy = true; var b = ev.currentTarget; b.disabled = true;
+    api('ssave', { method: 'POST', body: { tone: tone, store_name: nameI.value, signoff: signI.value, policy: pol.value } }).then(function(r){
+      busy = false; b.disabled = false;
+      if(r.j && r.j.ok){ form.removeAttribute('data-dirty'); toast('Saved. ' + w.name + ' uses this from now on'); loadAll(); } else toast(errMsg(r));
+    });
+  } } }, 'Save')));
+  var card = h('div', { class: 'card' }, h('div', { class: 'rhead' }, av('support', 'xs'), h('span', { class: 'rk' }, w.name + '\'s settings')), form);
+  var addr = h('div', { class: 'card' }, h('h3', null, 'Support address'),
+    h('div', { class: 'addrbox flat' }, h('div', { class: 'addr' }, h('code', null, addrText(s.address || '')), s.address ? copyBtn(s.address, 'Copy the support address') : null)),
+    forwardingNote(e.card || {}),
+    h('p', { class: 'note', style: 'margin-top:8px' }, 'Treat this address like a password: anyone who has it can email ' + w.name + '. If it gets out, make a new one. The old one keeps working for a week so replies in progress aren\'t lost, then you update your forwarding.'),
+    h('div', { class: 'row' }, h('button', { class: 'btn-sm', type: 'button', on: { click: function(){
+      confirmModal({ role: 'support', title: 'Make a new support address?', text: 'The old address keeps working for a week. After that, only the new one works, so update your email forwarding.', ok: 'Make a new one', cancel: 'Keep this one' })
+        .then(function(yes){ if(yes) api('saddress', { method: 'POST' }).then(function(r){ if(r.j && r.j.ok){ toast('New address ready'); loadAll(); } else toast(errMsg(r)); }); });
+    } } }, 'Make a new address')));
+  return [card, addr];
+}
+
+/* ---------- actions ---------- */
+var ERR = { token_problem: 'Your store connection needs attention first.', busy: 'Your team is in the middle of a task. Try again in a minute.', upstream: 'We couldn\'t reach your team just now. Please try again.',
+  offline: 'You seem to be offline. Please try again.', error: 'Something went wrong. Please try again.', login_required: 'Please sign in again.' };
+function errMsg(r){
+  var j = r.j || {}, code = j.code || j.error;
+  if(r.status === 429) return 'Please wait a moment and try again.';
+  if(code && ERR[code]) return ERR[code];
+  return typeof j.error === 'string' && j.error.indexOf(' ') > 0 ? j.error : 'Something went wrong. Please try again.';
+}
+/* say what the server actually did, not what the button hoped for */
+var REPLYERR = { customer_wrote_again: 'They wrote again since I drafted this, so I held it back. Open the conversation to read their new message.', sender_blocked: 'This sender is blocked, so nothing was sent.',
+  send_failed: 'It didn\'t go out. Open the conversation and tap Get it ready to send.', draft_gone: 'That draft is no longer there. Ask me to write a fresh one.' };
+function outcome(route, j, okMsg, o){
+  var st = j.status;
+  if(route === 'approve' && o && o.reply && st && st !== 'applied' && j.error && REPLYERR[j.error]) return REPLYERR[j.error];
+  if(route === 'approve' && o && o.reply && st && st !== 'applied') return { failed: 'It didn\'t go out. Open the conversation and tap Get it ready to send.', skipped: 'I didn\'t send it: the conversation changed since I wrote it.', expired: 'That reply had expired. Ask me to write a fresh one.', applying: 'That reply is already on its way.' }[st] || 'That reply was not sent.';
+  if(route === 'approve' && st && st !== 'applied') return { skipped: 'Not applied: the text changed in your store since this was written.', failed: 'I couldn\'t apply that one just now.', expired: 'That suggestion had expired.', applying: 'That one is already being applied.' }[st] || 'Not applied.';
+  if(route === 'undo' && st && st !== 'undone') return 'An undo is already running. Give it a moment.';
+  if(route === 'bulk'){ var n = j.processed || 0, bad = j.not_applied || 0; return n + ' approved' + (bad ? ', ' + bad + ' couldn\'t be applied' : ''); }
+  return okMsg || 'Done';
+}
+function act(route, q, okMsg, body, o){
+  return api(route, { method: 'POST', q: q, body: body }).then(function(r){
+    var j = r.j || {};
+    toast(j.ok !== false && r.status < 400 ? outcome(route, j, okMsg, o) : errMsg(r));
+    return loadAll();
+  }).then(function(){ if(S.office) render(); }); /* redraw even when the reload failed, so no button stays disabled */
+}
+
+/* ---------- boot ---------- */
+try{ history.replaceState({ v: 'home' }, ''); }catch(e){}
+window.addEventListener('popstate', function(ev){
+  if(curSheetClose){ curSheetClose(); return; }
+  var st = ev.state || { v: 'home' };
+  if(st.sheet) return;
+  navTo(st.v || 'home', st.s || null, st.c || null, { noPush: true });
+});
+loadAll();
+function editing(){
+  var a = document.activeElement;
+  if(a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT')) return true;
+  return modalOpen || sheetOpen || !!document.querySelector('[data-dirty], details[open]');
+}
+setInterval(function(){ if(document.visibilityState === 'visible' && S.loaded && !editing()) loadAll(); }, 60000);
+})();
+</script>
+</body>
+</html>

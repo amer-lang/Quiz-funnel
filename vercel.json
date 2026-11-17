@@ -48,8 +48,33 @@
     },
     "api/unlock20.js": {
       "maxDuration": 60
+    },
+    "api/office.js": {
+      "maxDuration": 30
+    },
+    "api/hire.js": {
+      "maxDuration": 60
     }
   },
+  "headers": [
+    {
+      "source": "/(office|hire)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/ds/:path*",

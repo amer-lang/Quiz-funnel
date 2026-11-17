@@ -36,7 +36,9 @@ const EV_OK = new Set([
   'perf_tap', 'hidden_load', 'land_meta', 'tap_landing', 'dwell',
   // reservation + diagnostics
   'resv_expired','resv_restored','checkout_mode','finalize_fail',
-  'seo_fail','addons_fail','custom_mode_err','custom_mount_err'
+  'seo_fail','addons_fail','custom_mode_err','custom_mount_err',
+  // AI employees offer
+  'launch_flow','agent_team','agent_view','agent_skip','agent_leave','agent_hire_click','agent_hired','agent_hired_already','agent_hire_fail'
 ]);
 const MAX_BATCH = 200, MAX_DAY_EVENTS = 150000, MAX_DAYS_READ = 60, MAX_CHUNK_FETCH = 1500;
 

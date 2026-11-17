@@ -1775,6 +1775,207 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .scanline.show{opacity:1;transform:none}
 .scanline b.g{color:#7CF0A9}
 .scanline b.r{color:#FCA5A5}
+/* ---- AI employees offer (ported from the Nov 2 preview, current palette) ---- */
+#s-agents,#s-agent{justify-content:flex-start;padding-top:6px}
+.ag-team{position:relative;display:flex;justify-content:center;align-items:flex-end;gap:0;height:176px;margin:4px 0 18px;padding-top:36px}
+.ag-team::before{content:'';position:absolute;left:50%;bottom:-6px;width:320px;height:120px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(59,130,246,.28),transparent 68%);pointer-events:none}
+.ag-av{position:relative;width:92px;height:92px;margin:0 -6px;border-radius:50%;overflow:hidden;background:var(--card);
+  border:2px solid rgba(34,197,94,.8);box-shadow:0 0 0 5px var(--bg),0 24px 50px -18px rgba(59,130,246,.8);
+  animation:agIn .7s cubic-bezier(.34,1.4,.64,1) both,agFloat 4.6s ease-in-out 1s infinite}
+.ag-av img{width:100%;height:100%;object-fit:cover;display:block}
+.ag-av:nth-child(2){z-index:1;transform:scale(.82) translateY(8px);animation-delay:.05s,1.2s}
+.ag-av:nth-child(3){z-index:3;transform:translateY(-10px);animation-delay:.2s,.4s}
+.ag-av:nth-child(4){z-index:2;transform:scale(.92) translateY(-4px);animation-delay:.35s,.9s}
+.ag-av:nth-child(5){z-index:1;transform:scale(.82) translateY(8px);animation-delay:.5s,1.6s}
+.ag-av i{position:absolute;right:6px;bottom:8px;width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2.5px var(--bg);animation:blip 1.6s ease infinite}
+@keyframes agIn{from{opacity:0;transform:translateY(26px) scale(.6)}}
+@keyframes agFloat{0%,100%{translate:0 0}50%{translate:0 -6px}}
+.ag-hiring{position:absolute;left:50%;top:0;transform:translateX(-50%) rotate(-3deg);z-index:5;white-space:nowrap;font-size:.66rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#FFFFFF;background:var(--grad-brand);padding:6px 12px;border-radius:999px;box-shadow:var(--shadow-pop);animation:agTag 2.4s ease-in-out infinite}
+@keyframes agTag{0%,100%{transform:translateX(-50%) rotate(-3deg)}50%{transform:translateX(-50%) rotate(-3deg) translateY(-4px)}}
+.ag-facts{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.ag-facts span{font-size:.72rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 11px;background:rgba(255,255,255,.03)}
+.ag-facts span b{color:var(--text)}
+.ag-ghost{display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font-size:.82rem;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-family:inherit}
+
+/* one employee */
+.ag-head{text-align:center;margin:2px 0 10px}
+.ag-head h2{margin:0;font-size:clamp(1.5rem,6.4vw,2rem);line-height:1.1}
+.ag-role{display:inline-block;font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#7CF0A9;margin-bottom:6px}
+.ag-live{display:flex;align-items:center;gap:10px;max-width:400px;margin:0 auto 10px;padding:7px 14px 7px 7px;border-radius:999px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.35)}
+.ag-live-av{flex:none;width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid var(--green);box-shadow:0 0 18px rgba(34,197,94,.5);background:var(--card)}
+.ag-live-av img{width:100%;height:100%;object-fit:cover;display:block}
+.ag-live-av.cast{animation:agCast .5s cubic-bezier(.34,1.6,.64,1)}
+.ag-live-tx{font-size:.9rem;font-weight:700;color:var(--text);line-height:1.3;transition:opacity .22s,transform .22s}
+.ag-live-tx.swap{opacity:0;transform:translateY(4px)}
+.ag-live-tx b{color:#7CF0A9}
+.ag-stack{max-width:400px;margin:18px auto 0;padding:14px 14px 10px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid var(--line);text-align:left}
+.ag-stack-h{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}.ag-stack-h b{color:var(--text)}
+.ag-stack ul{list-style:none;margin:0;padding:0}
+.ag-stack li{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:.88rem;line-height:1.3}
+.ag-stack li:first-child{border-top:0}
+.ag-stack li i{flex:none;width:18px;height:18px;border-radius:50%;background:var(--gold);color:#1A1200;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:.58rem;font-weight:900;margin-top:1px}
+.ag-stack li .d{flex:1;min-width:0}.ag-stack li .d b{display:block;font-weight:800}.ag-stack li .d small{display:block;color:var(--muted);font-size:.74rem;margin-top:2px}
+.ag-stack li .v{flex:none;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.ag-total{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:2px;border-top:1px dashed var(--line-strong);font-size:.8rem;color:var(--muted);font-weight:700}
+.ag-total s{color:#FCA5A5;font-size:1rem}.ag-total b{color:var(--gold);font-size:1.05rem}
+.ag-dots{display:flex;align-items:center;justify-content:center;gap:10px;font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.ag-dots i{width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+.ag-dots i.on{background:var(--green);box-shadow:0 0 10px rgba(34,197,94,.8)}
+.ag-card{position:relative;animation:agCard .55s cubic-bezier(.22,1,.36,1) both}
+.ag-card.swap{animation:agSwap .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes agCard{from{opacity:0;transform:translateY(14px)}}
+@keyframes agSwap{0%{opacity:0;transform:translateX(34px)}100%{opacity:1;transform:none}}
+  box-shadow:0 0 0 1.5px rgba(34,197,94,.65),0 0 0 8px rgba(34,197,94,.07),0 44px 90px -34px rgba(59,130,246,.8)}
+
+/* the stage: one big screen per task, the employee working it */
+.ag-stage{position:relative;max-width:400px;width:100%;margin:0 auto;padding:4px 0 0}
+.ag-scene{position:relative;height:320px;transition:height .45s ease}
+.ag-dev{position:absolute;left:50%;top:0;transform:translateX(-50%);opacity:0;transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.ag-dev.on{opacity:1}
+.ag-dev.mon{width:100%;top:6px}
+.ag-dev.mon .mon-frame{background:#101725;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:5px;box-shadow:0 30px 70px -18px rgba(0,0,0,.9),0 0 0 1px rgba(0,0,0,.4)}
+.ag-dev.mon .mon-chrome{display:flex;align-items:center;gap:7px;padding:6px 9px;background:#1A2336;border-radius:9px 9px 0 0}
+.ag-dev.ph{width:46%;top:0}
+.ag-screen{position:relative;overflow:hidden;background:#fff}
+.ag-screen.mon{aspect-ratio:16/10;border-radius:0 0 9px 9px}
+.ag-screen.ph{aspect-ratio:9/18;border-radius:22px;border:6px solid #101725;box-shadow:0 26px 60px -16px rgba(0,0,0,.9)}
+.ag-dev.ph .ph-notch{z-index:6}
+.ag-screen>.ag-fit{position:absolute;left:0;top:0;transform-origin:top left}
+.ag-chip{position:absolute;z-index:12;width:50px;height:50px;border-radius:50%;overflow:hidden;border:2px solid var(--green);box-shadow:0 0 0 3px var(--bg),0 0 28px 5px rgba(34,197,94,.6);background:var(--card);pointer-events:none;opacity:0;transition:opacity .3s}
+.ag-chip img{width:100%;height:100%;object-fit:cover;display:block}
+.ag-chip.cast{animation:agCast .5s cubic-bezier(.34,1.6,.64,1)}
+@keyframes agCast{40%{transform:scale(1.25) rotate(-8deg)}}
+.ag-steps{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.ag-steps i{width:18px;height:4px;border-radius:99px;background:var(--line-strong);transition:background .3s}
+.ag-steps i.on{background:var(--green)}
+
+/* beats: anything with data-b appears when its beat fires */
+.ag-fit [data-b]{opacity:0;transform:translateY(6px);transition:opacity .35s ease,transform .4s cubic-bezier(.22,1,.36,1)}
+.ag-fit [data-b].ag-in{opacity:1;transform:none}
+.ag-fit .ag-flash{animation:agFlashK .6s ease}
+@keyframes agFlashK{0%{box-shadow:0 0 0 0 rgba(34,197,94,.0)}30%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.ag-fit .ag-caret::after{content:'';display:inline-block;width:2px;height:1em;background:currentColor;vertical-align:-2px;margin-left:1px;animation:agCaret .8s steps(1) infinite}
+@keyframes agCaret{50%{opacity:0}}
+.ag-fit .ag-stamp{position:absolute;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#FFFFFF;background:linear-gradient(135deg,#86EFAC,#22C55E 55%,#16A34A);padding:6px 11px;border-radius:999px;box-shadow:0 10px 24px -8px rgba(59,130,246,.9);transform:rotate(-6deg) scale(.4);opacity:0;transition:transform .5s cubic-bezier(.34,1.8,.64,1),opacity .2s}
+.ag-fit .ag-stamp.ag-in{transform:rotate(-6deg) scale(1);opacity:1}
+
+/* ---- mock apps (natural pixels; the wrapper scales them to the screen) ---- */
+.ag-fit{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1F2328;text-align:left;background:#fff}
+.ag-fit.w640{width:640px;height:400px;font-size:15px}
+.ag-fit.w320{width:320px;height:640px;font-size:15px}
+.ag-mkav{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#60A5FA,#22C55E);color:#FFFFFF;font-weight:900;font-size:15px;flex:none}
+/* google */
+.agmg{padding:14px 26px}
+.agmg-top{display:flex;align-items:center;gap:18px;margin-bottom:12px}
+.agmg-logo{font-size:22px;font-weight:700;letter-spacing:-.5px;color:#4285F4}.agmg-logo b{color:#EA4335}.agmg-logo b+b{color:#FBBC05}.agmg-logo b+b+b{color:#4285F4}.agmg-logo b+b+b+b{color:#34A853}.agmg-logo b+b+b+b+b{color:#EA4335}
+.agmg-box{flex:1;display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 16px;border:1px solid #DFE1E5;border-radius:24px;box-shadow:0 1px 6px rgba(32,33,36,.18);font-size:15px}
+.agmg-tabs{display:flex;gap:18px;font-size:12px;color:#5F6368;border-bottom:1px solid #EBEBEB;padding-bottom:8px;margin-bottom:12px}
+.agmg-tabs .on{color:#1A73E8;border-bottom:3px solid #1A73E8;padding-bottom:7px;margin-bottom:-10px}
+.agmg-res{position:relative;padding:8px 10px;border-radius:10px;margin-bottom:6px}
+.agmg-res.mine{background:#ECFDF5;border:1px solid #A7F3D0}
+.agmg-u{font-size:11px;color:#202124}.agmg-t{font-size:19px;color:#1A0DAB;margin:3px 0}.agmg-d{font-size:13px;color:#4D5156;line-height:1.4}
+.agmg-res.ghost .agmg-t{color:#8A8F98}.agmg-res.ghost .agmg-d{color:#B0B4BA}.agmg-res.ghost .agmg-u{color:#B0B4BA}
+.agmg-rank{right:12px;top:10px}
+/* search console */
+.agms{padding:16px 22px}
+.agms-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.agms-h b{font-size:15px}.agms-h small{font-size:11px;color:#5F6368}
+.agms-tiles{display:flex;gap:10px;margin-bottom:12px}
+.agms-tile{flex:1;background:#F8F9FA;border-radius:10px;padding:10px 12px}.agms-tile small{display:block;font-size:10px;color:#5F6368;text-transform:uppercase;letter-spacing:.06em}.agms-tile b{display:block;font-size:22px;color:#1A73E8;margin-top:2px}
+.agms-tile.g b{color:#188038}
+.agms-chart{position:relative;height:150px;background:#fff;border:1px solid #EBEBEB;border-radius:10px;overflow:hidden}
+.agms-chart svg{width:100%;height:100%}
+.agms-chart path{fill:none;stroke:#16A34A;stroke-width:3;stroke-linecap:round;stroke-dasharray:900;stroke-dashoffset:900;transition:stroke-dashoffset 2.6s ease}
+.agms-chart.ag-in path{stroke-dashoffset:0}
+.agms-chart .fill{fill:url(#msg);stroke:none;opacity:0;transition:opacity 1.2s ease 1.4s}.agms-chart.ag-in .fill{opacity:1}
+/* chat */
+.agmc{height:100%;display:flex;flex-direction:column;background:#F4F5F7}
+.agmc-h{display:flex;align-items:center;gap:10px;padding:46px 16px 12px;background:#fff;border-bottom:1px solid #E6E8EB}.agmc-h b{display:block;font-size:15px}.agmc-h small{font-size:11px;color:#6B7280}
+.agmc-body{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:10px}
+.agmc-m{max-width:82%;padding:10px 13px;border-radius:18px;font-size:14px;line-height:1.4;position:relative}
+.agmc-m.them{align-self:flex-start;background:#fff;border-bottom-left-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.agmc-m.agme{align-self:flex-end;background:linear-gradient(135deg,#3B82F6,#22C55E);color:#FFFFFF;border-bottom-right-radius:6px;font-weight:600}
+.agmc-m.ag-typing{display:flex;gap:4px;padding:12px 14px}.agmc-m.ag-typing i{width:7px;height:7px;border-radius:50%;background:#FFFFFF;opacity:.5;animation:agDot 1s ease infinite}.agmc-m.ag-typing i:nth-child(2){animation-delay:.15s}.agmc-m.ag-typing i:nth-child(3){animation-delay:.3s}
+@keyframes agDot{50%{opacity:1;transform:translateY(-3px)}}
+.agmc-time{align-self:center;font-size:11px;color:#9CA3AF}
+.agmc .ag-stamp{right:14px;bottom:70px}
+/* inbox */
+.agmi{padding:14px 18px}
+.agmi-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.agmi-h b{font-size:16px}.agmi-h span{font-size:11px;color:#6B7280;background:#F3F4F6;padding:4px 9px;border-radius:999px}
+.agmi-row{display:flex;align-items:center;gap:12px;padding:10px 10px;border-radius:10px;border:1px solid #EEF0F2;margin-bottom:6px}
+.agmi-row .ag-mkav{width:30px;height:30px;font-size:13px;background:#E5E7EB;color:#374151}
+.agmi-row .tx{flex:1;min-width:0}.agmi-row .tx b{display:block;font-size:13px}.agmi-row .tx small{display:block;font-size:11px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agmi-st{font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#FEF3C7;color:#92400E;white-space:nowrap}
+.agmi-st.ok{background:#DCFCE7;color:#166534}
+/* facebook */
+.agmf{background:#F0F2F5;height:100%}
+.agmf-nav{display:flex;align-items:center;gap:12px;padding:8px 16px;background:#fff;border-bottom:1px solid #E4E6EB}.agmf-nav b{width:30px;height:30px;border-radius:50%;background:#1877F2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
+.agmf-nav .agmf-s{flex:1;max-width:220px;height:30px;border-radius:15px;background:#F0F2F5;font-size:12px;color:#65676B;display:flex;align-items:center;padding:0 12px}
+.agmf-post{width:430px;margin:12px auto 0;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.1);overflow:hidden}
+.agmf-head{display:flex;align-items:center;gap:9px;padding:10px 12px}.agmf-head b{display:block;font-size:13px}.agmf-head small{font-size:11px;color:#65676B}
+.agmf-cap{padding:0 12px 8px;font-size:13px;line-height:1.4;min-height:22px}
+.agmf-img{position:relative;height:150px;background:#EEE;overflow:hidden}.agmf-img img{width:100%;height:100%;object-fit:cover;display:block}
+.agmf-tag{position:absolute;left:10px;top:10px;background:#22C55E;color:#FFFFFF;font-weight:900;font-size:11px;padding:4px 8px;border-radius:6px}
+.agmf-link{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:#F0F2F5}
+.agmf-link small{display:block;font-size:10px;color:#65676B;text-transform:uppercase}.agmf-link b{display:block;font-size:13px}.agmf-link span{font-size:12px;color:#65676B}
+.agmf-link button{border:0;background:#E4E6EB;font-weight:700;font-size:12px;padding:8px 12px;border-radius:6px;color:#050505}
+.agmf-re{display:flex;justify-content:space-between;padding:8px 12px;font-size:12px;color:#65676B}
+/* tiktok */
+.agmt{position:relative;height:100%;background:#000;color:#fff;overflow:hidden}
+.agmt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92}
+.agmt-rail{position:absolute;right:10px;bottom:120px;display:flex;flex-direction:column;gap:16px;align-items:center;font-size:11px;font-weight:700;text-align:center}
+.agmt-rail span{display:block;font-size:24px;line-height:1}
+.agmt-cap{position:absolute;left:12px;right:70px;bottom:40px;font-size:13px;line-height:1.4;text-shadow:0 1px 4px rgba(0,0,0,.8)}.agmt-cap b{display:block;font-size:14px;margin-bottom:4px}
+.agmt-top{position:absolute;top:48px;left:0;right:0;text-align:center;font-size:13px;font-weight:700;opacity:.9}
+.agmt .ag-stamp{left:12px;top:92px}
+/* ads manager */
+.agma{padding:16px 20px}
+.agma-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.agma-h b{font-size:15px}.agma-h small{font-size:11px;color:#6B7280}
+.agma-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid #EEF0F2;margin-bottom:6px;font-size:12px}
+.agma-row.head{border:0;color:#6B7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:4px 12px}
+.agma-row b{font-size:13px}
+.agma-row.win{background:#ECFDF5;border-color:#A7F3D0}
+.agma-st{font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#F3F4F6;color:#374151;justify-self:start}
+.agma-st.go{background:#22C55E;color:#FFFFFF}.agma-st.off{background:#FEE2E2;color:#991B1B}
+.agma-bar{height:8px;border-radius:99px;background:#F3F4F6;overflow:hidden;margin-top:10px}.agma-bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,#22C55E,#16A34A);transition:width 1.4s ease}.agma-bar.ag-in i{width:88%}
+/* email compose */
+.agme{padding:14px 20px}
+.agme-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:10px}.agme-h b{font-size:15px}
+.agme-f{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EEF0F2;font-size:13px}.agme-f small{width:60px;color:#6B7280}
+.agme-body{padding:12px 0 0;font-size:13px;line-height:1.55;min-height:60px}
+.agme-card{display:flex;gap:12px;align-items:center;margin-top:10px;padding:10px;border:1px solid #EEF0F2;border-radius:10px;background:#FAFAFA}
+.agme-card img{width:56px;height:56px;border-radius:8px;object-fit:cover}
+.agme-card b{display:block;font-size:13px}.agme-card small{font-size:12px;color:#6B7280}
+.agme-code{margin-left:auto;font-weight:900;font-size:12px;background:#22C55E;color:#FFFFFF;padding:6px 9px;border-radius:8px}
+.agme .ag-stamp{right:22px;top:12px}
+/* phone email */
+.agmp{height:100%;background:#0F172A;position:relative;overflow:hidden}
+.agmp-lock{position:absolute;inset:0;background:linear-gradient(180deg,#0F172A,#1E293B);color:#fff;text-align:center;padding-top:70px}
+.agmp-lock .t{font-size:52px;font-weight:300;letter-spacing:-2px}.agmp-lock .d{font-size:13px;opacity:.8;margin-top:2px}
+.agmp-note{margin:34px 12px 0;background:rgba(255,255,255,.95);color:#111;border-radius:16px;padding:11px 12px;text-align:left;display:flex;gap:10px;align-items:flex-start}
+.agmp-note .ag-mkav{width:30px;height:30px;font-size:13px}.agmp-note b{display:block;font-size:13px}.agmp-note small{display:block;font-size:12px;color:#444;line-height:1.35;margin-top:2px}
+.agmp-mail{position:absolute;inset:0;background:#fff;padding:52px 16px 16px;color:#111}
+.agmp-mail h4{font-size:17px;margin:0 0 8px;line-height:1.25}.agmp-mail p{font-size:13px;line-height:1.5;color:#374151;margin:0 0 12px}
+.agmp-mail .agme-card{margin:0 0 14px}
+.agmp-btn{display:block;width:100%;border:0;background:linear-gradient(135deg,#3B82F6,#22C55E);color:#FFFFFF;font-weight:900;font-size:15px;padding:14px;border-radius:12px;text-align:center}
+.agmp-btn.pressed{transform:scale(.97);filter:brightness(.92)}
+.agmp .ag-stamp{left:50%;bottom:120px;transform:translateX(-50%) rotate(-6deg) scale(.4)}.agmp .ag-stamp.ag-in{transform:translateX(-50%) rotate(-6deg) scale(1)}
+
+/* price + decision */
+.ag-offer{margin-top:14px;text-align:center}
+#s-agents .cta-dock{margin-top:14px}
+.ag-stack-sub{display:block;font-weight:700;letter-spacing:0;text-transform:none;color:var(--muted);font-size:.7rem;margin-top:2px}
+.ag-total>span:last-child{white-space:nowrap}
+.ag-stack li i.who{background:rgba(255,255,255,.08);color:var(--muted);font-size:.72rem}
+.ag-stack li .v{color:#FCA5A5}
+.ag-once{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0 2px}
+.ag-once span{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:800;color:var(--text);border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:999px;padding:6px 10px}
+.ag-once span b{color:var(--gold)}
+.ag-fine{font-size:.66rem;color:var(--muted);margin-top:8px;line-height:1.45}
+.ag-fine b{color:var(--text)}
+@media (min-width:700px){.ag-team{height:200px}.ag-av{width:110px;height:110px}}
+@media (prefers-reduced-motion:reduce){.ag-av,.ag-hiring,.ag-card{animation:none}}
+
+
 .serp{background:#fff;border-radius:16px;padding:13px 15px;margin:2px 0 0;color:#1f1f1f;
   box-shadow:0 20px 60px -18px rgba(0,0,0,.65);font-family:arial,sans-serif;text-align:left}
 .serp .sbar{display:flex;align-items:center;gap:8px;background:#f1f3f4;border-radius:99px;padding:7px 14px;font-size:.76rem;color:#5f6368;margin-bottom:11px}
@@ -2438,7 +2639,7 @@ window.dsFire('PageView');
         <div class="sysrow pend">🚀 Launch status <span class="st">⚠ PENDING</span></div>
       </div>
       <div class="ads-hello">⏱️ <span><b>Takes about 5 minutes.</b> Do it now while your build is hot — leave and <b class="lsBrand">your store</b> stays dark, selling nothing.</span></div>
-      <div class="cta-dock"><button class="cta gold pulse" onclick="go('s-seo')">Begin Launch Sequence 🚀</button></div>
+      <div class="cta-dock"><button class="cta gold pulse" onclick="lsBegin()">Begin Launch Sequence 🚀</button></div>
     </section>
 
     <section class="screen" id="s-seo" style="justify-content:flex-start">
@@ -2561,6 +2762,52 @@ window.dsFire('PageView');
     </section>
 
     <!-- ======================= 14 · DONE ======================= -->
+    <!-- ============ 13e · AI EMPLOYEES — Maya, Leo, Nora, Sam ============ -->
+    <section class="screen" id="s-agents">
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> Your store is live · one more thing</div>
+      <h2>We assembled a team of <span class="grad-text">AI employees</span> that want to work for your store.</h2>
+      <p class="sub">Real work on your real store, for a fraction of what one person would cost. Want to meet them?</p>
+      <div class="ag-team" id="agTeam">
+        <span class="ag-hiring">Applying to work for <span id="agTeamBrand">your store</span></span>
+      </div>
+      <div class="ag-facts"><span><b>4</b> applicants</span><span>Work <b>24/7</b></span><span>Paid <b>once</b>, never again</span></div>
+      <div class="cta-dock">
+        <button type="button" class="cta gold pulse" onclick="agStart()">See my AI employees →</button>
+        <a href="#" class="oto-decline" onclick="return agLeave(event)">Not now, take me to my store</a>
+      </div>
+    </section>
+
+    <section class="screen" id="s-agent">
+      <div class="ag-dots" id="agDots"></div>
+      <div class="ag-card" id="agCard">
+        <div class="ag-head"><span class="ag-role" id="agRole">SEO specialist</span><h2>Meet <span class="grad-text" id="agName">Maya</span></h2></div>
+        <div class="ag-live"><span class="ag-live-av" id="agLiveAv"><img id="agLiveImg" alt=""></span><span class="ag-live-tx" id="agLiveTx">Getting to work…</span></div>
+        <div class="ag-stage" id="agStage">
+          <div class="ag-scene" id="agScene">
+            <div class="ag-dev mon" id="agDevMon">
+              <div class="mon-frame">
+                <div class="mon-chrome"><span class="mc-dots"><i></i><i></i><i></i></span><span class="mc-url" id="agUrl">yourstore.myshopify.com</span><span class="mc-live"><i></i>LIVE</span></div>
+                <div class="ag-screen mon" id="agScrMon"></div>
+              </div>
+              <div class="mon-neck"></div><div class="mon-base"></div>
+            </div>
+            <div class="ag-dev ph" id="agDevPh"><span class="ph-notch"></span><div class="ag-screen ph" id="agScrPh"></div></div>
+            <div class="ag-chip" id="agChip"><img id="agChipImg" alt=""></div>
+          </div>
+          <div class="ag-steps" id="agSteps"></div>
+        </div>
+        <div class="ag-stack">
+          <div class="ag-stack-h">What a real <b id="agStackRole">SEO specialist</b> costs <span class="ag-stack-sub">Typical U.S. rates, so you can compare</span></div>
+          <ul id="agStackList"></ul>
+          <div class="ag-total"><span>A real hire, monthly</span><span><s id="agStackTotal">$5,000/mo</s> → <b id="agStackPrice">$49 once</b></span></div>
+        </div>
+        <div class="cta-dock ag-offer">
+          <button type="button" class="cta gold pulse" id="agHire" onclick="agHire(this)">Hire Maya — $49</button>
+          <p class="cta-note">One click charges a one-time <b id="agNotePrice">$49</b> to your card on file · not a subscription · covered by the <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">30-day money-back guarantee</a></p>
+          <a href="#" class="oto-decline" id="agSkip" onclick="return agSkip(event)">No thanks, show me the next one →</a>
+        </div>
+      </div>
+
     <section class="screen" id="s-done">
       <div class="done-check">✓</div>
       <div class="kicker green" style="align-self:center"><span class="dot"></span> Store in production</div>
@@ -2811,7 +3058,7 @@ const PROGRESS = {
   's-landing':4,'s-intro':10,'s-q1':20,'s-q2':29,'s-q3':38,'s-q4':46,
   's-dropship':51,'s-q5':56,'s-reality':64,'s-blueprint':72,'s-scan':80,
   's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-upsell':99,'s-upsell-ads':99,
-  's-launch1':99,'s-seo':99,'s-vsl199':99,'s-addons':99,'s-done':100
+  's-launch1':99,'s-seo':99,'s-vsl199':99,'s-addons':99,'s-agents':99,'s-agent':99,'s-done':100
 };
 PROGRESS['s-cost'] = 76;
 
@@ -2864,7 +3111,7 @@ function goBack(){
 }
 
 function updateBack(){
-  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-upsell','s-upsell-ads','s-launch1','s-seo','s-vsl199','s-addons','s-done'];
+  const noBack = ['s-landing','s-scan','s-pick','s-build','s-preview','s-upsell','s-upsell-ads','s-launch1','s-seo','s-vsl199','s-addons','s-agents','s-agent','s-done'];
   document.getElementById('backBtn').style.display =
     (noBack.includes(current) || !history.length) ? 'none' : 'flex';
 }
@@ -2884,6 +3131,8 @@ function onEnter(id){
   if(id==='s-seo') lsSeoScan();
   if(id==='s-vsl199') ls199Start();
   if(id==='s-done') runDone();
+  if(id==='s-agents') agEnterTeam();
+  if(id==='s-agent'){ agPrepare(); agShow(AG.i, false); }
   document.getElementById('claimBar').classList.toggle('show', id==='s-preview');
   dsTrack(id);
   spLog('screen', id);
@@ -5324,7 +5573,7 @@ function dsFinalize(extra){
       window.location.href = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
       return;
     }
-    go('s-done'); return;
+    agGate(); return;
   }
   fetch(DS_API + '/finalize', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -5339,12 +5588,12 @@ function dsFinalize(extra){
       spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
       if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
     }
-    go('s-done');
+    agGate();
   })
   .catch(()=>{
     spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
     if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
-    go('s-done');
+    agGate();
   });
 }
 
@@ -5381,7 +5630,19 @@ function lsApplyNames(){
   document.querySelectorAll('.lsSlug').forEach(e=>e.textContent = slugOf(brand) || 'yourstore');
 }
 
+/* Which launch sequence: the AI team when /api/hire says a hire can go through (hiring open and the
+   DropStart side configured), otherwise the previous SEO → video → ads sequence. Asked the moment the
+   launch screen opens; an unanswered or failed check keeps the previous sequence. */
+let AG_READY = false, agReadyAsked = false;
+function agCheckReady(){
+  if(agReadyAsked) return; agReadyAsked = true;
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+  fetch('/api/hire', { credentials:'same-origin', signal: ctl.signal }).then(r => r.json())
+    .then(j => { AG_READY = !!(j && j.ok && j.funnel_ready); }).catch(() => {}).finally(() => clearTimeout(t));
+}
+function lsBegin(){ try{ spLog('launch_flow', AG_READY ? 'team' : 'classic'); }catch(e){} go(AG_READY ? 's-agents' : 's-seo'); }
 function lsEnterLaunch(){
+  agCheckReady();
   lsApplyNames();
   document.querySelectorAll('#s-launch1 .sysrow').forEach((r,i)=>
     setTimeout(()=>{ r.classList.add('show'); if(i===3){ playPop(1.2); vibrate(12); } }, 320 + i*430));
@@ -6197,6 +6458,219 @@ function playWhoosh(){ tone(180,.16,'sine',.05,0,120); }
 function playTada(){ [523,659,784,1047].forEach((f,i)=>tone(f,.32,'triangle',.12,i*.09)); }
 function playTick(dur,n){ const step = dur/n; for(let i=0;i<n;i++) tone(600+i*40,.05,'square',.05,i*step/1000); }
 
+
+/* ============================================================
+   AI EMPLOYEES — Maya, Leo, Nora and Sam, offered one at a time after the
+   launch sequence (the Nov 2 design on the current palette; same four
+   people as /hire and /office). Hiring is simulated until AG_LIVE.
+   ============================================================ */
+const AGENTS = [
+  { key:'seo', name:'Maya', role:'SEO Specialist', price:49, img:'/team/maya.webp',
+    total:'$5,000/mo', stack:[['Full-time SEO specialist','U.S. average salary, before benefits','$5,000/mo'],['Part-time freelancer','About 20 hours a week at $25 an hour','$2,000/mo'],['SEO agency','Entry retainer for a small store','$750/mo'],['Doing it yourself','Evenings learning SEO instead of selling','10 hrs/wk']] },
+  { key:'designer', name:'Leo', role:'Ad Creative Designer', price:49, img:'/team/leo.webp',
+    total:'$4,600/mo', stack:[['Full-time graphic designer','U.S. average salary, before benefits','$4,600/mo'],['Freelance designer','Three ad images a month at $100 each','$300/mo'],['Creative agency','Monthly retainer for ad creative','$1,500/mo'],['Doing it yourself','Canva nights, every single month','6 hrs/wk']] },
+  { key:'manager', name:'Nora', role:'Store Manager', price:49, img:'/team/nora.webp',
+    total:'$5,200/mo', stack:[['Full-time e-commerce manager','U.S. average salary, before benefits','$5,200/mo'],['Part-time virtual assistant','Checks your orders two hours a day','$1,200/mo'],['Weekly reporting','A bookkeeper or analyst, a few hours a month','$300/mo'],['Doing it yourself','Checking every order each morning','1 hr/day']] },
+  { key:'support', name:'Sam', role:'Customer Support Rep', price:49, img:'/team/sam.webp',
+    total:'$3,200/mo', stack:[['Full-time support rep','U.S. average wage, before benefits','$3,200/mo'],['Outsourced support desk','Shared agent, business hours only','$900/mo'],['Part-time virtual assistant','Answers emails two hours a day','$1,000/mo'],['Doing it yourself','Replying nights and weekends','1 hr/day']] },
+];
+const AG_LIVE = true; // one-click hire through /api/hire on the card saved by the $20
+const AG = { i:0, timers:[], prepped:false, loop:null, hired:{}, done:false };
+function agProduct(){ return chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0]; }
+function agBrand(){ const p = agProduct(); return (typeof dsStatus !== 'undefined' && dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName || BX.brand || bxBrand(p.name); }
+function agLeave(e){ if(e && e.preventDefault) e.preventDefault(); agStopLoop(); try{ spLog('agent_leave', Object.keys(AG.hired).join(',') || 'none'); }catch(e2){}
+  if(upsellPreviewMode){ go('s-done'); return false; }
+  dsFinalize({}); return false; }
+/* after the ads decision and the hand-off the team is offered once; then the done screen */
+function agGate(){ if(AG_READY && !AG.done){ AG.done = true; go('s-agents'); } else go('s-done'); }
+function agNext(){ if(AG.i < AGENTS.length - 1) agShow(AG.i + 1, true); else agLeave(); }
+function agStart(){ AG.i = 0; try{ initAudio(); playWhoosh(); }catch(e){} go('s-agent'); }
+function agEnterTeam(){
+  const team = document.getElementById('agTeam');
+  if(!team.querySelector('.ag-av')){
+    AGENTS.forEach(a=>{ const d = document.createElement('div'); d.className = 'ag-av'; d.innerHTML = '<img src="' + a.img + '" alt="' + a.name + '"><i></i>'; team.appendChild(d); });
+  }
+  document.getElementById('agTeamBrand').textContent = agBrand();
+  AG.done = true; // offered once; after the team, dsFinalize settles the store and agGate lands on s-done
+  try{ spLog('agent_team'); }catch(e){}
+}
+function agPrepare(){ if(AG.prepped) return; AG.prepped = true; document.getElementById('agUrl').textContent = '🔒 ' + slugOf(agBrand()) + '.myshopify.com'; }
+function agStopLoop(){ AG.timers.forEach(clearTimeout); AG.timers = []; AG.loop = null; }
+function agShow(i, swap){
+  const a = AGENTS[i]; if(!a) return;
+  AG.i = i;
+  const card = document.getElementById('agCard');
+  if(swap){ card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap'); }
+  document.getElementById('agLiveImg').src = a.img;
+  document.getElementById('agChipImg').src = a.img;
+  document.getElementById('agName').textContent = a.name;
+  document.getElementById('agRole').textContent = a.role;
+  document.getElementById('agLiveTx').innerHTML = '<b>' + a.name + '</b> is getting to work…';
+  document.getElementById('agStackRole').textContent = a.role;
+  document.getElementById('agStackList').innerHTML = a.stack.map(r=>'<li><i class="who">👤</i><span class="d"><b>' + r[0] + '</b><small>' + r[1] + '</small></span><span class="v">' + r[2] + '</span></li>').join('');
+  document.getElementById('agStackTotal').textContent = a.total;
+  document.getElementById('agStackPrice').textContent = '$' + a.price + ' once';
+  const hb = document.getElementById('agHire'); hb.disabled = !!AG.hired[a.key]; hb.textContent = AG.hired[a.key] ? a.name + ' is hired ✓' : 'Hire ' + a.name + ' — $' + a.price;
+  document.getElementById('agNotePrice').textContent = '$' + a.price;
+  document.getElementById('agSkip').textContent = AG.hired[a.key] ? (i < AGENTS.length - 1 ? 'Next →' : 'Take me to my store →') : (i < AGENTS.length - 1 ? 'No thanks, show me the next one →' : 'No thanks, take me to my store →');
+  document.getElementById('agDots').innerHTML = 'Employee ' + (i + 1) + ' of ' + AGENTS.length + ' ' + AGENTS.map((_, j)=>'<i class="' + (j === i ? 'on' : '') + '"></i>').join('');
+  try{ spLog('agent_view', a.key); }catch(e){}
+  agStopLoop();
+  AG.timers.push(setTimeout(()=>agLoop(a), swap ? 500 : 700));
+}
+function agSkip(e){ if(e) e.preventDefault(); try{ spLog('agent_skip', AGENTS[AG.i].key); }catch(e2){} if(AG.i < AGENTS.length - 1) agShow(AG.i + 1, true); else agLeave(); return false; }
+function agHiredNow(a){
+  AG.hired[a.key] = true;
+  try{ playTada(); confettiBurst(window.innerWidth / 2, window.innerHeight * .35, 100); }catch(e){}
+  showToast('🤝', a.name + ' is on your team!');
+  const hb = document.getElementById('agHire'); hb.disabled = true; hb.textContent = a.name + ' is hired ✓';
+  AG.timers.push(setTimeout(agNext, 1700));
+}
+function agHire(btn){
+  const a = AGENTS[AG.i]; if(AG.hired[a.key]) return agNext();
+  try{ spLog('agent_hire_click', a.key); }catch(e){}
+  if(upsellPreviewMode || !AG_LIVE){ showToast('👀', 'Preview — ' + a.name + ' would be hired here for $' + a.price + ' one-time.'); agHiredNow(a); return; }
+  btn.disabled = true; btn.textContent = 'Hiring… ⏳';
+  const reset = () => { btn.disabled = false; btn.textContent = 'Hire ' + a.name + ' — $' + a.price; };
+  fetch('/api/hire', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'same-origin',
+    body: JSON.stringify({ roles:[a.key], cs: dsPaidCs || '' }) })
+  .then(r => r.json())
+  .then(j => {
+    if(j && j.ok){
+      spLog(j.already ? 'agent_hired_already' : 'agent_hired', a.key);
+      window.dsFire && window.dsFire('Purchase', { value: a.price, currency:'USD', txid: j.pi || ('hire_' + a.key) }, 'hire_' + a.key + '_' + ((dsBuild && dsBuild.project_id) || ''));
+      agHiredNow(a); return;
+    }
+    spLog('agent_hire_fail', a.key + ':' + ((j && j.error) || '')); showToast('⚠️', 'Couldn’t add ' + a.name + ' right now — continuing'); reset(); agNext();
+  })
+  .catch(() => { spLog('agent_hire_fail', a.key + ':network'); reset(); agNext(); });
+}
+/* ---- scenes: one real-looking screen per task, built around the buyer's product ---- */
+const AG_H = s => String(s == null ? '' : s).replace(/[&<>"]/g, c=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+function agCtx(){
+  const p = agProduct(), brand = agBrand();
+  const kw = (typeof bxKeyword === 'function' ? bxKeyword(p.name) : p.name).toLowerCase();
+  return { brand, prod: p.name, img: p.image || '', price: '$' + Number(p.price || 0).toFixed(2), slug: slugOf(brand), kw,
+           init: (brand || 'S').trim().charAt(0).toUpperCase(), desc: p.desc || ('The ' + kw + ' everyone is talking about.') };
+}
+const AG_SCENES = {
+  seo: [
+    { dev:'mon', say:['opens Google and searches for your product…','types what your customers search for','writes your listing so it ranks','made your store the <b>#1 result</b>'], beats:[500, 2100, 3300], html: c=>`
+      <div class="agmg"><div class="agmg-top"><span class="agmg-logo">G<b>o</b><b>o</b><b>g</b><b>l</b><b>e</b></span><div class="agmg-box"><span data-type="${AG_H(c.kw)}" data-b="1" class="ag-caret"></span><i>🔍</i></div></div>
+      <div class="agmg-tabs"><span class="on">All</span><span>Shopping</span><span>Images</span><span>News</span></div>
+      <div class="agmg-res mine" data-b="2"><div class="agmg-u">${AG_H(c.slug)}.myshopify.com</div><div class="agmg-t">${AG_H(c.brand)} · ${AG_H(c.prod)} — Official Store</div><div class="agmg-d">${AG_H(c.desc)} Free shipping. 30-day returns.</div><span class="ag-stamp agmg-rank" data-b="3">#1 result</span></div>
+      <div class="agmg-res ghost" data-b="2"><div class="agmg-u">bigmarketplace.com</div><div class="agmg-t">${AG_H(c.kw)} — 2,000+ results</div><div class="agmg-d">Thousands of sellers. Slow shipping. Mixed reviews.</div></div>
+      <div class="agmg-res ghost" data-b="2"><div class="agmg-u">discount-outlet.net</div><div class="agmg-t">Cheap ${AG_H(c.kw)} deals</div><div class="agmg-d">Compare prices from 48 stores…</div></div></div>` },
+    { dev:'mon', say:['checks how your store is doing on Google','pulls your impressions and clicks','watches your traffic climb','switched on your <b>rich result</b>'], beats:[400, 1300, 3800], html: c=>`
+      <div class="agms"><div class="agms-h"><b>Search performance · ${AG_H(c.brand)}</b><small>Last 28 days</small></div>
+      <div class="agms-tiles" data-b="1"><div class="agms-tile"><small>Impressions</small><b data-count="12480">0</b></div><div class="agms-tile"><small>Clicks</small><b data-count="1240">0</b></div><div class="agms-tile g"><small>Avg. position</small><b>1.3</b></div></div>
+      <div class="agms-chart" data-b="2"><svg viewBox="0 0 600 150" preserveAspectRatio="none"><defs><linearGradient id="msg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22C55E" stop-opacity=".45"/><stop offset="1" stop-color="#22C55E" stop-opacity="0"/></linearGradient></defs><path class="fill" d="M0 140 L0 128 C60 126 90 120 150 112 C210 104 240 96 300 80 C360 64 390 50 450 36 C510 22 560 14 600 8 L600 150 L0 150 Z"/><path d="M0 128 C60 126 90 120 150 112 C210 104 240 96 300 80 C360 64 390 50 450 36 C510 22 560 14 600 8"/></svg><span class="ag-stamp" style="right:14px;top:12px" data-b="3">Rich result live</span></div></div>` } ],
+  support: [
+    { dev:'ph', say:['is watching your inbox at 2:14 am','sees a customer asking where her order is','finds the tracking number','replies in your store’s voice','made her happy','solved it in <b>41 seconds</b>'], beats:[500, 1500, 2500, 5200, 5900], html: c=>`
+      <div class="agmc"><div class="agmc-h"><span class="ag-mkav">${c.init}</span><div><b>${AG_H(c.brand)}</b><small>Online · replies in under a minute</small></div></div>
+      <div class="agmc-body"><span class="agmc-time">Today 2:14 am</span>
+      <div class="agmc-m them" data-b="1">Hi! Where's my order? 😅 It's been 3 days</div>
+      <div class="agmc-m agme ag-typing" data-b="2"><i></i><i></i><i></i></div>
+      <div class="agmc-m agme" data-b="3"><span data-type="Hey Jess! Good news — it shipped yesterday and lands Thursday 🚚 Tracking: 1Z 884 220" class="ag-caret"></span></div>
+      <div class="agmc-m them" data-b="4">Omg thank you!! 🙏</div>
+      <span class="ag-stamp" data-b="5">Solved in 41 s</span></div></div>` },
+    { dev:'mon', say:['opens your inbox','sends Jess her tracking','answers a sizing question','approves a return and sends the label','answers a safety question','updates an address before it ships','cleared your inbox · <b>0 waiting</b>'], beats:[400, 1100, 1800, 2500, 3200, 4000], html: c=>`
+      <div class="agmi"><div class="agmi-h"><b>Inbox · ${AG_H(c.brand)}</b><span data-b="6" style="background:#DCFCE7;color:#166534">0 waiting</span></div>
+      ${[['J','Jess M.','Where is my order? 😅','Replied · tracking sent'],['A','Aaron K.','Does it come in a bigger size?','Replied · sizes listed'],['P','Priya S.','I want to return mine','Return approved · label sent'],['M','Marcus T.','Is this safe for kids?','Replied · yes, with details'],['L','Lena R.','Can I change my address?','Updated before shipping']].map((r,i)=>`<div class="agmi-row" data-b="${i+1}"><span class="ag-mkav">${r[0]}</span><div class="tx"><b>${r[1]}</b><small>${r[2]}</small></div><span class="agmi-st ok">✓ ${r[3]}</span></div>`).join('')}</div>` } ],
+  designer: [
+    { dev:'mon', say:['designs your first ad','writes the hook','drops in your product photo','adds the Shop Now link','your ad is ready to run · <b>sized for every placement</b>'], beats:[500, 2700, 3600, 4400], html: c=>`
+      <div class="agmf"><div class="agmf-nav"><b>f</b><span class="agmf-s">Search Facebook</span></div>
+      <div class="agmf-post"><div class="agmf-head"><span class="ag-mkav">${c.init}</span><div><b>${AG_H(c.brand)}</b><small>Sponsored · 🌐</small></div></div>
+      <div class="agmf-cap" data-b="1"><span data-type="Everyone keeps asking where I got my ${AG_H(c.kw)} 👀 Here. Today only: 45% off." class="ag-caret"></span></div>
+      <div class="agmf-img" data-b="2">${c.img ? '<img src="' + AG_H(c.img) + '" alt="">' : ''}<span class="agmf-tag">45% OFF TODAY</span></div>
+      <div class="agmf-link" data-b="3"><div><small>${AG_H(c.slug)}.myshopify.com</small><b>${AG_H(c.prod)}</b><span>${c.price} · Free shipping</span></div><button>Shop Now</button></div>
+      <div class="agmf-re" data-b="4"><span>👍❤️😮 <b data-count="2143">0</b></span><span><b data-count="86">0</b> comments · <b data-count="312">0</b> shares</span></div></div></div>` },
+    { dev:'mon', say:['checks how your 3 ad images did today','reads the numbers','makes more like the winner','retires the two that didn’t land','built your next batch on the <b>winner</b>'], beats:[400, 1400, 2400, 3300], html: c=>`
+      <div class="agma"><div class="agma-h"><b>Ads · ${AG_H(c.prod)}</b><small>Today</small></div>
+      <div class="agma-row head"><span>Ad</span><span>Views</span><span>Clicks</span><span>Sales</span><span>Status</span></div>
+      <div class="agma-row" data-b="1"><b>Ad 1 · Unboxing</b><span>4,210</span><span>88</span><span>2</span><span class="agma-st off" data-b="3">Retired</span></div>
+      <div class="agma-row win" data-b="1"><b>Ad 2 · "Everyone asks…"</b><span>6,880</span><span>412</span><span>19</span><span class="agma-st go" data-b="2">Winner</span></div>
+      <div class="agma-row" data-b="1"><b>Ad 3 · Before/after</b><span>3,090</span><span>61</span><span>1</span><span class="agma-st off" data-b="3">Retired</span></div>
+      <div class="agma-bar" data-b="4"><i></i></div><small style="display:block;margin-top:6px;font-size:11px;color:#6B7280" data-b="4">Next batch built on the winner · <b style="color:#15803D">3 new variations</b></small></div>` } ],
+  manager: [
+    { dev:'mon', say:['checks this morning’s orders','counts what shipped on time','looks for payment problems','flags the one order that needs you','nothing slipped through · <b>1 thing for you</b>'], beats:[400, 1300, 2200, 3300], html: c=>`
+      <div class="agms"><div class="agms-h"><b>Orders · ${AG_H(c.brand)}</b><small>Today</small></div>
+      <div class="agms-tiles" data-b="1"><div class="agms-tile"><small>Orders</small><b data-count="14">0</b></div><div class="agms-tile g"><small>Shipped on time</small><b>14</b></div><div class="agms-tile"><small>Needs you</small><b style="color:#B45309">1</b></div></div>
+      <div class="agmi" style="padding:0">
+      ${[['J','#1042 · Jess M.','Delivered · left a 5★ review','On time'],['A','#1043 · Aaron K.','Shipped · arrives Thursday','On time'],['P','#1044 · Priya S.','Payment retried · went through','Fixed']].map((r,i)=>`<div class="agmi-row" data-b="${i+1}"><span class="ag-mkav">${r[0]}</span><div class="tx"><b>${r[1]}</b><small>${r[2]}</small></div><span class="agmi-st ok">✓ ${r[3]}</span></div>`).join('')}
+      <div class="agmi-row" data-b="4" style="border-color:#FDE68A;background:#FFFBEB"><span class="ag-mkav" style="background:#FDE68A;color:#78350F">M</span><div class="tx"><b>#1045 · Marcus T.</b><small>Asked to cancel · flagged for you to decide</small></div><span class="agmi-st" style="background:#FEF3C7;color:#92400E">Needs you</span></div></div></div>` },
+    { dev:'ph', say:['writes up the week','keeps it to what matters','sends it Monday morning','your week in <b>one glance</b>'], beats:[500, 2400, 4000], html: c=>`
+      <div class="agmp"><div class="agmp-lock"><div class="t">8:00</div><div class="d">Monday, 24 November</div>
+        <div class="agmp-note" data-b="1"><span class="ag-mkav">N</span><div><b>Nora · ${AG_H(c.brand)}</b><small>Weekly report: 38 orders, 0 late, 1 refund. 2 things need you.</small></div></div></div>
+      <div class="agmp-mail" data-b="2"><h4>Your week at ${AG_H(c.brand)}</h4><p><b>38 orders</b> · every one shipped on time<br><b>1 refund</b> request, inside your policy<br><b>2 things</b> need a decision from you</p>
+        <div class="agme-card">${c.img ? '<img src="' + AG_H(c.img) + '" alt="">' : ''}<div><b>${AG_H(c.prod)}</b><small>Your best seller this week</small></div></div>
+        <button class="agmp-btn" type="button" data-b="3">Open the 2 things →</button></div>
+      <span class="ag-stamp" data-b="3">Report sent · Monday 8:00</span></div>` } ],
+};
+/* mount a mock app at its natural size, scaled to the screen */
+function agMount(screen, html, natW, natH){
+  screen.innerHTML = '';
+  const fit = document.createElement('div'); fit.className = 'ag-fit ' + (natW === 640 ? 'w640' : 'w320'); fit.innerHTML = html;
+  screen.appendChild(fit);
+  const size = ()=>{ const s = screen.clientWidth / natW; fit.style.transform = 'scale(' + s + ')'; };
+  size(); requestAnimationFrame(size);
+  return fit;
+}
+function agTypeInto(el, text, ms){
+  el.textContent = ''; const n = text.length, step = Math.max(14, Math.min(42, ms / Math.max(1, n)));
+  let i = 0; const tick = ()=>{ if(!el.isConnected) return; i++; el.textContent = text.slice(0, i); if(i < n) AG.timers.push(setTimeout(tick, step)); else el.classList.remove('ag-caret'); };
+  tick();
+}
+function agPlayScene(a, idx){
+  const red = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const at = (ms, fn) => AG.timers.push(setTimeout(fn, red ? Math.round(ms * .4) : ms));
+  const scenes = AG_SCENES[a.key]; const sc = scenes[idx % scenes.length]; const c = agCtx();
+  const mon = document.getElementById('agDevMon'), ph = document.getElementById('agDevPh'), chip = document.getElementById('agChip'), stage = document.getElementById('agScene');
+  const dev = sc.dev === 'ph' ? ph : mon, screen = dev.querySelector('.ag-screen');
+  mon.classList.toggle('on', sc.dev === 'mon'); ph.classList.toggle('on', sc.dev === 'ph');
+  stage.style.height = (dev.offsetHeight + (sc.dev === 'mon' ? 10 : 0)) + 'px'; // the stage follows the device on screen, so the stand never runs into the stack
+  const fit = agMount(screen, sc.html(c), sc.dev === 'ph' ? 320 : 640, sc.dev === 'ph' ? 640 : 400);
+  agSay(a, sc.say[0]);
+  document.getElementById('agSteps').innerHTML = scenes.map((_, j)=>'<i class="' + (j === idx % scenes.length ? 'on' : '') + '"></i>').join('');
+  /* the employee lands on the screen's corner */
+  at(80, ()=>{
+    const sr = stage.getBoundingClientRect(), r = screen.getBoundingClientRect();
+    const x = r.right - sr.left - 34, y = r.top - sr.top - 20;
+    const px = parseFloat(chip.dataset.x || x), py = parseFloat(chip.dataset.y || y);
+    chip.dataset.x = x; chip.dataset.y = y; chip.style.left = x + 'px'; chip.style.top = y + 'px'; chip.style.opacity = 1;
+    if(!red && chip.animate){ const dx = px - x, dy = py - y; chip.animate([{ transform:'translate(' + dx + 'px,' + dy + 'px) scale(.9)' }, { transform:'translate(' + dx * .5 + 'px,' + (Math.min(dy, 0) - 36) + 'px) scale(.6)', offset:.5 }, { transform:'none' }], { duration:560, easing:'cubic-bezier(.4,0,.2,1)' }); }
+  });
+  const cast = (el)=>{
+    chip.classList.remove('cast'); void chip.offsetWidth; chip.classList.add('cast');
+    const av = document.getElementById('agLiveAv'); av.classList.remove('cast'); void av.offsetWidth; av.classList.add('cast');
+    if(red) return;
+    try{ const r = chip.getBoundingClientRect(); confettiBurst(r.left + r.width / 2, r.top + r.height / 2, 6); }catch(e){}
+    if(el && el.getBoundingClientRect){ el.classList.remove('ag-flash'); void el.offsetWidth; el.classList.add('ag-flash'); }
+  };
+  sc.beats.forEach((ms, i)=>at(ms, ()=>{
+    const els = fit.querySelectorAll('[data-b="' + (i + 1) + '"]');
+    els.forEach(el=>{
+      el.classList.add('ag-in');
+      el.querySelectorAll('[data-type]').forEach(t=>agTypeInto(t, t.dataset.type, red ? 300 : 1500));
+      if(el.dataset.type) agTypeInto(el, el.dataset.type, red ? 300 : 1500);
+      el.querySelectorAll('[data-count]').forEach(n=>countUp(n, 0, +n.dataset.count, red ? 300 : 1400, v=>Math.round(v).toLocaleString()));
+      if(el.dataset.count) countUp(el, 0, +el.dataset.count, red ? 300 : 1400, v=>Math.round(v).toLocaleString());
+      if(el.classList.contains('agmp-btn')) at(700, ()=>el.classList.add('pressed'));
+      if(el.classList.contains('ag-typing')) at(900, ()=>el.classList.remove('ag-in'));
+    });
+    cast(els[0]); agSay(a, sc.say[i + 1]);
+    try{ tone(640 + i * 50, .04, 'square', .035); }catch(e){}
+  }));
+  const last = sc.beats[sc.beats.length - 1] + 2600;
+  at(last, ()=>{ if(current === 's-agent' && AG.loop === a) agPlayScene(a, idx + 1); });
+}
+function agSay(a, text){
+  const el = document.getElementById('agLiveTx'); if(!el || !text) return;
+  el.classList.add('swap');
+  AG.timers.push(setTimeout(()=>{ el.innerHTML = '<b>' + a.name + '</b> ' + text; el.classList.remove('swap'); }, 220));
+}
+function agLoop(a){ AG.loop = a; agPlayScene(a, 0); }
+
 /* boot */
 setBar('s-landing');
 updateBack();
@@ -6263,6 +6737,21 @@ try{
           chosen = PRODUCTS[0] || FALLBACK_PRODUCTS[0]; BX.demo = true;
           try{ initAudio(); }catch(e){}
           go('s-build');
+        } else setTimeout(wait, 150);
+      })();
+    });
+  }
+  if(new URLSearchParams(location.search).get('step') === 'agents'){
+    /* Design review link: the AI employees offer on a demo store; hiring is simulated. */
+    document.addEventListener('DOMContentLoaded', () => {
+      const t0 = Date.now();
+      (function wait(){
+        const live = PRODUCTS.some(p => p && p.dsId);
+        if(live || Date.now() - t0 > 3500){
+          chosen = PRODUCTS[0] || FALLBACK_PRODUCTS[0]; BX.demo = true; upsellPreviewMode = true;
+          try{ BX.brand = bxLocalName(chosen, bxTheme(chosen)); }catch(e){}
+          try{ initAudio(); }catch(e){}
+          go('s-agents');
         } else setTimeout(wait, 150);
       })();
     });
