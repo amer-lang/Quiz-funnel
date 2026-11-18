@@ -25,10 +25,9 @@
 })();
 </script>
 <script>
-/* The Meta pixel waits until the first screen is
-   interactive: 2.5 s after load, or 1.2 s after the visitor's first tap,
-   whichever comes first. Their stubs queue every event meanwhile, so nothing
-   is lost — the network just belongs to the page for the first seconds. */
+/* Third-party deferral runner. The Meta pixel loads immediately again
+   (Nov 18: Meta counted a landing page view for only 8% of clicks while the
+   script waited); the runner stays for anything that still wants to defer. */
 (function(w){
   var started = false;
   function start(){ if(started) return; started = true; (w.__spDefer || []).forEach(function(f){ try{ f(); }catch(e){} }); w.__spDefer = { push: function(f){ try{ f(); }catch(e){} } }; }
@@ -2052,7 +2051,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <!-- Meta Pixel (sellproducts.ai). Mirrors DropStart's dsFire so this funnel and
      the /store page dedupe: same pixel id + eventID 'ds_<onceKey>'. -->
 <script>
-(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];f.__spDefer=f.__spDefer||[];f.__spDefer.push(function(){t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+(function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
 fbq('init', window.DS_PIXEL_ID);
 // Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
