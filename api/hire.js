@@ -84,6 +84,28 @@ module.exports = async (req, res) => {
     if(!who && /^cs_[A-Za-z0-9_]{3,200}$/.test(String(body.cs || ''))) who = { cs: String(body.cs), via: 'funnel' };
     if(!who) return res.status(401).json({ ok:false, error:'login_required' });
     const cs = who.cs;
+    const attempt = String(body.attempt || '').replace(/[^a-z0-9]/gi, '').slice(0, 24); // per click: a retry after a decline is a new request, not an idempotent replay
+
+    /* ---- step 2 of the in-person confirmation: the buyer confirmed the on-session PaymentIntent in the browser.
+       Stripe is checked directly (status, type, order); then the tax transaction is recorded and the hire is sent on. */
+    if(typeof body.confirm_pi === 'string' && /^pi_[A-Za-z0-9]+$/.test(body.confirm_pi)){
+      if(!isProd()) return res.status(200).json({ ok:true, simulated:true, charged:false, confirmed:true });
+      if(!process.env.STRIPE_SECRET_KEY) return res.status(200).json({ ok:false, error:'no_keys' });
+      let pi;
+      try{ pi = await stripe('payment_intents/' + encodeURIComponent(body.confirm_pi)); }catch(e){ return res.status(200).json({ ok:false, error:'unavailable' }); }
+      const md = (pi && pi.metadata) || {};
+      if(!pi || pi.status !== 'succeeded' || md.type !== 'ai_employees' || md.base_cs !== cs) return res.status(200).json({ ok:false, error:'not_paid' });
+      const roles = String(md.roles || '').split(',').map(s => s.trim()).filter(isRole);
+      if(md.tax_calculation && !md.tax_transaction) await tax.record(process.env.STRIPE_SECRET_KEY, pi, { id: md.tax_calculation });
+      const item = { ref: pi.id, roles, amount: pi.amount };
+      const rec = (await bread(pendingPath(cs))) || { items: [] };
+      const items = (rec.items || []).filter(i => i.ref !== pi.id).concat([item]);
+      await bwrite(pendingPath(cs), { items, at: Date.now() }).catch(() => {});
+      const recorded = await recordHire(cs, roles, pi.amount, pi.id);
+      if(recorded) await bwrite(pendingPath(cs), { items: items.filter(i => i.ref !== pi.id), at: Date.now() }).catch(() => {});
+      return res.status(200).json({ ok:true, charged:true, confirmed:true, recorded, amount: pi.amount, roles });
+    }
+
     const wanted = Array.isArray(body.roles) ? [...new Set(body.roles.filter(r => typeof r === 'string'))].filter(isRole) : [];
     if(!wanted.length) return res.status(400).json({ ok:false, error:'bad_request' });
 
@@ -153,13 +175,32 @@ module.exports = async (req, res) => {
       'metadata[project_id]': (base.metadata && base.metadata.project_id) || ''
     };
     let pi;
+    const idem = 'hire-' + cs + '-' + roles.slice().sort().join('.') + (attempt ? '-' + attempt : '');
+    const taxItems = roles.map((r, i) => ({ key: 'ai_employee', amount: prices[i] }));
     try{
-      pi = await tax.charge(process.env.STRIPE_SECRET_KEY, params, 'hire-' + cs + '-' + roles.slice().sort().join('.'),
-        roles.map((r, i) => ({ key: 'ai_employee', amount: prices[i] })), base.customer_details && base.customer_details.address, tax.clientIp(req));
+      pi = await tax.charge(process.env.STRIPE_SECRET_KEY, params, idem, taxItems, base.customer_details && base.customer_details.address, tax.clientIp(req));
     }catch(e){
       const m = String(e && e.message || e);
       if(/idempoten/i.test(m)) return res.status(200).json({ ok:false, error:'try_again_later' }); // same request seen within 24h with different details
-      return res.status(200).json({ ok:false, error:'declined', detail: m.slice(0, 200) });
+      /* Declined silently (most often the bank wants the cardholder present). Hand the browser an on-session
+         PaymentIntent for the same amount and metadata: the buyer confirms the saved card in person, which
+         completes 3-D Secure when asked, or enters another card. Step 2 above records it. */
+      try{
+        const onParams = Object.assign({}, params);
+        delete onParams.payment_method; delete onParams.off_session; delete onParams.confirm;
+        onParams['automatic_payment_methods[enabled]'] = 'true';
+        onParams['automatic_payment_methods[allow_redirects]'] = 'never';
+        onParams['setup_future_usage'] = 'off_session';
+        onParams['metadata[confirm_flow]'] = 'on_session';
+        onParams['metadata[declined_detail]'] = m.slice(0, 120);
+        const intent = await tax.charge(process.env.STRIPE_SECRET_KEY, onParams, idem + '-confirm', taxItems, base.customer_details && base.customer_details.address, tax.clientIp(req));
+        let card = null;
+        try{ const pmo = await stripe('payment_methods/' + encodeURIComponent(pm)); card = pmo && pmo.card ? { brand: pmo.card.brand || '', last4: pmo.card.last4 || '' } : (pmo && pmo.type === 'link' ? { brand: 'link', last4: '' } : null); }catch(e2){}
+        return res.status(200).json({ ok:false, status:'confirm', error:'declined', detail: m.slice(0, 200),
+          client_secret: intent.client_secret, pi: intent.id, pm, card, amount, publishable_key: process.env.STRIPE_PUBLISHABLE_KEY || '' });
+      }catch(e3){
+        return res.status(200).json({ ok:false, error:'declined', detail: m.slice(0, 200) });
+      }
     }
     if(!pi || pi.status !== 'succeeded') return res.status(200).json({ ok:false, error:'not_succeeded' });
 

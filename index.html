@@ -1972,6 +1972,25 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .ag-once span b{color:var(--gold)}
 .ag-fine{font-size:.66rem;color:var(--muted);margin-top:8px;line-height:1.45}
 .ag-fine b{color:var(--text)}
+/* ---- hire: confirm-your-card sheet (saved card in person, 3-D Secure, or another card) ---- */
+#agPayModal{display:none;position:fixed;inset:0;z-index:210;align-items:flex-start;justify-content:center;background:rgba(7,11,21,.74);backdrop-filter:blur(4px);padding:18px 14px;overflow:auto}
+.agpay{width:100%;max-width:440px;margin:auto;background:#fff;color:#0d0e12;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);text-align:left}
+.agpay-h{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #eef0f3;font-weight:800;font-size:.92rem}
+.agpay-x{border:none;background:#f1f3f6;width:28px;height:28px;border-radius:50%;font-size:15px;color:#333;cursor:pointer}
+.agpay-b{padding:16px 16px 18px}
+.agpay-lead{font-size:.9rem;line-height:1.5;color:#3b4150;margin:0 0 12px}
+.agpay-lead b{color:#0d0e12}
+.agpay-card{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid #e3e6ec;border-radius:12px;background:#f8fafc;font-weight:700;font-size:.92rem}
+.agpay-brand{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:28px;border-radius:6px;background:#0d0e12;color:#fff;font-size:.62rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;padding:0 7px}
+.agpay-badge{margin-left:auto;font-size:.64rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#166534;background:#dcfce7;border-radius:999px;padding:4px 8px}
+#agPayModal .cta{margin-top:14px;width:100%}
+.agpay-err{display:none;margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fef2f2;color:#b91c1c;font-size:.82rem;font-weight:700;line-height:1.4}
+.agpay-other{display:block;margin:12px auto 0;text-align:center;font-size:.84rem;font-weight:700;color:#3b4150;text-decoration:underline;text-underline-offset:3px}
+#agPayElement{display:none;margin-top:12px}
+.agpay-demo{padding:14px;border:1px dashed #c7cdd8;border-radius:12px;background:#f8fafc;color:#5b6475;font-size:.82rem;line-height:1.5;text-align:center}
+.agpay-fine{margin:12px 0 0;text-align:center;font-size:.72rem;color:#6b7280;line-height:1.45}
+.agpay-fine a{color:inherit}
+
 @media (min-width:700px){.ag-team{height:200px}.ag-av{width:110px;height:110px}}
 @media (prefers-reduced-motion:reduce){.ag-av,.ag-hiring,.ag-card{animation:none}}
 
@@ -6483,6 +6502,91 @@ function agLeave(e){ if(e && e.preventDefault) e.preventDefault(); agStopLoop();
   if(upsellPreviewMode){ go('s-done'); return false; }
   dsFinalize({}); return false; }
 /* after the ads decision and the hand-off the team is offered once; then the done screen */
+
+/* ---- confirm-your-card: the in-person fallback when the one-click hire is declined ---- */
+const AG_DEMO = new URLSearchParams(location.search).get('demo') || ''; // design review: 'declined' (confirm succeeds) or 'hardfail' (card refused again)
+let AGP = { a:null, j:null, stripe:null, elements:null, pe:null, mode:'saved', busy:false };
+function agConfirmOpen(a, j){
+  AGP = { a, j, stripe:null, elements:null, pe:null, mode:'saved', busy:false };
+  const price = '$' + Math.round((j.amount || a.price * 100) / 100);
+  const card = j.card || {};
+  document.getElementById('agPayLead').innerHTML = 'Your bank asked for a quick confirmation before the <b>' + price + '</b> for <b>' + a.name + '</b> goes through. Nothing has been charged yet.';
+  document.getElementById('agPayBrand').textContent = card.brand === 'link' ? 'Link' : (card.brand || 'card').replace(/_/g, ' ');
+  document.getElementById('agPayLast4').textContent = card.last4 || '····';
+  document.getElementById('agPayCard').style.display = 'flex';
+  document.getElementById('agPayElement').style.display = 'none'; document.getElementById('agPayElement').innerHTML = '';
+  document.getElementById('agPayErr').style.display = 'none';
+  document.getElementById('agPayOther').style.display = 'block';
+  const b = document.getElementById('agPayBtn'); b.disabled = false; b.textContent = 'Confirm ' + price + ' — hire ' + a.name;
+  document.getElementById('agPayModal').style.display = 'flex';
+  try{ spLog('agent_confirm_open', a.key); }catch(e){}
+}
+function agConfirmClose(){
+  document.getElementById('agPayModal').style.display = 'none';
+  if(AGP.pe){ try{ AGP.pe.destroy(); }catch(e){} }
+  const hb = document.getElementById('agHire'); if(AGP.a && !AG.hired[AGP.a.key]){ hb.disabled = false; hb.textContent = 'Hire ' + AGP.a.name + ' — $' + AGP.a.price; }
+  try{ if(AGP.a) spLog('agent_confirm_close', AGP.a.key); }catch(e){}
+  AGP = { a:null, j:null, stripe:null, elements:null, pe:null, mode:'saved', busy:false };
+}
+function agPayError(msg){ const e = document.getElementById('agPayErr'); e.textContent = msg; e.style.display = 'block'; }
+async function agStripe(){
+  if(AGP.stripe) return AGP.stripe;
+  await dsLoadStripeJs();
+  AGP.stripe = window.Stripe(AGP.j.publishable_key);
+  return AGP.stripe;
+}
+/* another card: Stripe's Payment Element on the same PaymentIntent (the new card is saved for the next hire) */
+async function agConfirmOther(e){
+  if(e) e.preventDefault();
+  const a = AGP.a, j = AGP.j; if(!a) return false;
+  try{ spLog('agent_confirm_other', a.key); }catch(e2){}
+  AGP.mode = 'new';
+  document.getElementById('agPayCard').style.display = 'none';
+  document.getElementById('agPayOther').style.display = 'none';
+  const slot = document.getElementById('agPayElement'); slot.style.display = 'block';
+  const b = document.getElementById('agPayBtn'); b.textContent = 'Pay $' + Math.round((j.amount || a.price * 100) / 100) + ' — hire ' + a.name;
+  if(j.demo){ slot.innerHTML = '<div class="agpay-demo">Stripe’s card form appears here on the live site: card number, expiry, CVC, Apple Pay / Google Pay.</div>'; return false; }
+  try{
+    const stripe = await agStripe();
+    AGP.elements = stripe.elements({ clientSecret: j.client_secret, appearance: { theme: 'stripe', variables: { colorPrimary: '#F59E0B', borderRadius: '10px' } } });
+    AGP.pe = AGP.elements.create('payment', { layout: 'tabs' });
+    AGP.pe.mount('#agPayElement');
+  }catch(err){ agPayError('The card form could not load. Please try again in a moment.'); }
+  return false;
+}
+async function agConfirmPay(){
+  const a = AGP.a, j = AGP.j; if(!a || AGP.busy) return;
+  AGP.busy = true;
+  const b = document.getElementById('agPayBtn'); b.disabled = true; b.textContent = 'Confirming… ⏳';
+  document.getElementById('agPayErr').style.display = 'none';
+  const price = Math.round((j.amount || a.price * 100) / 100);
+  const done = () => { agConfirmClose(); agHiredNow(a); try{ spLog('agent_confirm_ok', a.key); }catch(e){} };
+  const fail = (msg) => { AGP.busy = false; b.disabled = false; b.textContent = (AGP.mode === 'new' ? 'Pay $' : 'Confirm $') + price + ' — hire ' + a.name; agPayError(msg); try{ spLog('agent_confirm_fail', a.key + ':' + String(msg).slice(0, 60)); }catch(e){} };
+  if(j.demo){ // design review: no Stripe behind it
+    setTimeout(() => { if(j.demo === 'hardfail' && AGP.mode === 'saved'){ fail('Your bank declined the card ending ' + ((j.card && j.card.last4) || '4242') + '. You can try another card below.'); agConfirmOther(); } else done(); }, 1400);
+    return;
+  }
+  try{
+    const stripe = await agStripe();
+    let r;
+    if(AGP.mode === 'new' && AGP.elements){ r = await stripe.confirmPayment({ elements: AGP.elements, redirect: 'if_required' }); }
+    else { r = await stripe.confirmCardPayment(j.client_secret, { payment_method: j.pm }); }
+    if(r && r.error){
+      const msg = r.error.message || 'The card was declined.';
+      if(AGP.mode === 'saved'){ fail(msg + ' You can use a different card below.'); agConfirmOther(); } else fail(msg);
+      return;
+    }
+    const intent = r && r.paymentIntent;
+    if(!intent || intent.status !== 'succeeded'){ fail('The payment did not complete. Please try again.'); return; }
+    /* paid: the server verifies with Stripe, records the tax and starts the employee */
+    const v = await fetch('/api/hire', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'same-origin',
+      body: JSON.stringify({ cs: dsPaidCs || '', confirm_pi: intent.id }) }).then(x => x.json()).catch(() => null);
+    if(!(v && v.ok)){ try{ spLog('agent_confirm_fail', a.key + ':verify:' + ((v && v.error) || 'network')); }catch(e){} } // the money went through; the next visit recovers the record
+    window.dsFire && window.dsFire('Purchase', { value: a.price, currency:'USD', txid: intent.id }, 'hire_' + a.key + '_' + ((dsBuild && dsBuild.project_id) || ''));
+    done();
+  }catch(err){ fail('Something went wrong confirming the card. Please try again.'); }
+}
+
 function agGate(){ if(AG_READY && !AG.done){ AG.done = true; go('s-agents'); } else go('s-done'); }
 function agNext(){ if(AG.i < AGENTS.length - 1) agShow(AG.i + 1, true); else agLeave(); }
 function agStart(){ AG.i = 0; try{ initAudio(); playWhoosh(); }catch(e){} go('s-agent'); }
@@ -6530,19 +6634,21 @@ function agHiredNow(a){
 function agHire(btn){
   const a = AGENTS[AG.i]; if(AG.hired[a.key]) return agNext();
   try{ spLog('agent_hire_click', a.key); }catch(e){}
+  if(upsellPreviewMode && AG_DEMO){ agConfirmOpen(a, { demo: AG_DEMO, amount: a.price * 100, card: { brand: 'visa', last4: '4242' } }); return; }
   if(upsellPreviewMode || !AG_LIVE){ showToast('👀', 'Preview — ' + a.name + ' would be hired here for $' + a.price + ' one-time.'); agHiredNow(a); return; }
   btn.disabled = true; btn.textContent = 'Hiring… ⏳';
   const reset = () => { btn.disabled = false; btn.textContent = 'Hire ' + a.name + ' — $' + a.price; };
   fetch('/api/hire', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'same-origin',
-    body: JSON.stringify({ roles:[a.key], cs: dsPaidCs || '' }) })
+    body: JSON.stringify({ roles:[a.key], cs: dsPaidCs || '', attempt: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }) })
   .then(r => r.json())
   .then(j => {
+    if(j && j.status === 'confirm' && j.client_secret){ reset(); agConfirmOpen(a, j); return; }
     if(j && j.ok){
       spLog(j.already ? 'agent_hired_already' : 'agent_hired', a.key);
       window.dsFire && window.dsFire('Purchase', { value: a.price, currency:'USD', txid: j.pi || ('hire_' + a.key) }, 'hire_' + a.key + '_' + ((dsBuild && dsBuild.project_id) || ''));
       agHiredNow(a); return;
     }
-    spLog('agent_hire_fail', a.key + ':' + ((j && j.error) || '')); showToast('⚠️', 'Couldn’t add ' + a.name + ' right now — continuing'); reset(); agNext();
+    spLog('agent_hire_fail', a.key + ':' + ((j && j.error) || '') + ':' + String((j && j.detail) || '').slice(0, 80)); showToast('⚠️', 'Couldn’t add ' + a.name + ' right now — continuing'); reset(); agNext();
   })
   .catch(() => { spLog('agent_hire_fail', a.key + ':network'); reset(); agNext(); });
 }
@@ -6777,6 +6883,24 @@ try{
 }catch(e){}
 </script>
 <!-- In-page Stripe checkout (mounted by dsOpenPay) -->
+
+<!-- hire: confirm-your-card sheet. Opens when the one-click charge is declined; the buyer confirms the
+     saved card in person (3-D Secure when the bank asks) or enters another card. -->
+<div id="agPayModal" role="dialog" aria-modal="true" aria-labelledby="agPayTitle">
+  <div class="agpay">
+    <div class="agpay-h"><span id="agPayTitle">Confirm your card</span><button type="button" class="agpay-x" onclick="agConfirmClose()" aria-label="Close">✕</button></div>
+    <div class="agpay-b">
+      <p class="agpay-lead" id="agPayLead">Your bank asked for a quick confirmation before the <b>$49</b> for <b>Maya</b> goes through. Nothing has been charged yet.</p>
+      <div class="agpay-card" id="agPayCard"><span class="agpay-brand" id="agPayBrand">Card</span><span>•••• <b id="agPayLast4">····</b></span><span class="agpay-badge">Card on file</span></div>
+      <div id="agPayElement"></div>
+      <button type="button" class="cta gold" id="agPayBtn" onclick="agConfirmPay()">Confirm $49 — hire Maya</button>
+      <div class="agpay-err" id="agPayErr"></div>
+      <a href="#" class="agpay-other" id="agPayOther" onclick="return agConfirmOther(event)">Use a different card</a>
+      <p class="agpay-fine">Secured by Stripe · one-time charge · covered by the <a href="/refund-policy" target="_blank">30-day money-back guarantee</a></p>
+    </div>
+  </div>
+</div>
+
 <div id="dsPayModal" style="display:none;position:fixed;inset:0;z-index:200;align-items:flex-start;justify-content:center;background:rgba(7,11,21,.72);backdrop-filter:blur(4px);overflow-y:auto;padding:24px 14px;">
   <div style="width:100%;max-width:480px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);margin:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #eef0f3;">
