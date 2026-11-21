@@ -246,7 +246,8 @@ module.exports = async (req, res) => {
       const q = req.query || {};
       /* owner: Conversions API wiring — enabled? test mode? (&send=1 sends one test PageView, test mode only) */
       if(q.capi){
-        if(q.capi !== READ_KEY) return res.status(403).json({ error: 'bad key' });
+        /* production needs the read key; a preview deployment has no key and exposes only booleans */
+        if(process.env.VERCEL_ENV === 'production' && q.capi !== READ_KEY) return res.status(403).json({ error: 'bad key' });
         const st = capi.status();
         if(q.send === '1' && st.enabled && st.test_mode) st.sent = await capi.send(capi.event('PageView', 'pv_probe' + Date.now().toString(36), req, { sid: 'probe', url: 'https://www.sellproducts.ai/?capi_probe=1' }));
         return res.status(200).json(st);
