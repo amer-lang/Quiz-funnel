@@ -22,6 +22,19 @@
 
 const { taxCode, ROLES, isRole, isProd, hiringOpen, priceCents, identify, ours, readBody, available, sameOriginJson, bread, bwrite, pendingPath, recordHire, retryPending } = require('../lib/employees');
 const tax = require('../lib/tax');
+const capi = require('../lib/capi');
+
+/* Conversions API: one Purchase per hired role, same eventID as the browser ('ds_hire_' + role + '_' + project).
+   Awaited (capped at 2.5 s) so Vercel cannot cut it off after the response. */
+async function capiHires(req, roles, projectId, email, amountCents, sid){
+  if(!capi.enabled() || !roles || !roles.length) return;
+  try{
+    const per = Math.round((Number(amountCents) || 0) / roles.length) / 100;
+    await capi.send(roles.map(r => capi.event('Purchase', 'hire_' + r + '_' + (projectId || ''), req, {
+      email, sid, value: per || 49, currency: 'USD',
+      custom: { content_name: 'AI employee: ' + r, content_type: 'product', content_ids: ['ai_employee_' + r], num_items: 1 } })));
+  }catch(e){}
+}
 
 async function stripe(path, method, params, idemKey){
   const opts = { method: method || 'GET', headers: { Authorization: 'Bearer ' + (process.env.STRIPE_SECRET_KEY || '') } };
@@ -103,6 +116,7 @@ module.exports = async (req, res) => {
       await bwrite(pendingPath(cs), { items, at: Date.now() }).catch(() => {});
       const recorded = await recordHire(cs, roles, pi.amount, pi.id);
       if(recorded) await bwrite(pendingPath(cs), { items: items.filter(i => i.ref !== pi.id), at: Date.now() }).catch(() => {});
+      await capiHires(req, roles, md.project_id, md.email, pi.amount, body.sid);
       return res.status(200).json({ ok:true, charged:true, confirmed:true, recorded, amount: pi.amount, roles });
     }
 
@@ -211,6 +225,7 @@ module.exports = async (req, res) => {
     await bwrite(pendingPath(cs), { items, at: Date.now() }).catch(() => {});
     const recorded = await recordHire(cs, roles, amount, pi.id);
     if(recorded) await bwrite(pendingPath(cs), { items: items.filter(i => i.ref !== pi.id), at: Date.now() }).catch(() => {});
+    await capiHires(req, roles, base.metadata && base.metadata.project_id, base.customer_details && base.customer_details.email, amount, body.sid);
     return res.status(200).json({ ok:true, charged:true, recorded, amount, roles });
   }catch(e){
     return res.status(200).json({ ok:false, error:'error' });

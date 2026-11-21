@@ -25,6 +25,7 @@ const AMOUNT = 2000; // cents
 const STRIPE_VERSION = '2026-03-25.dahlia'; // ui_mode:'elements' (renamed from 'custom' in dahlia)
 const tax = require('../lib/tax');
 const dealfuel = require('../lib/dealfuel');
+const capi = require('../lib/capi');
 
 /* Order bump — a SEPARATE one-click charge right after the $20 confirms,
    so ticking the box never rebuilds the payment form. */
@@ -358,6 +359,18 @@ module.exports = async (req, res) => {
       const s = await stripe('checkout/sessions/' + encodeURIComponent(String(q.verify).slice(0, 300)));
       const paid = s.payment_status === 'paid' && (s.metadata && s.metadata.type) === 'store_unlock20';
       if(paid){ try{ dealfuel.kick(sk, s); }catch(e){} } // DealFuel lead, background, once per payment
+      /* Conversions API: server copy of the browser's Purchase (eventID 'ds_purchase_' + project).
+         Only for a fresh payment (a return weeks later must not re-report it); awaited so Vercel
+         cannot cut it off, capped at 2.5 s. */
+      if(paid && capi.enabled() && Date.now() - (s.created || 0) * 1000 < 36 * 3600e3){
+        try{
+          await capi.send(capi.event('Purchase', 'purchase_' + ((s.metadata && s.metadata.project_id) || s.id), req, {
+            email: s.customer_details && s.customer_details.email, phone: s.customer_details && s.customer_details.phone,
+            sid: q.sid, cid: q.cid, url: req.headers.referer,
+            value: (s.amount_total || 2000) / 100, currency: String(s.currency || 'usd').toUpperCase(),
+            custom: { content_name: 'AI Store Unlock', content_type: 'product', content_ids: ['store_unlock20'], num_items: 1, order_id: s.id } }));
+        }catch(e){}
+      }
       return res.status(200).json({ paid,
         project_id: (s.metadata && s.metadata.project_id) || '',
         product: (s.metadata && s.metadata.product) || '',
@@ -423,6 +436,14 @@ module.exports = async (req, res) => {
 
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
       Object.assign({}, utmFromBody(body), leadMeta(body)));   // utmFromBody() is null for visitors without a UTM: Object.assign(null, …) threw and broke their checkout
+    /* Conversions API: server copy of the browser's InitiateCheckout (eventID 'ds_ic_' + project, else the visitor id) */
+    try{
+      if(capi.enabled()){
+        const cid = String(body.cid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+        capi.fire(capi.event('InitiateCheckout', 'ic_' + (projectId || cid), req, { email, phone: body.phone, firstName: body.first_name, sid: body.sid, cid, url: body.url,
+          value: 20, currency: 'USD', custom: { content_name: 'AI Store Unlock', content_type: 'product', content_ids: ['store_unlock20'], num_items: 1 } }));
+      }
+    }catch(e){}
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
       ui: c.ui, custom_error: c.custom_error || '' });
   }catch(e){
