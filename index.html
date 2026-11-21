@@ -477,6 +477,19 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 
 /* Short viewports (browser chrome eats ~130px on real phones): compress the
    blueprint + picker so their CTAs sit above the fold without scrolling. */
+@media (max-height:860px){
+  #s-blueprint .kicker{display:none}
+  #s-blueprint h2{font-size:1.28rem}
+  #s-blueprint .sub{margin-bottom:9px}
+  #s-blueprint .bp-dot{width:36px;height:36px;font-size:1rem}
+  #s-blueprint .bp-card{padding:10px 13px;margin-bottom:8px}
+  #s-blueprint .bp-card p{font-size:.77rem;line-height:1.38}
+  #s-blueprint .bp-card .tag{margin-top:5px;font-size:.62rem;padding:3px 9px}
+  #s-blueprint .bp-line{min-height:8px}
+  #s-blueprint .free-banner{margin-bottom:11px;padding:9px 12px}
+  #s-blueprint .free-banner p{font-size:.78rem}
+  #s-blueprint .cta-note{display:none}
+}
 @media (max-height:820px){
   #s-blueprint .kicker{display:none}
   #s-blueprint h2{font-size:1.28rem}
@@ -683,6 +696,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .ac-tag.ok{border-color:rgba(34,197,94,.55);color:#9AF5BE}
 .ac-tag.gold{border-color:rgba(255,201,60,.6);color:#FFE9A3}
 @keyframes acTag{0%{opacity:0;transform:translateY(6px) scale(.6)}14%{opacity:1;transform:none}78%{opacity:1;transform:translateY(-4px)}100%{opacity:0;transform:translateY(-14px)}}
+@media (max-height:700px){#s-guarantee .gseal-wrap{width:min(224px,66vw);margin:0 auto 10px}#s-guarantee .sub{font-size:.86rem;margin-bottom:4px}#s-guarantee h2{font-size:1.3rem}#s-guarantee .gchip{font-size:.66rem;padding:5px 9px}}
 @media (max-height:760px){.ai-core-box{--S:min(228px,70vw);margin-bottom:10px}.ac-item{width:40px;height:40px;margin:-20px 0 0 -20px}.ai-core{width:102px;height:102px}.ac-emoji{font-size:1.8rem}}
 @media (max-height:680px){.ai-core-box{--S:min(200px,66vw)}.ac-item{width:36px;height:36px;margin:-18px 0 0 -18px}.ai-core{width:92px;height:92px}.ac-ring2{inset:-14px}}
 @media (prefers-reduced-motion:reduce){.ac-orbit,.ac-item,.ac-bg::before,.ac-bg::after,.ac-ring,.ac-ring2,.ai-core,.ac-tag,.ac-wave{animation:none}.ac-tag{opacity:1}.ac-dot,.ac-beam{display:none}.ai-core.done .ac-check path{stroke-dashoffset:0}}
@@ -2131,6 +2145,7 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .cta-dock .cta-note{margin-top:9px}
 .cta-dock .oto-decline{margin-top:10px}
 #s-launch1 .cta-dock{margin-top:8px}
+#s-dropship .cta-dock{margin-top:4px}   /* the explainer is taller than a phone: the button rides the bottom edge from the first frame */
 #s-vsl199 .cta-dock{margin-top:10px} /* CTA hugs the video — no dead gap */
 @media (max-height:760px){
   #s-seo h2{font-size:1.2rem;margin-bottom:8px}
@@ -2421,8 +2436,10 @@ window.dsFire('PageView');
         <p class="disclaim" style="margin:6px 0 0">Illustration of order alerts — sales are never guaranteed.</p>
       </div>
 
-      <button class="cta gold pulse" onclick="go('s-cost')">Okay — what's this gonna cost me? 💰</button>
-      <p class="cta-note">Fair question. Full breakdown, nothing hidden 👇</p>
+      <div class="cta-dock">
+        <button class="cta gold pulse" onclick="go('s-cost')">Okay — what's this gonna cost me? 💰</button>
+        <p class="cta-note">Fair question. Full breakdown, nothing hidden 👇</p>
+      </div>
     </section>
 
     <!-- ======================= 6 · Q5 REVENUE ======================= -->
