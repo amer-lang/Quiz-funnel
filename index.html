@@ -38,8 +38,8 @@
 })(window);
 </script>
 <link rel="preconnect" href="https://img.dropstartcdn.com">
-<title>Sell Products AI — Let AI Build Your Sales Machine</title>
-<meta name="description" content="Sell Products AI is a new AI that helps ordinary people start selling online. It knows what's selling right now, builds your own sales machine in about 2 minutes, and you don't pay unless you love it.">
+<title>Sell Products AI — Let AI Build Your Selling Machine</title>
+<meta name="description" content="Sell Products AI is a new AI that helps ordinary people start selling online. It knows what's selling right now, builds your own selling machine in about 2 minutes, and you don't pay unless you love it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -380,6 +380,26 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .profit-strip .money{color:#7CF0A9}
 .profit-strip .cost{color:#FCA5A5}
 
+/* ---- sale notification loop (explainer screen) ---- */
+.notif-wrap{margin:4px 0 20px;text-align:center}
+.notif-lbl{font-size:.6rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.notif-stack{position:relative;height:142px;max-width:420px;margin:0 auto;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)}
+.notif{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:11px;text-align:left;
+  background:rgba(28,30,36,.96);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:10px 12px;
+  box-shadow:0 14px 30px -14px rgba(0,0,0,.9);transform:translateY(-18px) scale(.96);opacity:0;
+  transition:transform .55s cubic-bezier(.22,1,.36,1),opacity .45s}
+.notif.pos0{transform:translateY(0) scale(1);opacity:1}
+.notif.pos1{transform:translateY(66px) scale(.97);opacity:.7}
+.notif.pos2{transform:translateY(128px) scale(.94);opacity:.35}
+.notif-ico{width:38px;height:38px;flex:none;border-radius:10px;background:#95BF47;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.notif-ico svg{width:24px;height:24px}
+.notif-body{flex:1;min-width:0}
+.notif-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.notif-top b{font-size:.84rem;color:#fff}
+.notif-top span{font-size:.68rem;color:rgba(255,255,255,.5)}
+.notif-msg{font-size:.8rem;color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.notif-msg b{color:#fff;font-weight:700}
+
 /* ============================================================
    REALITY CHECK
    ============================================================ */
@@ -581,36 +601,33 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .scan-chip.in{opacity:1;transform:scale(1)}
 .scan-chip.hit{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45);color:#7CF0A9}
 
-/* ---- scan dossier: one product checked at a time, matches collect below ---- */
-.sc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:2px 2px 10px;text-align:left}
-.sc-step{font-size:.78rem;font-weight:700;color:var(--muted);letter-spacing:.01em;min-height:1.2em}
-.sc-count{font-size:.78rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
-.sc-deck{position:relative;height:124px;margin-bottom:12px;overflow:hidden;border-radius:18px}
-.sc-track{display:flex;height:100%;transition:transform .62s cubic-bezier(.22,1,.36,1);will-change:transform}
-.sc-card{position:relative;flex:0 0 100%;width:100%;display:flex;gap:14px;align-items:center;text-align:left;
-  background:var(--card);border:1px solid var(--line-strong);border-radius:18px;padding:14px;opacity:.55;transition:opacity .5s}
-.sc-card.in{opacity:1}
-.sc-photo{width:94px;height:94px;flex:none;border-radius:14px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem}
-.sc-photo img{width:100%;height:100%;object-fit:cover;display:block}
-.sc-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px}
-.sc-name{font-size:.9rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;padding-right:74px}
-.sc-metric{display:grid;grid-template-columns:62px 1fr 30px;align-items:center;gap:8px;font-size:.62rem;font-weight:700;color:var(--muted)}
-.sc-metric i{display:block;height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
-.sc-metric i b{display:block;height:100%;width:100%;border-radius:99px;background:var(--grad-brand);transform:scaleX(0);transform-origin:left;transition:transform .7s cubic-bezier(.22,1,.36,1);will-change:transform}
-.sc-card.in .sc-metric i b{transform:scaleX(var(--s))}
-.sc-metric em{font-style:normal;text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
-.sc-verdict{position:absolute;right:12px;top:12px;font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);
-  background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);padding:4px 8px;border-radius:999px;opacity:0;transform:scale(.8);transition:.3s cubic-bezier(.34,1.8,.64,1)}
-.sc-card.hit .sc-verdict{opacity:1;transform:none}
-.sc-found{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-height:34px;text-align:left}
-.sc-found-lbl{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
-.sc-found-row{display:flex;gap:5px;flex-wrap:wrap}
-.sc-mini{position:relative;width:26px;height:26px;border-radius:8px;overflow:visible;background:#fff;border:1px solid rgba(255,255,255,.2);
-  display:flex;align-items:center;justify-content:center;font-size:.9rem;opacity:0;transform:scale(.5);transition:.4s cubic-bezier(.34,1.6,.64,1)}
-.sc-mini img{width:100%;height:100%;object-fit:cover;border-radius:7px;display:block}
-.sc-mini.in{opacity:1;transform:none}
-.sc-mini::after{content:'✓';position:absolute;right:-5px;bottom:-5px;width:13px;height:13px;border-radius:50%;background:var(--green);color:#fff;font-size:.5rem;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
-.sc-done .sc-count{color:var(--green)}
+/* ---- guarantee seal ---- */
+#s-guarantee{background:radial-gradient(ellipse at 50% 38%,rgba(255,201,60,.14),transparent 55%)}
+.gseal-wrap{position:relative;width:min(300px,82vw);aspect-ratio:1;margin:6px auto 16px}
+.gseal{position:absolute;left:50%;top:50%;width:58%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle at 40% 30%,#FFE9A3,#FFC93C 40%,#C98A0C 80%);
+  box-shadow:0 0 0 6px rgba(255,201,60,.18),0 0 70px -6px rgba(255,201,60,.75),inset 0 0 0 3px rgba(120,70,0,.35);
+  animation:gsealIn .9s cubic-bezier(.34,1.5,.64,1) both}
+.gseal::before{content:'';position:absolute;inset:-9px;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,rgba(255,201,60,.95) 0 6deg,transparent 6deg 12deg);
+  -webkit-mask:radial-gradient(circle,transparent 61%,#000 62%);mask:radial-gradient(circle,transparent 61%,#000 62%);z-index:-1}
+.gseal svg{position:absolute;inset:0;width:100%;height:100%}
+.gseal-arc{font-size:17px;font-weight:800;letter-spacing:.26em;fill:#3A2300}
+.gseal-core{position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle at 40% 30%,#1B1A12,#0B0B08 75%);
+  border:2px solid rgba(255,201,60,.9);box-shadow:inset 0 0 24px rgba(255,201,60,.25);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.gseal-core b{font-size:clamp(2.1rem,10vw,2.8rem);font-weight:800;color:#FFC93C;letter-spacing:-.02em}
+.gseal-core span{font-size:.62rem;font-weight:800;letter-spacing:.3em;color:#FFE9A3;margin:4px 0 2px}
+.gseal-core small{font-size:.5rem;font-weight:800;letter-spacing:.22em;color:rgba(255,233,163,.75)}
+@keyframes gsealIn{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.gchip{position:absolute;font-size:.72rem;font-weight:700;color:#FFE9A3;background:rgba(255,201,60,.08);border:1px solid rgba(255,201,60,.4);
+  border-radius:999px;padding:6px 11px;white-space:nowrap;box-shadow:0 10px 24px -14px rgba(0,0,0,.9);opacity:0;animation:gchipIn .6s cubic-bezier(.34,1.6,.64,1) forwards}
+.gchip.c1{left:0;top:17%;animation-delay:.5s}
+.gchip.c2{right:0;top:12%;animation-delay:.7s}
+.gchip.c3{left:2%;bottom:16%;animation-delay:.9s}
+.gchip.c4{right:0;bottom:20%;animation-delay:1.1s}
+@keyframes gchipIn{0%{opacity:0;transform:scale(.6)}100%{opacity:1;transform:scale(1)}}
+
 /* store mockup that assembles during build */
 .store-frame{
   max-width:340px;margin:0 auto 22px;border-radius:16px;overflow:hidden;
@@ -2133,8 +2150,8 @@ window.dsFire('PageView');
       <div class="logo-tag">it finds · it builds · you sell</div>
 
       <div class="kicker gold" style="align-self:center"><span class="dot"></span> New AI · live now</div>
-      <h1>Let AI Build Your Very Own <span class="grad-text">Sales Machine</span></h1>
-      <p class="sub">Sell Products AI is a new AI that helps ordinary people start selling online. <strong>It already knows what's selling right now.</strong> Answer 5 questions and it builds your own <strong>sales machine</strong> in about 2 minutes. And if you don't like what it creates, <span class="hl">you don't pay</span>.</p>
+      <h1>Let AI Build Your Very Own <span class="grad-text">Selling Machine</span></h1>
+      <p class="sub">Sell Products AI is a new AI that helps ordinary people start selling online. <strong>It already knows what's selling right now.</strong> Answer 5 questions and it builds your own <strong>selling machine</strong> in about 2 minutes. And if you don't like what it creates, <span class="hl">you don't pay</span>.</p>
 
       <div class="proof-row">
         <div class="proof"><b class="blue">2 min</b><span>to build yours</span></div>
@@ -2283,25 +2300,25 @@ window.dsFire('PageView');
 
     <!-- ======================= 5b · DROPSHIP EXPLAINER ======================= -->
     <section class="screen" id="s-dropship">
-      <div class="kicker green" style="align-self:center">⚡ 20-second masterclass</div>
-      <h2>Dropshipping, explained <span class="grad-text">like you're 5</span></h2>
+      <div class="kicker green" style="align-self:center">⚡ How it works · 20 seconds</div>
+      <h2>Here's how your <span class="grad-text">selling machine</span> will work</h2>
       <p class="sub">You sell the product. Someone else stores it, packs it and ships it. Watch:</p>
 
       <div class="flow">
         <div class="flow-step" id="ds1">
           <div class="flow-rail"><div class="flow-num">🛒</div><div class="flow-line"></div></div>
-          <div class="flow-card"><b>1 · A customer buys from YOUR store</b>
+          <div class="flow-card"><b>1 · A customer buys from YOU</b>
             <p>They pay <span class="money">$39.99</span> for the product, straight into your account.</p></div>
         </div>
         <div class="flow-step" id="ds2">
           <div class="flow-rail"><div class="flow-num">📦</div><div class="flow-line"></div></div>
-          <div class="flow-card"><b>2 · Your supplier ships it for you</b>
-            <p>You pay the supplier <span class="cost">$11.20</span> and they send it directly to your customer. <strong>You never touch a box.</strong></p></div>
+          <div class="flow-card"><b>2 · The supplier ships it for you</b>
+            <p>You pay the supplier <span class="cost">$11.20</span> and they send it straight to your customer. <strong>You never touch a box.</strong></p></div>
         </div>
         <div class="flow-step" id="ds3">
           <div class="flow-rail"><div class="flow-num">🤑</div></div>
           <div class="flow-card"><b>3 · You keep the difference</b>
-            <p>No warehouse. No inventory. No upfront stock. Just <span class="profit">profit per sale</span>.</p></div>
+            <p>No warehouse. No inventory. No upfront stock. Just <span class="profit">profit per sale</span>. The AI sets all of this up for you.</p></div>
         </div>
       </div>
 
@@ -2309,13 +2326,21 @@ window.dsFire('PageView');
         <span class="money">$39.99</span><span class="eq">−</span><span class="cost">$11.20</span><span class="eq">=</span><span class="final" id="dsProfit">$0.00</span><span class="eq">profit 🎉</span>
       </div>
 
-      <button class="cta" onclick="go('s-q5',{fx:'brain'})">Ohhh, got it! 🤯</button>
+      <!-- looping Shopify-style sale notifications: what a working selling machine feels like -->
+      <div class="notif-wrap" id="notifWrap">
+        <div class="notif-lbl">What payment notifications look like</div>
+        <div class="notif-stack" id="notifStack"></div>
+        <p class="disclaim" style="margin:6px 0 0">Illustration of order alerts — sales are never guaranteed.</p>
+      </div>
+
+      <button class="cta gold pulse" onclick="go('s-cost')">Okay — what's this gonna cost me? 💰</button>
+      <p class="cta-note">Fair question. Full breakdown, nothing hidden 👇</p>
     </section>
 
     <!-- ======================= 6 · Q5 REVENUE ======================= -->
     <section class="screen" id="s-q5">
       <div class="kicker" style="align-self:center">Question 5 of 5 — the big one</div>
-      <h2>How much should <span class="gold-text">your sales machine</span> make per month?</h2>
+      <h2>How much should <span class="gold-text">your selling machine</span> make per month?</h2>
       <p class="sub">Dream honestly. The AI is about to show you exactly what it takes.</p>
       <div class="opts">
         <button class="opt" onclick="answer(this,'rev','5000','💰',{next:'s-reality'})">
@@ -2383,7 +2408,7 @@ window.dsFire('PageView');
         <div class="bp-step" id="bp2">
           <div class="bp-rail"><div class="bp-dot">🤖</div><div class="bp-line"></div></div>
           <div class="bp-card">
-            <b>2 · The AI builds your sales machine</b>
+            <b>2 · The AI builds your selling machine</b>
             <p>Branding, product page, checkout, supplier — all wired in while you watch. <strong>You see it free.</strong></p>
             <span class="tag">AI does this</span>
           </div>
@@ -2403,8 +2428,8 @@ window.dsFire('PageView');
         <p><b>You see what the AI built BEFORE you pay.</b> Don't love it? You walk — no charge.</p>
       </div>
 
-      <button class="cta gold pulse" onclick="go('s-cost')">Okay — what's this gonna cost me? 💰</button>
-      <p class="cta-note">Fair question. Full breakdown, nothing hidden 👇</p>
+      <button class="cta gold pulse" onclick="go('s-dropship',{fx:'ripple'})">Okay — how does it actually work? 🤔</button>
+      <p class="cta-note">Good question. 20 seconds, no jargon 👇</p>
     </section>
 
     <!-- ======================= 9b · THE FULL COST (asked-for reveal) ======================= -->
@@ -2413,7 +2438,7 @@ window.dsFire('PageView');
       <h2>Everything it takes to<br><span class="grad-text">switch it on:</span></h2>
 
       <div class="cost-card" id="cc1">
-        <div class="cost-top"><span class="cost-ico">🤖</span><b>Sell Products AI — finds what to sell + builds your entire sales machine</b></div>
+        <div class="cost-top"><span class="cost-ico">🤖</span><b>Sell Products AI — finds what to sell + builds your entire selling machine</b></div>
         <div class="cost-price"><span class="gold-text">$20</span><span class="cost-per">one-time</span></div>
         <p class="cost-sub">And you see it <b>fully built before you pay</b>. Don't love it? You never pay a cent.</p>
       </div>
@@ -2430,18 +2455,46 @@ window.dsFire('PageView');
         <span class="ct-note">That's the whole thing. No other fees from us — ever.</span>
       </div>
 
-      <button class="cta gold pulse" onclick="startScan(event)">$21? Show me what to sell 🔍</button>
+      <button class="cta gold pulse" onclick="go('s-guarantee',{fx:'ripple'})">$21? Show me what to sell 🔍</button>
       <p class="cta-note">The AI matches what's selling to <b>your 5 answers</b></p>
       <p class="disclaim" style="margin-top:8px">After your first 3 months, Shopify's standard hosting is $39/mo — cancel anytime. Your only other costs are ones you choose later (like any advertising you decide to run). Supplier products are paid per-order, only after a customer pays you first. We may earn a commission from Shopify when you sign up through us — at no cost to you.</p>
+    </section>
+
+    <!-- ======================= 9a · GUARANTEE (reassurance before the product search) ======================= -->
+    <section class="screen" id="s-guarantee">
+      <div class="kicker gold" style="align-self:center">🛡️ Risk-free · 30-day guarantee</div>
+      <h2>Your purchase is backed by our <span class="gold-text">unconditional 30-day guarantee.</span></h2>
+      <p class="sub">If you don't like what the AI builds for <strong>any</strong> reason and want your money back, send us a <strong>one-line email</strong> any time in the first 30 days and we refund you in full.</p>
+
+      <div class="gseal-wrap">
+        <span class="gchip c1">✉️ One email</span>
+        <span class="gchip c2">🕒 30 days</span>
+        <span class="gchip c3">🔒 Secure</span>
+        <span class="gchip c4">🤍 No questions</span>
+        <div class="gseal" id="gseal">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <defs>
+              <path id="gArcTop" d="M30,100 a70,70 0 1,1 140,0"/>
+              <path id="gArcBot" d="M18,100 a82,82 0 0,0 164,0"/>
+            </defs>
+            <text class="gseal-arc"><textPath href="#gArcTop" startOffset="50%" text-anchor="middle">UNCONDITIONAL</textPath></text>
+            <text class="gseal-arc"><textPath href="#gArcBot" startOffset="50%" text-anchor="middle">MONEY BACK</textPath></text>
+          </svg>
+          <div class="gseal-core"><b>30</b><span>DAY</span><small>GUARANTEE</small></div>
+        </div>
+      </div>
+
+      <button class="cta gold pulse" onclick="startScan(event)">I'm Reassured! →</button>
+      <p class="cta-note">No forms. No questions. No hoops. <b>One email.</b></p>
+      <p class="disclaim" style="margin-top:6px">Every charge is refundable in full within 30 days of that charge — email support@sellproducts.ai and we process it within 2 business days. Shopify's own billing is separate. <a href="/refund-policy" target="_blank" style="color:inherit;text-decoration:underline">Full refund policy</a></p>
     </section>
 
     <!-- ======================= 9 · AI SCAN ======================= -->
     <section class="screen" id="s-scan">
       <div class="scan-wrap">
-        <!-- one product at a time: photo, three metrics, a quiet verdict; matches collect below -->
-        <div class="sc-head"><span class="sc-step" id="odoLabel">The AI is scanning what's selling</span><span class="sc-count" id="odo">0 / 8</span></div>
-        <div class="sc-deck" id="scDeck"></div>
-        <div class="sc-found" id="scFound"><span class="sc-found-lbl">Picked for you</span><span class="sc-found-row" id="scFoundRow"></span></div>
+        <div class="ai-orb" id="orb">🔎</div>
+        <div class="odometer" id="odo">0</div>
+        <div class="odometer-label" id="odoLabel">the AI is scanning what's selling</div>
         <div class="scan-bar"><div class="scan-fill" id="scanFill"></div></div>
         <div class="scan-log">
           <div class="scan-line" id="sl0"><span class="st">✓</span><span>Pulling what's selling right now…</span></div>
@@ -2511,7 +2564,7 @@ window.dsFire('PageView');
     <section class="screen" id="s-email">
       <div class="kicker gold" style="align-self:center">🔒 Product reserved for you</div>
       <h2>Great choice. Where should the AI send it?</h2>
-      <p class="sub">It's ready to build your sales machine around this one:</p>
+      <p class="sub">It's ready to build your selling machine around this one:</p>
 
       <div class="claim-mini">
         <div class="claim-thumb" id="cThumb">🌅</div>
@@ -2540,7 +2593,7 @@ window.dsFire('PageView');
       <div class="bx" id="bx">
         <div class="bx-head">
           <div class="kicker gold" style="align-self:center"><span class="dot"></span> <span id="bxKick">THE AI IS BUILDING</span></div>
-          <h2 id="buildTitle">Building your <span class="grad-text" id="bxProd">new</span> sales machine…</h2>
+          <h2 id="buildTitle">Building your <span class="grad-text" id="bxProd">new</span> selling machine…</h2>
           <p class="sub bx-sub" id="bxSub">Real product. Real supplier. Watch the AI work.</p>
         </div>
 
@@ -2624,7 +2677,7 @@ window.dsFire('PageView');
         <!-- offer stack: everything the $20 buys, revealed row by row -->
         <div class="offer" id="offer">
           <div class="offer-title">🎁 EVERYTHING THE AI BUILT INTO <span id="offerBrand">YOUR STORE</span></div>
-          <div class="offer-row"><span class="ic">🏪</span><span class="tx"><b>Your own sales machine, built around <span id="offerProd">your product</span></b><span>Branded storefront made for you — not a template</span></span><span class="val">$499</span></div>
+          <div class="offer-row"><span class="ic">🏪</span><span class="tx"><b>Your own selling machine, built around <span id="offerProd">your product</span></b><span>Branded storefront made for you — not a template</span></span><span class="val">$499</span></div>
           <div class="offer-row"><span class="ic">✍️</span><span class="tx"><b>AI-written product page</b><span>Title, description, benefits, FAQ &amp; reviews layout</span></span><span class="val">$299</span></div>
           <div class="offer-row"><span class="ic">📦</span><span class="tx"><b>Supplier connected &amp; product locked in</b><span>Ships direct to your customers, tracked</span></span><span class="val">$199</span></div>
           <div class="offer-row"><span class="ic">💳</span><span class="tx"><b>Checkout, payments &amp; shipping set up</b><span>Cards, Apple Pay, tax and shipping rules</span></span><span class="val">$99</span></div>
@@ -3075,7 +3128,7 @@ let streakCount = 0;
 
 const PROGRESS = {
   's-landing':4,'s-intro':10,'s-q1':20,'s-q2':29,'s-q3':38,'s-q4':46,
-  's-dropship':51,'s-q5':56,'s-reality':64,'s-blueprint':72,'s-scan':80,
+  's-dropship':74,'s-guarantee':78,'s-q5':56,'s-reality':64,'s-blueprint':72,'s-scan':80,
   's-pick':87,'s-email':91,'s-build':95,'s-preview':98,'s-upsell':99,'s-upsell-ads':99,
   's-launch1':99,'s-seo':99,'s-vsl199':99,'s-addons':99,'s-agents':99,'s-agent':99,'s-done':100
 };
@@ -3247,8 +3300,40 @@ function showToast(ico, txt){
    DROPSHIP EXPLAINER
    ============================================================ */
 let dsRan = false;
+/* Shopify-style order alerts, looping while the explainer is on screen.
+   Names and prices come from the live catalogue when it has loaded. */
+const NOTIF_FALLBACK = [['Wedding Planner Kit',24.99],['Mini Chopper Pro',36.99],['LED Sunset Lamp',39.99],['Posture Corrector',29.99],['Pet Hair Remover',19.99],['Car Phone Mount',22.99]];
+const NOTIF_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M15.3 5.2c-.1-.1-.3-.1-.4-.1l-.9.1c-.4-1.1-1.1-2.1-2.3-2.1h-.1c-.3-.4-.8-.6-1.2-.6-2.9 0-4.3 3.6-4.7 5.5l-2 .6c-.6.2-.6.2-.7.8L1.3 20.7 13.4 23l6.5-1.4L15.3 5.2zM11.4 6.2l-2.1.7c.3-1.3 1-2.6 2-2.6.2 0 .3.1.5.2-.2.3-.4.9-.4 1.7zm1.1-2.4c.5.4.8 1.1.9 1.8l-1.2.4v-.3c0-.8-.1-1.4-.3-1.9h.6zm.1 5.1-1 2.9s-.6-.3-1.4-.3c-1.1 0-1.2.7-1.2.9 0 1 2.6 1.4 2.6 3.7 0 1.8-1.2 3-2.7 3-1.9 0-2.8-1.2-2.8-1.2l.5-1.7s1 .9 1.8.9c.5 0 .8-.4.8-.8 0-1.3-2.1-1.4-2.1-3.5 0-1.8 1.3-3.5 3.9-3.5 1 0 1.6.6 1.6.6z" fill="#fff"/></svg>';
+let notifTimer = null, notifN = 0;
+function notifItems(){
+  const live = (PRODUCTS || []).filter(p => p && p.name && p.price).slice(0, 8).map(p => [p.name, Number(p.price)]);
+  return live.length >= 3 ? live : NOTIF_FALLBACK;
+}
+function notifPush(){
+  const stack = document.getElementById('notifStack'); if(!stack) return;
+  const items = notifItems(); const [name, price] = items[notifN++ % items.length];
+  const el = document.createElement('div'); el.className = 'notif';
+  el.innerHTML = '<span class="notif-ico">' + NOTIF_SVG + '</span><div class="notif-body"><div class="notif-top"><b>Shopify</b><span>now</span></div>' +
+    '<div class="notif-msg">You have a new order for <b>$' + price.toFixed(2) + '</b> · ' + bxEsc(name) + '</div></div>';
+  stack.prepend(el);
+  [...stack.children].forEach((c, i) => { c.className = 'notif' + (i < 3 ? ' pos' + i : ''); if(i > 3) c.remove(); });
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.className = 'notif pos0'; }));
+  try{ playPop(1.4 + (notifN % 3) * 0.1); }catch(e){}
+}
+function notifLoop(){
+  clearInterval(notifTimer);
+  notifPush();
+  notifTimer = setInterval(() => {
+    const sec = document.getElementById('s-dropship');
+    if(!sec || !sec.classList.contains('active')){ clearInterval(notifTimer); notifTimer = null; return; }
+    notifPush();
+  }, 2600);
+}
+
 function runDropship(){
-  if(dsRan) return; dsRan = true;
+  if(dsRan){ if(!notifTimer) notifLoop(); return; }
+  dsRan = true;
+  setTimeout(notifLoop, 3600);
   ['ds1','ds2','ds3'].forEach((id,i)=>{
     setTimeout(()=>{
       document.getElementById(id).classList.add('in');
@@ -3346,58 +3431,21 @@ function runScan(){
   chipsBox.innerHTML = chipVals.map(c=>`<span class="scan-chip">${c}</span>`).join('');
   const chips = [...chipsBox.children];
 
-  // the dossier: all cards sit on one track that slides left; each card fills its bars when it is current,
-  // gets a quiet "Match", and joins the row below. One transform per step = smooth on phones.
-  const deck = document.getElementById('scDeck'), foundRow = document.getElementById('scFoundRow');
-  const pool = PRODUCTS.slice(0, 8);
-  deck.innerHTML = ''; foundRow.innerHTML = '';
-  document.querySelector('.scan-wrap').classList.remove('sc-done');
-  odo.textContent = '0 / ' + pool.length;
-  const pct = (seed, lo, hi) => lo + ((seed * 7919) % (hi - lo + 1));
-  const photo = p => (p.thumb || p.image) ? '<img src="' + String(p.thumb || p.image).replace(/"/g, '&quot;') + '" alt="" decoding="async">' : (p.emoji || '📦');
-  const track = document.createElement('div'); track.className = 'sc-track'; deck.appendChild(track);
-  const cards = pool.map((p, i) => {
-    const demand = p.trend ? Math.min(98, Math.max(78, Math.round(70 + Number(p.trend) / 12))) : pct(i + 3, 82, 97);
-    const margin = p.price ? Math.round((p.price - p.cost) / p.price * 100) : pct(i + 5, 55, 75);
-    const supplier = pct(i + 11, 91, 99);
-    const card = document.createElement('div');
-    card.className = 'sc-card';
-    card.innerHTML = '<div class="sc-photo">' + photo(p) + '</div><div class="sc-body"><b class="sc-name">' + bxEsc(p.name) + '</b>' +
-      '<div class="sc-metric"><span>Demand</span><i><b style="--s:' + (demand / 100) + '"></b></i><em>' + demand + '</em></div>' +
-      '<div class="sc-metric"><span>Margin</span><i><b style="--s:' + (Math.min(margin, 100) / 100) + '"></b></i><em>' + margin + '%</em></div>' +
-      '<div class="sc-metric"><span>Supplier</span><i><b style="--s:' + (supplier / 100) + '"></b></i><em>' + supplier + '</em></div></div>' +
-      '<span class="sc-verdict">✓ Match</span>';
-    track.appendChild(card);
-    return card;
-  });
-  const slot = Math.max(900, Math.floor(8200 / Math.max(pool.length, 1)));
-  const firstPhoto = (() => { const src = pool[0] && (pool[0].thumb || pool[0].image); if(!src) return Promise.resolve(); const im = new Image(); im.src = src; return (im.decode ? im.decode() : Promise.resolve()).catch(() => {}); })();
-  const start = Promise.race([firstPhoto, new Promise(r => setTimeout(r, 600))]);
-  cards.forEach((card, i) => {
-    setTimeout(async () => {
-      if(i === 0) await start;
-      track.style.transform = 'translateX(-' + (i * 100) + '%)';
-      if(cards[i - 1]) cards[i - 1].classList.remove('in');
-      card.classList.add('in');
-      setTimeout(() => {
-        card.classList.add('hit'); playPop(1.1 + i * 0.05); vibrate(6);
-        const m = document.createElement('span'); m.className = 'sc-mini'; m.innerHTML = photo(pool[i]); foundRow.appendChild(m);
-        requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add('in')));
-        odo.textContent = (i + 1) + ' / ' + pool.length;
-      }, slot - 280);
-    }, 350 + i * slot);
-  });
+  const orb = document.getElementById('orb');
+  orb.classList.remove('done'); orb.textContent = '🔎';
+  countUp(odo, 0, Math.max(PRODUCTS.length, 6), 2600, v=>Math.round(v).toLocaleString());   // real count: the products in the picker
+
   const seq = [
-    {at:0,    bar:9,  line:0, mode:'doing', label:'Scanning what\'s selling now'},
+    {at:0,    bar:9,  line:0, mode:'doing'},
     {at:900,  bar:22, line:0, mode:'ok', ding:true},
-    {at:1400, bar:31, line:1, mode:'doing', label:'Checking what sells right now'},
+    {at:1400, bar:31, line:1, mode:'doing', label:'matches found'},
     {at:2700, bar:44, line:1, mode:'ok', ding:true},
-    {at:3100, bar:52, line:2, mode:'doing', label:'Matching to your answers'},
+    {at:3100, bar:52, line:2, mode:'doing', label:'matching to your answers'},
     {at:3500, chip:0},{at:3900, chip:1},{at:4300, chip:2},{at:4700, chip:3},
     {at:5100, bar:68, line:2, mode:'ok', ding:true},
-    {at:5500, bar:79, line:3, mode:'doing', label:'Verifying suppliers'},
+    {at:5500, bar:79, line:3, mode:'doing', label:'suppliers verified'},
     {at:6700, bar:88, line:3, mode:'ok', ding:true},
-    {at:7100, bar:94, line:4, mode:'doing', label:'Locking your margins'},
+    {at:7100, bar:94, line:4, mode:'doing', label:'profit margins locked'},
     {at:8200, bar:100, line:4, mode:'ok', ding:true},
   ];
 
@@ -3421,10 +3469,11 @@ function runScan(){
   });
 
   setTimeout(()=>{
-    document.querySelector('.scan-wrap').classList.add('sc-done');
-    odo.textContent = pool.length + ' / ' + pool.length; odoLabel.textContent = 'The AI picked these for you';
+    orb.classList.add('done'); orb.textContent = '✓';
+    odo.textContent = 'FOUND'; odoLabel.textContent = 'the AI picked these for you';
     playTada();
-    setTimeout(() => { confettiBurst(window.innerWidth/2, window.innerHeight*0.28, 70); coinCannon(window.innerWidth/2, window.innerHeight*0.3); }, 220);   // after the last card has settled
+    confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 120);
+    coinCannon(window.innerWidth/2, window.innerHeight*0.35);
     vibrate([20,80,20,80,30]);
   }, 8700);
   setTimeout(()=>go('s-pick'), 10200);
@@ -4678,7 +4727,7 @@ function runBuild(){
 
   BX.shortName = p.name && p.name.length > 30 ? p.name.slice(0, 28).replace(/\s+\S*$/, '') + '…' : (p.name || '');
   bxQ('bxProd').textContent = BX.shortName || 'new';
-  if(!p.name) bxQ('buildTitle').innerHTML = 'Building <span class="grad-text">your sales machine</span>…';
+  if(!p.name) bxQ('buildTitle').innerHTML = 'Building <span class="grad-text">your selling machine</span>…';
   bxQ('bxPage').innerHTML = bxStoreHTML(p, brand, th);
   bxQ('bxPage').querySelectorAll('[data-sec]').forEach(el=>{ BX.secs[el.dataset.sec] = el; });
   bxPrepTypers();
@@ -4738,7 +4787,7 @@ function buildFinish(){
   bxQ('bxKick').textContent = 'BUILD COMPLETE';
   bxQ('buildTitle').innerHTML = realName
     ? '<span class="grad-text">' + bxEsc(realName) + '</span> is built.'
-    : 'Your <span class="grad-text">' + bxEsc(BX.shortName || 'sales machine') + '</span> sales machine is built.';
+    : 'Your <span class="grad-text">' + bxEsc(BX.shortName || 'selling machine') + '</span> selling machine is built.';
   const sub = bxQ('bxSub'); if(sub) sub.textContent = 'Here it is. Opening your preview…';
   bxQ('bxSr').textContent = (realName || 'Your store') + ' is ready';
   playTada(); vibrate([20,80,20,80,30]);
