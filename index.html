@@ -3543,6 +3543,8 @@ function runScan(){
   const decoys = AC_DECOYS.slice(0, Math.max(2, 8 - products.length));
   decoys.forEach((d, k) => items.splice(Math.floor((k + 1) * (products.length + k + 1) / (decoys.length + 1)), 0, { p: { emoji: d[0], name: d[1] }, real: false }));
   const N = items.length;
+  const total = Math.max(PRODUCTS.length, products.length);          // the picker shows every product in the catalogue (200 live)
+  odoLabel.textContent = total >= 20 ? 'scanning ' + total.toLocaleString() + ' trending products' : 'the AI is scanning what\'s selling';
   orbit.innerHTML = ''; tagBox.innerHTML = ''; stream.innerHTML = ''; beams.innerHTML = '';
   { const bb = box.getBoundingClientRect(); beams.setAttribute('viewBox', '0 0 ' + Math.round(bb.width) + ' ' + Math.round(bb.height)); }
   box.classList.remove('ac-done', 'ac-think'); core.classList.remove('done', 'zap'); coreEmoji.textContent = '🔎'; odo.textContent = '';
@@ -3587,17 +3589,26 @@ function runScan(){
   els.forEach((el, i) => at(180 + i * 110, () => { el.classList.add('in'); playPop(0.8 + i * 0.04); }));
   // 2 · social signals pop off each product
   at(1400, () => { coreEmoji.textContent = '📡'; });
-  const signal = (p, i) => [p.trend ? '📈 +' + p.trend + '% this week' : '🔥 Trending now', '⭐ ' + Number(p.rating || 4.8).toFixed(1) + ' rated', '📱 Blowing up on TikTok'][i % 3];
+  const signal = (p, i) => {                 // real labels only: DropStart's chips when the product has them, the trend when the catalogue gives one
+    const c = p.chips || {}, opts = [];
+    if(p.trend) opts.push('📈 +' + p.trend + '% this week');
+    if(c.difficulty) opts.push('🎯 ' + c.difficulty + '-friendly');
+    if(c.advertising === 'Easy') opts.push('📣 Easy to advertise');
+    if(c.value === 'High') opts.push('💎 High-value product');
+    if(!opts.length) opts.push('🔥 Trending now');
+    return opts[i % opts.length];
+  };
   spread.forEach((el, i) => at(1500 + i * 260, () => { ping(el); tag(el, signal(items[els.indexOf(el)].p, i)); }));
   // 3 · matching: each product gets scanned; the real ones lock in, the decoys get thrown out
   at(3100, () => { coreEmoji.textContent = '🧠'; box.classList.add('ac-think'); });
+  at(3300, () => countUp(odo, 0, total, 2100, v => Math.round(v).toLocaleString()));   // the real count races up while the sample tiles lock in
   let lit = 0;
   els.forEach((el, i) => at(3300 + i * 210, () => {
     ping(el);
     if(items[i].real){
       setTimeout(() => { if(!reduced) beam(el); }, 110);
       setTimeout(() => {
-        el.classList.add('on'); lit++; odo.textContent = lit;
+        el.classList.add('on'); lit++;
         core.classList.add('zap'); setTimeout(() => core.classList.remove('zap'), 320);
         playPop(1.2 + lit * 0.07); vibrate(6);
       }, 260);
@@ -3647,7 +3658,7 @@ function runScan(){
     // the finish is a lock-in, not a jackpot: the ring stops, the check draws itself, a soft wave leaves
     // the core, and each match gets its gold seal in turn
     box.classList.remove('ac-think'); box.classList.add('ac-done'); core.classList.add('done');
-    odo.textContent = lit + ' matched'; odoLabel.textContent = lit + ' products matched to your answers';
+    odo.textContent = total.toLocaleString() + ' matched'; odoLabel.textContent = total.toLocaleString() + ' products matched to your answers';
     playTada(); vibrate([20,60,20]);
     realEls.forEach((el, i) => setTimeout(() => { el.classList.add('lock'); playPop(1.5 + i * 0.09); vibrate(5); }, 380 + i * 95));
   });
@@ -3690,6 +3701,7 @@ function dsLoadProducts(){
         cost:     Number(p.cost || 0),
         price:    Number(p.price || 0),
         rating:   p.rating || 4.8,
+        chips:    p.chips && typeof p.chips === 'object' ? p.chips : null,   // DropStart's own labels: difficulty / advertising / value
         desc:     p.desc || '',
         accent:   bxCleanAccent(p.accent),   // the store colour the build will use (null when the list has none)
         // the store's own thumbnail strip (hero + studio angles + real count), sent with the product list so the phone shows it from its first frame
