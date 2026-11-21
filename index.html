@@ -381,7 +381,8 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .profit-strip .cost{color:#FCA5A5}
 
 /* ---- sale notification loop (explainer screen) ---- */
-.notif-wrap{margin:4px 0 20px;text-align:center}
+.notif-wrap{margin:4px 0 20px;text-align:center;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s cubic-bezier(.22,1,.36,1)}
+.notif-wrap.in{opacity:1;transform:none}
 .notif-lbl{font-size:.6rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .notif-stack{position:relative;height:142px;max-width:420px;margin:0 auto;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)}
 .notif{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:11px;text-align:left;
@@ -600,6 +601,75 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 }
 .scan-chip.in{opacity:1;transform:scale(1)}
 .scan-chip.hit{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45);color:#7CF0A9}
+
+/* ---- AI core: the scan as a living thing. The week's sellers orbit the core,
+   particles stream in, signals pop off each product, matches light up and lock. ---- */
+.ai-core-box{--S:min(272px,74vw);--R:calc(var(--S) / 2);position:relative;width:var(--S);height:var(--S);margin:2px auto 14px}
+.ac-bg{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(59,130,246,.18),rgba(13,22,45,.55) 46%,transparent 72%)}
+.ac-bg::before{content:'';position:absolute;inset:7%;border-radius:50%;border:1px dashed rgba(142,197,255,.22);animation:acSpin 40s linear infinite}
+.ac-bg::after{content:'';position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg,transparent 0 300deg,rgba(34,197,94,.12) 340deg,rgba(34,197,94,.4) 360deg);
+  -webkit-mask:radial-gradient(circle,transparent 24%,#000 25%);mask:radial-gradient(circle,transparent 24%,#000 25%);
+  animation:acSpin 3.2s linear infinite}
+@keyframes acSpin{to{transform:rotate(360deg)}}
+@keyframes acSpinBack{to{transform:rotate(-360deg)}}
+.ac-orbit{position:absolute;inset:0;animation:acSpin 36s linear infinite}
+.ac-item{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;animation:acSpinBack 36s linear infinite;transition:opacity .5s}
+.ac-item-in{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:14px;background:#fff;
+  border:2px solid rgba(255,255,255,.2);font-size:1.35rem;
+  opacity:0;transform:scale(.3);filter:grayscale(.85) brightness(.75);
+  transition:transform .55s cubic-bezier(.34,1.5,.64,1),opacity .4s,filter .5s,border-color .4s,box-shadow .4s}
+.ac-item-in img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.ac-item.in .ac-item-in{opacity:.6;transform:scale(1)}
+.ac-item.ping .ac-item-in{opacity:.95;filter:grayscale(.2)}
+.ac-item.ping .ac-item-in::after{content:'';position:absolute;inset:-6px;border-radius:17px;border:2px solid rgba(142,197,255,.9);animation:acPing .7s ease-out both}
+@keyframes acPing{0%{opacity:1;transform:scale(.9)}100%{opacity:0;transform:scale(1.55)}}
+.ac-badge{position:absolute;right:-8px;top:-8px;width:20px;height:20px;border-radius:50%;font-style:normal;font-size:.62rem;font-weight:900;color:#fff;
+  display:flex;align-items:center;justify-content:center;border:2px solid #0B1120;opacity:0;transform:scale(0);transition:.3s cubic-bezier(.34,2,.64,1)}
+.ac-item.on .ac-item-in{opacity:1;filter:none;transform:scale(1.08);border-color:rgba(34,197,94,.95);
+  box-shadow:0 0 0 3px rgba(34,197,94,.22),0 12px 26px -10px rgba(0,0,0,.9),0 0 24px rgba(34,197,94,.4)}
+.ac-item.on .ac-badge{opacity:1;transform:scale(1);background:var(--green)}
+.ac-item.on .ac-badge::before{content:'✓'}
+.ac-item.off .ac-item-in{opacity:.16;filter:grayscale(1) brightness(.5);transform:scale(.72);animation:acShake .45s ease}
+.ac-item.off .ac-badge{opacity:1;transform:scale(1);background:#EF4444}
+.ac-item.off .ac-badge::before{content:'✕'}
+@keyframes acShake{0%,100%{translate:0}25%{translate:-4px 0}50%{translate:4px 0}75%{translate:-3px 0}}
+.ac-stream{position:absolute;inset:0;pointer-events:none}
+.ac-dot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:#8EC5FF;box-shadow:0 0 8px rgba(142,197,255,.9);opacity:0;animation:acStream 1.8s linear infinite}
+@keyframes acStream{0%{transform:rotate(var(--a)) translateX(calc(var(--R) * .88));opacity:0}15%{opacity:.9}85%{opacity:.55}100%{transform:rotate(var(--a)) translateX(calc(var(--R) * .27));opacity:0}}
+.ac-pos{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
+.ai-core{position:relative;width:118px;height:118px;border-radius:50%;
+  background:radial-gradient(circle at 32% 30%,rgba(142,197,255,.95),rgba(59,130,246,.8) 42%,rgba(29,78,216,.95) 78%);
+  box-shadow:0 0 54px 6px rgba(59,130,246,.5),inset 0 0 30px rgba(255,255,255,.22);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:background .6s,box-shadow .35s;animation:orbPulse 1.6s ease-in-out infinite}
+.ac-ring{position:absolute;inset:-9px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 55%,#8EC5FF 80%,#7CF0A9 100%);
+  -webkit-mask:radial-gradient(circle,transparent calc(50% - 4px),#000 calc(50% - 3px));mask:radial-gradient(circle,transparent calc(50% - 4px),#000 calc(50% - 3px));
+  animation:acSpin 1.9s linear infinite}
+.ac-ring2{position:absolute;inset:-18px;border-radius:50%;border:1.5px dashed rgba(142,197,255,.35);animation:acSpin 9s linear infinite reverse}
+.ac-think .ac-ring{animation-duration:.8s}
+.ac-think .ai-core{animation-duration:.9s}
+.ai-core.zap{box-shadow:0 0 70px 14px rgba(124,240,169,.7),inset 0 0 30px rgba(255,255,255,.5)}
+.ac-emoji{font-size:2.1rem;line-height:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));transition:transform .3s cubic-bezier(.34,2,.64,1)}
+.ai-core.zap .ac-emoji{transform:scale(1.18)}
+.ac-num{font-size:1.05rem;font-weight:800;letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 2px 8px rgba(0,0,0,.4);line-height:1;min-height:1.05rem}
+.ai-core.done{background:radial-gradient(circle at 32% 30%,#A7F3C9,#22C55E 45%,#15803D 80%);box-shadow:0 0 70px 10px rgba(34,197,94,.6),inset 0 0 34px rgba(255,255,255,.3);animation:none}
+.ai-core.done .ac-ring{background:conic-gradient(from 0deg,#FFE9A3,#FFC93C,#7CF0A9,#FFE9A3);animation-duration:1.2s}
+.ac-done .ac-bg::after,.ac-done .ac-dot{display:none}
+.ac-done .ac-orbit,.ac-done .ac-item{animation-play-state:paused}
+.ac-done .ac-item.on .ac-item-in{animation:acWin 1.1s ease-in-out infinite alternate}
+@keyframes acWin{from{transform:scale(1.05)}to{transform:scale(1.18)}}
+.ac-done .ac-item.off{opacity:0}
+.ac-tags{position:absolute;inset:0;pointer-events:none;z-index:3}
+.ac-tag{position:absolute;max-width:calc(100% + 72px);overflow:hidden;text-overflow:ellipsis;font-size:.66rem;font-weight:800;padding:5px 9px;border-radius:999px;white-space:nowrap;
+  background:rgba(13,22,45,.94);border:1px solid rgba(142,197,255,.5);color:#CFE6FF;box-shadow:0 10px 24px -10px rgba(0,0,0,.9);
+  animation:acTag 1.3s cubic-bezier(.22,1,.36,1) both}
+.ac-tag.ok{border-color:rgba(34,197,94,.55);color:#9AF5BE}
+.ac-tag.gold{border-color:rgba(255,201,60,.6);color:#FFE9A3}
+@keyframes acTag{0%{opacity:0;transform:translateY(6px) scale(.6)}14%{opacity:1;transform:none}78%{opacity:1;transform:translateY(-4px)}100%{opacity:0;transform:translateY(-14px)}}
+@media (max-height:760px){.ai-core-box{--S:min(228px,70vw);margin-bottom:10px}.ac-item{width:40px;height:40px;margin:-20px 0 0 -20px}.ai-core{width:102px;height:102px}.ac-emoji{font-size:1.8rem}}
+@media (max-height:680px){.ai-core-box{--S:min(200px,66vw)}.ac-item{width:36px;height:36px;margin:-18px 0 0 -18px}.ai-core{width:92px;height:92px}.ac-ring2{inset:-14px}}
+@media (prefers-reduced-motion:reduce){.ac-orbit,.ac-item,.ac-bg::before,.ac-bg::after,.ac-ring,.ac-ring2,.ai-core,.ac-tag{animation:none}.ac-tag{opacity:1}.ac-dot{display:none}}
 
 /* ---- guarantee seal ---- */
 #s-guarantee{background:radial-gradient(ellipse at 50% 38%,rgba(255,201,60,.14),transparent 55%)}
@@ -2492,8 +2562,14 @@ window.dsFire('PageView');
     <!-- ======================= 9 · AI SCAN ======================= -->
     <section class="screen" id="s-scan">
       <div class="scan-wrap">
-        <div class="ai-orb" id="orb">🔎</div>
-        <div class="odometer" id="odo">0</div>
+        <!-- the AI core: this week's sellers orbit it, signals pop off them, the matches light up and lock -->
+        <div class="ai-core-box" id="coreBox">
+          <div class="ac-bg"></div>
+          <div class="ac-stream" id="acStream"></div>
+          <div class="ac-orbit" id="orbit"></div>
+          <div class="ac-pos"><div class="ai-core" id="core"><i class="ac-ring"></i><i class="ac-ring2"></i><span class="ac-emoji" id="coreEmoji">🔎</span><b class="ac-num" id="odo">0</b></div></div>
+          <div class="ac-tags" id="acTags"></div>
+        </div>
         <div class="odometer-label" id="odoLabel">the AI is scanning what's selling</div>
         <div class="scan-bar"><div class="scan-fill" id="scanFill"></div></div>
         <div class="scan-log">
@@ -3322,6 +3398,7 @@ function notifPush(){
 }
 function notifLoop(){
   clearInterval(notifTimer);
+  const w = document.getElementById('notifWrap'); if(w) w.classList.add('in');
   notifPush();
   notifTimer = setInterval(() => {
     const sec = document.getElementById('s-dropship');
@@ -3415,7 +3492,11 @@ function startScan(e){
   setTimeout(runScan, 500);
 }
 
+/* Two decoys ride the ring with the real products so the AI visibly rejects something. */
+const AC_DECOYS = [['🧦','Novelty socks'],['🧢','Plain cap'],['📻','Retro radio'],['🧩','Puzzle set']];
+let scanTimers = [];
 function runScan(){
+  scanTimers.forEach(clearTimeout); scanTimers = [];
   const fill = document.getElementById('scanFill');
   const odo = document.getElementById('odo');
   const odoLabel = document.getElementById('odoLabel');
@@ -3431,26 +3512,92 @@ function runScan(){
   chipsBox.innerHTML = chipVals.map(c=>`<span class="scan-chip">${c}</span>`).join('');
   const chips = [...chipsBox.children];
 
-  const orb = document.getElementById('orb');
-  orb.classList.remove('done'); orb.textContent = '🔎';
-  countUp(odo, 0, Math.max(PRODUCTS.length, 6), 2600, v=>Math.round(v).toLocaleString());   // real count: the products in the picker
+  const box = document.getElementById('coreBox'), orbit = document.getElementById('orbit'), tagBox = document.getElementById('acTags');
+  const core = document.getElementById('core'), coreEmoji = document.getElementById('coreEmoji'), stream = document.getElementById('acStream');
+  const reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const at = (ms, fn) => scanTimers.push(setTimeout(fn, ms));
+
+  // the ring: the products the picker will show (up to 8) with two decoys spaced among them
+  const products = PRODUCTS.slice(0, 8);
+  const items = products.map(p => ({ p, real: true }));
+  const decoys = AC_DECOYS.slice(0, Math.max(2, 8 - products.length));
+  decoys.forEach((d, k) => items.splice(Math.floor((k + 1) * (products.length + k + 1) / (decoys.length + 1)), 0, { p: { emoji: d[0], name: d[1] }, real: false }));
+  const N = items.length;
+  orbit.innerHTML = ''; tagBox.innerHTML = ''; stream.innerHTML = '';
+  box.classList.remove('ac-done', 'ac-think'); core.classList.remove('done', 'zap'); coreEmoji.textContent = '🔎'; odo.textContent = '';
+  const els = items.map((it, i) => {
+    const a = (-90 + i * 360 / N) * Math.PI / 180;
+    const el = document.createElement('div'); el.className = 'ac-item';
+    el.style.left = (50 + 42 * Math.cos(a)) + '%'; el.style.top = (50 + 42 * Math.sin(a)) + '%';
+    const src = it.p.thumb || it.p.image;
+    el.innerHTML = '<span class="ac-item-in">' + (src ? '<img src="' + String(src).replace(/"/g, '&quot;') + '" alt="" decoding="async">' : (it.p.emoji || '📦')) + '<i class="ac-badge"></i></span>';
+    orbit.appendChild(el);
+    return el;
+  });
+  const realEls = els.filter((_, i) => items[i].real);
+  // tags fire on every other product around the ring so neighbours never show pills at the same time
+  const spread = realEls.map((_, i, arr) => { const h = Math.ceil(arr.length / 2); return i < h ? 2 * i : 2 * (i - h) + 1; }).map(k => realEls[k]).filter(Boolean);
+  if(!reduced) for(let i = 0; i < 14; i++){
+    const d = document.createElement('i'); d.className = 'ac-dot';
+    d.style.setProperty('--a', (i * 360 / 14 + 11) + 'deg');
+    d.style.animationDelay = (-((i * 0.37) % 1.8)).toFixed(2) + 's';
+    d.style.animationDuration = (1.5 + (i % 4) * 0.22).toFixed(2) + 's';
+    stream.appendChild(d);
+  }
+  const rectIn = el => { const r = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+    return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2, bw: b.width, bh: b.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; };
+  const ping = el => { el.classList.add('ping'); setTimeout(() => el.classList.remove('ping'), 720); };
+  const tag = (el, text, cls) => {              // a data pill over (top half) or under (bottom half) the product, never across the core
+    const r = rectIn(el); const t = document.createElement('span'); t.className = 'ac-tag' + (cls ? ' ' + cls : ''); t.textContent = text;
+    const half = Math.min(r.bw / 2 + 36, text.length * 3.6 + 12), x = Math.max(half - 36, Math.min(r.bw - half + 36, r.x));
+    t.style.left = x + 'px'; t.style.translate = '-50% 0';
+    t.style.top = (r.y < r.bh / 2 ? Math.max(-8, r.y - 54) : Math.min(r.bh - 20, r.y + 26)) + 'px';
+    tagBox.appendChild(t); setTimeout(() => t.remove(), 1300);
+  };
+
+  // 1 · the ring fills with this week's sellers
+  els.forEach((el, i) => at(180 + i * 110, () => { el.classList.add('in'); playPop(0.8 + i * 0.04); }));
+  // 2 · social signals pop off each product
+  at(1400, () => { coreEmoji.textContent = '📡'; });
+  const signal = (p, i) => [p.trend ? '📈 +' + p.trend + '% this week' : '🔥 Trending now', '⭐ ' + Number(p.rating || 4.8).toFixed(1) + ' rated', '📱 Blowing up on TikTok'][i % 3];
+  spread.forEach((el, i) => at(1500 + i * 260, () => { ping(el); tag(el, signal(items[els.indexOf(el)].p, i)); }));
+  // 3 · matching: each product gets scanned; the real ones lock in, the decoys get thrown out
+  at(3100, () => { coreEmoji.textContent = '🧠'; box.classList.add('ac-think'); });
+  let lit = 0;
+  els.forEach((el, i) => at(3300 + i * 210, () => {
+    ping(el);
+    setTimeout(() => {
+      if(items[i].real){
+        el.classList.add('on'); lit++; odo.textContent = lit;
+        core.classList.add('zap'); setTimeout(() => core.classList.remove('zap'), 320);
+        playPop(1.2 + lit * 0.07); vibrate(6);
+        if(!reduced){ const r = rectIn(el); emojiBurst('✨', r.cx, r.cy, 4); }
+      } else { el.classList.add('off'); playWhoosh(); }
+    }, 150);
+  }));
+  // 4 · suppliers
+  at(5500, () => { coreEmoji.textContent = '🏭'; });
+  spread.forEach((el, i) => at(5600 + i * 200, () => tag(el, i % 2 ? '🚚 Ships direct to buyers' : '🏭 Supplier verified', 'ok')));
+  // 5 · margins
+  at(7100, () => { coreEmoji.textContent = '💰'; });
+  spread.forEach((el, i) => at(7200 + i * 190, () => { const p = items[els.indexOf(el)].p; tag(el, p.price ? '💰 $' + (p.price - p.cost).toFixed(2) + ' per sale' : '💰 Margin locked', 'gold'); }));
 
   const seq = [
     {at:0,    bar:9,  line:0, mode:'doing'},
     {at:900,  bar:22, line:0, mode:'ok', ding:true},
-    {at:1400, bar:31, line:1, mode:'doing', label:'matches found'},
+    {at:1400, bar:31, line:1, mode:'doing', label:'reading what\'s blowing up right now'},
     {at:2700, bar:44, line:1, mode:'ok', ding:true},
     {at:3100, bar:52, line:2, mode:'doing', label:'matching to your answers'},
     {at:3500, chip:0},{at:3900, chip:1},{at:4300, chip:2},{at:4700, chip:3},
     {at:5100, bar:68, line:2, mode:'ok', ding:true},
-    {at:5500, bar:79, line:3, mode:'doing', label:'suppliers verified'},
+    {at:5500, bar:79, line:3, mode:'doing', label:'verifying suppliers'},
     {at:6700, bar:88, line:3, mode:'ok', ding:true},
-    {at:7100, bar:94, line:4, mode:'doing', label:'profit margins locked'},
+    {at:7100, bar:94, line:4, mode:'doing', label:'locking your profit per sale'},
     {at:8200, bar:100, line:4, mode:'ok', ding:true},
   ];
 
   seq.forEach(s=>{
-    setTimeout(()=>{
+    at(s.at, ()=>{
       if(s.bar!==undefined) fill.style.width = s.bar+'%';
       if(s.label) odoLabel.textContent = s.label;
       if(s.line!==undefined){
@@ -3465,18 +3612,18 @@ function runScan(){
         setTimeout(()=>chips[s.chip].classList.add('hit'), 240);
         playPop(1.1+s.chip*0.12);
       }
-    }, s.at);
+    });
   });
 
-  setTimeout(()=>{
-    orb.classList.add('done'); orb.textContent = '✓';
+  at(8700, ()=>{
+    box.classList.remove('ac-think'); box.classList.add('ac-done'); core.classList.add('done'); coreEmoji.textContent = '✓';
     odo.textContent = 'FOUND'; odoLabel.textContent = 'the AI picked these for you';
     playTada();
     confettiBurst(window.innerWidth/2, window.innerHeight*0.3, 120);
     coinCannon(window.innerWidth/2, window.innerHeight*0.35);
     vibrate([20,80,20,80,30]);
-  }, 8700);
-  setTimeout(()=>go('s-pick'), 10200);
+  });
+  at(10200, ()=>go('s-pick'));
 }
 
 /* ============================================================
