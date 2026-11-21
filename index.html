@@ -1196,14 +1196,16 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
   /* 3:2 + cover, matching the DropStart sell-domain card exactly. The photos
      used here are the image_card heroes, which ARE 3:2 (framed to fit), so
      cover fills the frame with no crop — including tall products like a lamp. */
-  position:relative;aspect-ratio:3/2;overflow:hidden;
+  position:relative;aspect-ratio:3/2;overflow:hidden;border-radius:22px 22px 0 0;
   background:
     radial-gradient(circle at 68% 34%,rgba(255,201,60,.5),transparent 46%),
     radial-gradient(circle at 25% 70%,rgba(59,130,246,.55),transparent 55%),
     linear-gradient(135deg,#101A31,#0B2036);
   display:flex;align-items:center;justify-content:center;
 }
-.pick-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* DropStart's card heroes carry their own rounded corners; zoomed 6% they reach past the card's 22px
+   corner, so the card does the rounding and no dark sliver shows between photo and frame. */
+.pick-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.06)}
 .pick-img .emoji{font-size:4.2rem;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));animation:floaty 4.2s ease-in-out infinite}
 .badge-trend{
   position:absolute;top:12px;left:12px;z-index:2;
