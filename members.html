@@ -52,6 +52,17 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
 .review{font-size:.68rem;font-weight:800;color:var(--muted);text-align:right;margin:2px 2px 0}
 .review a{color:#8EC5FF;cursor:pointer;text-decoration:none}
 
+/* ---- AI team shortcut (only shown to buyers who hired an AI employee) ---- */
+.teambtn{display:flex;align-items:center;gap:12px;margin:12px 0 2px;padding:12px 14px;background:linear-gradient(135deg,rgba(59,130,246,.16),rgba(34,197,94,.12));border:1px solid var(--line-strong);border-radius:var(--radius);color:var(--text);text-decoration:none;-webkit-tap-highlight-color:transparent}
+.teambtn[hidden]{display:none}
+.teambtn .tb-ic{width:36px;height:36px;border-radius:12px;background:var(--grad-brand);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.teambtn .tb-t{flex:1;min-width:0}
+.teambtn .tb-n{display:block;font-weight:800;font-size:.95rem}
+.teambtn .tb-s{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-top:1px}
+.teambtn .tb-go{font-weight:800;font-size:.8rem;color:#8EC5FF;white-space:nowrap}
+.teambtn:active{transform:scale(.99)}
+.teambtn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
 /* ---- video (bare frame — no labels, the video is the message) ---- */
 .vidwrap{margin-top:12px}
 .beginbtn{display:block;width:100%;margin-top:14px;padding:17px;border:none;border-radius:14px;font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer;background:var(--grad-money);color:#241500;box-shadow:0 10px 30px rgba(245,158,11,.4);animation:ctaPulse 1.8s ease-in-out infinite}
@@ -354,6 +365,8 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
     </div>
     <div class="rankchip"><div class="rc-ic" id="rcIc">🎖️</div><div><div class="rc-n" id="rcName">ROOKIE</div><div class="rc-xp" id="rcXp">0 / 1000 XP</div></div></div>
   </header>
+
+  <a class="teambtn" id="teamBtn" href="/office" hidden><span class="tb-ic" aria-hidden="true">🤖</span><span class="tb-t"><span class="tb-n">Your AI Team</span><span class="tb-s" id="teamSub">Working on your store</span></span><span class="tb-go">Open →</span></a>
 
   <div class="path" id="path"></div>
   <div class="pathsub"><span>Rookie</span><span>Mogul 👑</span></div>
@@ -849,10 +862,31 @@ async function load(){
     document.getElementById('chatFab').style.display = 'flex';
     teaseArm();
     render();
+    teamCheck();
   }catch(e){
     document.getElementById('gate').style.display = 'block';
     gateErr('send_failed');
   }
+}
+
+/* ============ AI team shortcut ============
+   Shown only when this buyer has at least one AI employee (not ended). Same login cookie as /office; if the
+   cookie is not there yet (they arrived by order link) we exchange the order id once and ask again. Any failure
+   leaves the button hidden: this must never get in the way of the missions. */
+async function teamCheck(retried){
+  const btn = document.getElementById('teamBtn');
+  if(!btn || OPENMODE()) return;
+  try{
+    const r = await fetch('/api/office?r=office', { cache:'no-store', credentials:'same-origin' });
+    if(r.status === 401 && !retried && CS){ await authApi({ action:'exchange', cs: CS }).catch(() => {}); return teamCheck(true); }
+    if(!r.ok) return;
+    const j = await r.json();
+    const n = (j && j.ok && Array.isArray(j.hires)) ? j.hires.filter(x => x && x.hire_status !== 'ended').length : 0;
+    if(!n) return;
+    const w = Number(j.pending_approvals) || 0;
+    document.getElementById('teamSub').textContent = w > 0 ? w + ' waiting for your OK' : (n === 1 ? '1 AI employee on your store' : n + ' AI employees on your store');
+    btn.hidden = false;
+  }catch(e){}
 }
 
 /* ============ render (single-mission screen) ============ */

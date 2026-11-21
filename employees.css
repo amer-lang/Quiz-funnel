@@ -79,6 +79,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .tag.failed,.tag.rejected{color:#FFB4B4;border-color:rgba(248,113,113,.45)}
 .ba{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
 @media(min-width:560px){.ba{grid-template-columns:1fr 1fr}}
+.ba .col:only-child{grid-column:1/-1}
 .ba .col{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:12px;padding:10px 11px;font-size:.78rem;line-height:1.55;color:#D7DEEF;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 .ba .col b.lbl{display:block;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .ba .col.new{border-color:rgba(34,197,94,.4)}
@@ -578,3 +579,23 @@ button:focus-visible,.btn:focus-visible,a:focus-visible,input:focus-visible,text
 .card.ready b{display:block;font-size:.95rem;font-weight:800}
 .card.ready span:not(.ok-ic){display:block;font-size:.78rem;color:#C9F2D6;font-weight:600;line-height:1.5;margin-top:2px}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}.gbar i{transition:none}}
+
+/* usage limits (TG18612) */
+.limbox{margin-top:10px;border-radius:12px;padding:11px 13px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.limbox.reached{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.1)}
+.limbox.near{border-color:rgba(255,201,60,.3)}
+.limbox b{display:block;font-size:.84rem;line-height:1.35}
+.limbox p{margin-top:4px;font-size:.76rem;line-height:1.55;color:#D7DEEF;font-weight:600}
+.ins.limits summary{padding:11px 0;font-weight:800;font-size:.76rem;cursor:pointer;color:var(--muted)}
+.lm{padding:0 0 12px}
+.lm .lt{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;font-weight:700}
+.lm .lv{color:var(--muted);white-space:nowrap}
+.lm .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.lm .bar i{display:block;height:100%;background:var(--grad-brand);border-radius:99px;min-width:2px}
+.lm.near .bar i{background:var(--gold)}
+.lm.reached .bar i{background:var(--gold-deep)}
+.lm .lr{margin-top:4px;font-size:.68rem;color:var(--muted);font-weight:600}
+
+/* video ad tile (shown only once a video exists) */
+.vgrid{display:grid;grid-template-columns:minmax(0,260px);gap:10px;margin-top:10px}
+.tile.vtile video{display:block;width:100%;aspect-ratio:9/16;max-height:70vh;object-fit:cover;background:#0b1220}
