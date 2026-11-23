@@ -212,24 +212,40 @@ function adJoinDay(day, evs){
   const by = new Map();
   for(const e of evs){
     let s = by.get(e.sid);
-    if(!s){ s = { land: null, t: Infinity, intro: 0, pick: 0, email: 0, claim: 0, paid: 0 }; by.set(e.sid, s); }
+    if(!s){ s = { land: null, t: Infinity, shown: 0, hidden: 0, intro: 0, pick: 0, email: 0, claim: 0, paid: 0 }; by.set(e.sid, s); }
     if(e.e === 'land_meta'){ if(e.t < s.t){ s.t = e.t; s.land = String(e.v || ''); } }
+    else if(e.e === 'screen' && e.v === 's-landing') s.shown = 1;
+    else if(e.e === 'hidden_load') s.hidden = 1;
     else if(e.e === 'screen' && e.v === 's-intro') s.intro = 1;
     else if(e.e === 'screen' && e.v === 's-pick') s.pick = 1;
     else if(e.e === 'email_submitted') s.email = 1;
     else if(e.e === 'claim_click') s.claim = 1;
     else if(e.e === 'paid_20') s.paid = 1;
   }
+  const refBucket = h => {
+    h = String(h || '').toLowerCase();
+    if(!h) return '';
+    if(/facebook|fb\.com|instagram|messenger/.test(h)) return 'meta';
+    if(/sellproducts/.test(h)) return 'self';
+    if(/mail|outlook|yahoo|proton/.test(h)) return 'email';
+    if(/google/.test(h)) return 'google';
+    if(/t\.co|twitter|x\.com/.test(h)) return 'x';
+    if(/tiktok/.test(h)) return 'tiktok';
+    return 'other';
+  };
   const g = new Map();
   for(const s of by.values()){
     const p = s.land ? s.land.split('|') : [];
     const device = p[0] || 'unknown', app = p[1] || 'unknown';
-    const m = /^(fb|ig)\/(\d{6,})$/.exec(p[3] || '');
-    const ad = m ? m[2] : (s.land ? 'none' : 'unknown');
-    const k = ad + '|' + app + '|' + device;
+    const click = s.land ? (p[2] || 'none') : 'unknown';
+    const utm = p[3] || '';
+    const m = /^(fb|ig)\/(\d{6,})$/.exec(utm);
+    const ad = m ? m[2] : (!s.land ? 'unknown' : (utm && utm !== '/' ? 'utm:' + utm.slice(0, 28) : 'none'));
+    const ref = s.land ? refBucket(p[4]) : '';
+    const k = [ad, app, device, click, ref].join('|');
     let r = g.get(k);
-    if(!r){ r = { day, ad, app, device, visitors: 0, intro: 0, pick: 0, emails: 0, claims: 0, paid: 0 }; g.set(k, r); }
-    r.visitors++; r.intro += s.intro; r.pick += s.pick; r.emails += s.email; r.claims += s.claim; r.paid += s.paid;
+    if(!r){ r = { day, ad, app, device, click, ref, visitors: 0, shown: 0, hidden: 0, intro: 0, pick: 0, emails: 0, claims: 0, paid: 0 }; g.set(k, r); }
+    r.visitors++; r.shown += s.shown; r.hidden += s.hidden; r.intro += s.intro; r.pick += s.pick; r.emails += s.email; r.claims += s.claim; r.paid += s.paid;
   }
   return [...g.values()];
 }
