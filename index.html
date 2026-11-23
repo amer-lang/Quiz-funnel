@@ -2779,18 +2779,20 @@ window.dsFire('PageView');
         <div class="dev-phone"><span class="ph-notch"></span><div class="dev-screen ph-screen screen-loading" id="scrPhone"></div></div>
       </div>
 
-        <div class="engine">
-        <div class="engine-title">✨ THIS STORE'S BUILT-IN MARGIN</div>
-        <div class="eq">
-          <div class="eq-tile gold"><b id="eqProfit">$0.00</b><span>margin / sale</span></div>
+        <!-- offer stack: everything the $20 buys, revealed row by row -->
+        <div class="offer" id="offer">
+          <div class="offer-title">🎁 EVERYTHING INSIDE <span id="offerBrand">YOUR STORE</span></div>
+          <div class="offer-row"><span class="ic">🏪</span><span class="tx"><b>Custom store, built around <span id="offerProd">your product</span></b><span>Your own branded storefront — not a template</span></span><span class="val">$499</span></div>
+          <div class="offer-row"><span class="ic">✍️</span><span class="tx"><b>AI-written product page</b><span>Title, description, benefits, FAQ &amp; reviews layout</span></span><span class="val">$299</span></div>
+          <div class="offer-row"><span class="ic">📦</span><span class="tx"><b>Supplier connected &amp; product locked in</b><span>Ships direct to your customers, tracked</span></span><span class="val">$199</span></div>
+          <div class="offer-row"><span class="ic">💳</span><span class="tx"><b>Checkout, payments &amp; shipping set up</b><span>Cards, Apple Pay, tax and shipping rules</span></span><span class="val">$99</span></div>
+          <div class="offer-row"><span class="ic">📱</span><span class="tx"><b>Live on phone, tablet &amp; desktop</b><span>Fast, mobile-first, ready for ads</span></span><span class="val inc">INCLUDED</span></div>
+          <div class="offer-row"><span class="ic">💰</span><span class="tx"><b>Built-in margin per sale</b><span>List price minus supplier cost</span></span><span class="val gold" id="eqProfit">$0.00</span></div>
+          <div class="offer-total"><span>Total value</span><s>$1,096</s></div>
+          <div class="offer-today"><span class="lbl">Yours today<small>one-time · no subscription to us</small></span><span class="price">$20</span></div>
+          <div class="offer-save">✓ You save $1,076 (98%) · 30-day money-back guarantee</div>
         </div>
-        <div class="engine-note" id="engineNote">list price minus supplier cost — before ad costs, payment fees, taxes &amp; refunds</div>
-        <p class="disclaim" style="margin-top:8px;max-width:none">That margin is a fact about this product's pricing — not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
-      </div>
-
-      <div class="stack-line">
-        <span class="chip">Store design <s>$499</s></span><span class="chip">AI copywriting <s>$299</s></span><span class="chip">Supplier deal <s>$199</s></span><span class="chip">Checkout <s>$99</s></span><span class="chip total"><s>$1,096</s> of work → <b>$20 today</b></span>
-      </div>
+        <p class="disclaim" style="margin-top:6px;max-width:none">Margin per sale = suggested price minus supplier cost, before ad costs, payment fees, taxes and refunds. It's a fact about this product's pricing, not an earnings claim or projection. Sales are never guaranteed; many new stores make little or nothing, and results depend entirely on your own effort.</p>
     </section>
 
     <!-- ================ 13b · VIDEO ADS UPSELL (post-purchase) ================
