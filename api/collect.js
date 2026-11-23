@@ -21,7 +21,6 @@
    from the password at unlock, so it never appears in public page source. */
 
 const { guardKey } = require('../lib/secrets');
-const capi = require('../lib/capi');
 
 const READ_KEY = guardKey('READ_KEY');
 const LEGACY_JB = 'https://jsonblob.com/api/jsonBlob';
@@ -244,14 +243,6 @@ module.exports = async (req, res) => {
   try{
     if(req.method === 'GET'){
       const q = req.query || {};
-      /* owner: Conversions API wiring — enabled? test mode? (&send=1 sends one test PageView, test mode only) */
-      if(q.capi){
-        /* production needs the read key; a preview deployment has no key and exposes only booleans */
-        if(process.env.VERCEL_ENV === 'production' && q.capi !== READ_KEY) return res.status(403).json({ error: 'bad key' });
-        const st = capi.status();
-        if(q.send === '1' && st.enabled && st.test_mode) st.sent = await capi.send(capi.event('PageView', 'pv_probe' + Date.now().toString(36), req, { sid: 'probe', url: 'https://www.sellproducts.ai/?capi_probe=1' }));
-        return res.status(200).json(st);
-      }
       if(!blobToken()) return res.status(503).json({ error: 'blob store not configured' });
 
       if(q.selftest){
@@ -423,12 +414,6 @@ module.exports = async (req, res) => {
       if(typeof body === 'string'){ try{ body = JSON.parse(body); }catch(e){ body = null; } }
       const events = body && cleanEvents(body);
       if(!events) return res.status(204).end(); // silently drop junk
-      /* Conversions API: the browser fired PageView with eventID 'ds_' + pv on this page load;
-         its server copy goes out once, from the first batch of that load (same id → Meta dedupes). */
-      try{
-        const pv = (body && typeof body.pv === 'string' && /^pv_[a-z0-9]{6,40}$/.test(body.pv)) ? body.pv : '';
-        if(pv && capi.enabled()) capi.fire(capi.event('PageView', pv, req, { sid: body.sid, url: body.url, time: events[0].t }));
-      }catch(e){}
       // A storage hiccup must NEVER 500 the page's event beacon —
       // drop the batch and move on. TG12120.
       try{ await appendEvents(events); }catch(e){ console.error('collect append failed:', e && e.message); }

@@ -23,7 +23,6 @@
 
 const AC_URL = 'https://sellproducts.api-us1.com';
 const { guardKey, credential } = require('../lib/secrets');
-const capi = require('../lib/capi');
 const AC_KEY = credential('AC_KEY');
 const TEST_KEY = guardKey('READ_KEY');
 
@@ -650,15 +649,6 @@ module.exports = async (req, res) => {
       const email = body && String(body.email || '').trim().toLowerCase().slice(0, 120);
       const stage = body && String(body.stage || '');
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(204).end();
-
-      /* Conversions API: server copy of the browser's Lead (eventID 'ds_lead_' + cid), with the
-         hashed email / phone / first name the browser copy cannot carry. */
-      if(stage === 'optin' && capi.enabled()){
-        try{
-          const cid = String(body.cid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
-          if(cid) capi.fire(capi.event('Lead', 'lead_' + cid, req, { email, phone: body.phone, firstName: body.first_name, sid: body.sid, cid, url: body.url }));
-        }catch(e){}
-      }
 
       /* Email-pack fulfillment: verified profit_emails buyers get their
          durable /emails delivery link stamped into %EMAILS_LINK% and land on

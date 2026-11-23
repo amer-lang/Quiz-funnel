@@ -2182,9 +2182,7 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
-// One id per page load, shared with the server copy (/api/collect sends the Conversions API PageView with the same id).
-window.__dsPv = 'pv_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-window.dsFire('PageView', {}, window.__dsPv);
+window.dsFire('PageView');
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
 </head>
@@ -3172,7 +3170,7 @@ async function dsOpenPay20(clientSecret, pubKey){
       const j = await fetch('/api/unlock20', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(Object.assign({ embedded: 1, project_id: (dsBuild && dsBuild.project_id) || '',
-          email: userEmail || '', product: (chosen && chosen.name) || '', cid: dsCid(), sid: spSid(), url: location.href.slice(0, 1024) }, dsUtm(), dsLeadBits()))
+          email: userEmail || '', product: (chosen && chosen.name) || '' }, dsUtm(), dsLeadBits()))
       }).then(r=>r.json());
       if(j && j.ok && j.client_secret) return dsOpenPay(j.client_secret, j.publishable_key, false);
     }catch(e2){}
@@ -4011,7 +4009,7 @@ const DS_STEPS = {
    does not touch DropStart tracking.
    ============================================================ */
 const SP_EVENTS_URL = '/api/collect';
-let spQueue = [], spFlushTimer = null, spPvSent = false;
+let spQueue = [], spFlushTimer = null;
 function spSid(){
   try{
     let s = localStorage.getItem('sp_sid');
@@ -4022,8 +4020,7 @@ function spSid(){
 function spFlush(){
   if(!SP_EVENTS_URL || !spQueue.length) return;
   try{
-    const first = !spPvSent; spPvSent = true;   // the PageView id travels with the first batch of this page load only
-    const payload = JSON.stringify({ sid: spSid(), events: spQueue.splice(0, 200), url: location.href.slice(0, 1024), pv: first ? (window.__dsPv || undefined) : undefined });
+    const payload = JSON.stringify({ sid: spSid(), events: spQueue.splice(0, 200) });
     const sent = navigator.sendBeacon &&
       navigator.sendBeacon(SP_EVENTS_URL, new Blob([payload], { type: 'application/json' }));
     if(!sent) fetch(SP_EVENTS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: payload, keepalive:true }).catch(()=>{});
@@ -4058,7 +4055,7 @@ function spLead(stage, email, cs, extra){
     if(!email || !/^https?:/.test(location.protocol)) return;
     fetch('/api/lead', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(Object.assign({ email: email, stage: stage, cs: cs || null, cid: dsCid(), sid: spSid(), url: location.href.slice(0, 1024) }, extra || {})), keepalive: true
+      body: JSON.stringify(Object.assign({ email: email, stage: stage, cs: cs || null }, extra || {})), keepalive: true
     }).catch(()=>{});
   }catch(err){}
 }
@@ -5549,7 +5546,7 @@ function dsPaidClaim(btn){
     fetch('/api/unlock20', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(Object.assign({ project_id: dsBuild.project_id, email: userEmail || '',
-        product: (chosen && chosen.name) || '', cid: dsCid(), sid: spSid(), url: location.href.slice(0, 1024) }, dsUtm(), dsLeadBits()))
+        product: (chosen && chosen.name) || '' }, dsUtm(), dsLeadBits()))
     })
     .then(r=>r.json())
     .then(j=>{
@@ -6222,7 +6219,7 @@ function dsResumeAfterPayment20(){
   // Poll the verify behind the loader — never bounce to the funnel while the
   // charge settles (automatic_tax can lag a few seconds). TG13280.
   dsVerifyLoop(
-    function(){ return fetch('/api/unlock20?verify=' + encodeURIComponent(cs) + '&sid=' + encodeURIComponent(spSid()) + '&cid=' + encodeURIComponent(dsCid())).then(r=>r.json()); },
+    function(){ return fetch('/api/unlock20?verify=' + encodeURIComponent(cs)).then(r=>r.json()); },
     function(j){ return !!(j && j.paid); },
     function(j){
       window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs },
@@ -6837,7 +6834,7 @@ async function agConfirmPay(){
     if(!intent || intent.status !== 'succeeded'){ fail('The payment did not complete. Please try again.'); return; }
     /* paid: the server verifies with Stripe, records the tax and starts the employee */
     const v = await fetch('/api/hire', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'same-origin',
-      body: JSON.stringify({ cs: dsPaidCs || '', confirm_pi: intent.id, sid: spSid() }) }).then(x => x.json()).catch(() => null);
+      body: JSON.stringify({ cs: dsPaidCs || '', confirm_pi: intent.id }) }).then(x => x.json()).catch(() => null);
     if(!(v && v.ok)){ try{ spLog('agent_confirm_fail', a.key + ':verify:' + ((v && v.error) || 'network')); }catch(e){} } // the money went through; the next visit recovers the record
     window.dsFire && window.dsFire('Purchase', { value: a.price, currency:'USD', txid: intent.id }, 'hire_' + a.key + '_' + ((dsBuild && dsBuild.project_id) || ''));
     done();
@@ -6896,7 +6893,7 @@ function agHire(btn){
   btn.disabled = true; btn.textContent = 'Hiring… ⏳';
   const reset = () => { btn.disabled = false; btn.textContent = 'Hire ' + a.name + ' — $' + a.price; };
   fetch('/api/hire', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'same-origin',
-    body: JSON.stringify({ roles:[a.key], cs: dsPaidCs || '', attempt: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sid: spSid() }) })
+    body: JSON.stringify({ roles:[a.key], cs: dsPaidCs || '', attempt: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }) })
   .then(r => r.json())
   .then(j => {
     if(j && j.status === 'confirm' && j.client_secret){ reset(); agConfirmOpen(a, j); return; }
