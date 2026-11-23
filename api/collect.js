@@ -205,6 +205,35 @@ async function readRange(days, compactPast){
   return parts.flat();
 }
 
+/* One day's events → rows per (ad, app, device): visitors and how many reached each key step.
+   The ad is the Meta ad id in the landing record ('fb/<id>' or 'ig/<id>'); 'none' is a visit with no
+   ad in its landing record, 'unknown' a visitor with no landing record that day. */
+function adJoinDay(day, evs){
+  const by = new Map();
+  for(const e of evs){
+    let s = by.get(e.sid);
+    if(!s){ s = { land: null, t: Infinity, intro: 0, pick: 0, email: 0, claim: 0, paid: 0 }; by.set(e.sid, s); }
+    if(e.e === 'land_meta'){ if(e.t < s.t){ s.t = e.t; s.land = String(e.v || ''); } }
+    else if(e.e === 'screen' && e.v === 's-intro') s.intro = 1;
+    else if(e.e === 'screen' && e.v === 's-pick') s.pick = 1;
+    else if(e.e === 'email_submitted') s.email = 1;
+    else if(e.e === 'claim_click') s.claim = 1;
+    else if(e.e === 'paid_20') s.paid = 1;
+  }
+  const g = new Map();
+  for(const s of by.values()){
+    const p = s.land ? s.land.split('|') : [];
+    const device = p[0] || 'unknown', app = p[1] || 'unknown';
+    const m = /^(fb|ig)\/(\d{6,})$/.exec(p[3] || '');
+    const ad = m ? m[2] : (s.land ? 'none' : 'unknown');
+    const k = ad + '|' + app + '|' + device;
+    let r = g.get(k);
+    if(!r){ r = { day, ad, app, device, visitors: 0, intro: 0, pick: 0, emails: 0, claims: 0, paid: 0 }; g.set(k, r); }
+    r.visitors++; r.intro += s.intro; r.pick += s.pick; r.emails += s.email; r.claims += s.claim; r.paid += s.paid;
+  }
+  return [...g.values()];
+}
+
 function cleanEvents(body){
   const sid = String(body.sid || '').slice(0, 24);
   if(!sid || !Array.isArray(body.events)) return null;
@@ -402,6 +431,18 @@ module.exports = async (req, res) => {
         });
       }
 
+      if(q.adjoin === READ_KEY){
+        /* owner: the ad → visitor → purchase join. Per day, per Meta ad id (from the visitor's landing
+           record), per app (fb / ig / web) and device: visitors and how many reached each key step and paid. */
+        const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 30));
+        const rows = [];
+        for(const d of lastNDayKeys(days)){
+          const evs = (await readDay(d, true).catch(() => [])).filter(e => e && e.sid && e.sid !== 'selftest');
+          rows.push(...adJoinDay(d, evs));
+        }
+        return res.status(200).json({ ok: true, tz: TZ, days, rows });
+      }
+
       if(q.key !== READ_KEY) return res.status(403).json({ error: 'bad key' });
       const days = Math.min(MAX_DAYS_READ, Math.max(1, parseInt(q.days, 10) || 30));
       const events = (await readRange(days, true)).filter(e => e && e.t && e.e);
@@ -426,3 +467,4 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'collector error' });
   }
 };
+module.exports.adJoinDay = adJoinDay;
