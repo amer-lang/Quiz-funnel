@@ -39,7 +39,9 @@ const EV_OK = new Set([
   'seo_fail','addons_fail','custom_mode_err','custom_mount_err',
   // AI employees offer
   'launch_flow','agent_team','agent_view','agent_skip','agent_leave','agent_hire_click','agent_hired','agent_hired_already','agent_hire_fail',
-  'agent_confirm_open','agent_confirm_close','agent_confirm_other','agent_confirm_ok','agent_confirm_fail'
+  'agent_confirm_open','agent_confirm_close','agent_confirm_other','agent_confirm_ok','agent_confirm_fail',
+  // fast post-pay path (FASTPAY): finished in place, on the new path, straight hand-off, and its error beacons
+  'paid_20_inplace','fastpay','handoff_direct','inplace_err','verify_onpaid_err','finalize_retry'
 ]);
 const MAX_BATCH = 200, MAX_DAY_EVENTS = 150000, MAX_DAYS_READ = 60, MAX_CHUNK_FETCH = 1500;
 

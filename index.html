@@ -2940,7 +2940,7 @@ window.dsFire('PageView');
     <!-- ======================= 14 · DONE ======================= -->
     <!-- ============ 13e · AI EMPLOYEES — Maya, Leo, Nora, Sam ============ -->
     <section class="screen" id="s-agents">
-      <div class="kicker gold" style="align-self:center"><span class="dot"></span> Your store is live · one more thing</div>
+      <div class="kicker gold" style="align-self:center"><span class="dot"></span> Payment confirmed · one more thing</div>
       <h2>We assembled a team of <span class="grad-text">AI employees</span> that want to work for your store.</h2>
       <p class="sub">Real work on your real store, for a fraction of what one person would cost. Want to meet them?</p>
       <div class="ag-team" id="agTeam">
@@ -2949,7 +2949,7 @@ window.dsFire('PageView');
       <div class="ag-facts"><span><b>4</b> applicants</span><span>Work <b>24/7</b></span><span>Paid <b>once</b>, never again</span></div>
       <div class="cta-dock">
         <button type="button" class="cta gold pulse" onclick="agStart()">See my AI employees →</button>
-        <a href="#" class="oto-decline" onclick="return agLeave(event)">Not now, take me to my store</a>
+        <a href="#" class="oto-decline" onclick="return agLeave(event)">Not now, activate my Shopify account →</a>
       </div>
     </section>
 
@@ -3135,6 +3135,7 @@ let dsPay20Busy = false;
    payment element, our pay button. (Unlimited Stores now sells in the
    post-purchase launch sequence, not as a checkout bump.) */
 async function dsOpenPay20(clientSecret, pubKey){
+  _dsCs20 = dsCsFromSecret(clientSecret);
   try{
     await dsLoadStripeJs();
     const stripe = window.Stripe(pubKey);
@@ -3169,6 +3170,64 @@ async function dsOpenPay20(clientSecret, pubKey){
   }
 }
 
+/* ---- In-place finish of the $20 (TG19006) ---------------------------------------------------------------------------------------------
+   Flag: FASTPAY (default below; ?fast=1 / ?fast=0 overrides it for one visit, so it can be tried before it is switched on).
+   When the buyer's card/wallet completes inside the dialog, Stripe does NOT redirect (confirm({redirect:'if_required'})). This then does what the
+   ?paid20=1 return handler (dsResumeAfterPayment20) does, but without reloading the page: verify the session, fire the Purchase event, log paid_20,
+   AC 'unlocked', remember the session, show the launch screen. If ANYTHING fails or takes > 20 s it sends the browser to exactly the URL Stripe
+   would have redirected to, so the worst case is today's behaviour (reload + the same handler). */
+const FASTPAY_DEFAULT = true;    // ← the ONE switch: true = no reload after paying, no "Begin Launch Sequence" screen, no done screen
+const FASTPAY = (function(){
+  try{ const v = new URLSearchParams(location.search).get('fast'); if(v === '1') return true; if(v === '0') return false; }catch(e){}
+  return FASTPAY_DEFAULT;
+})();
+let _dsCs20 = '';
+function dsCsFromSecret(sec){ const m = /^(cs_(?:test|live)_[A-Za-z0-9]+)_secret_/.exec(String(sec || '')); return m ? m[1] : ''; }
+function dsPay20InPlace(cs){
+  const back = function(){ try{ window.location.href = '/?paid20=1&cs=' + encodeURIComponent(cs); }catch(e){} };
+  const t0 = Date.now(); let handled = false;
+  const btn = document.getElementById('dsPay20Btn'); if(btn) btn.textContent = 'Payment received ✓';
+  (function poll(){
+    if(handled) return;
+    const again = function(){ if(handled) return; if(Date.now() - t0 >= 20000){ handled = true; back(); return; } setTimeout(poll, 1000); };
+    fetch('/api/unlock20?verify=' + encodeURIComponent(cs)).then(function(r){ return r.json(); }).then(function(j){
+      if(handled) return;
+      if(j && j.paid){ handled = true; dsPay20Landed(cs, j, back); return; }
+      again();
+    }).catch(again);
+  })();
+}
+/* FASTPAY: straight from the confirmed payment into the offer (AI team, or the classic SEO sequence when hiring is closed): no "Begin Launch Sequence"
+   screen in between. Waits (max 6 s) for the /api/hire answer so it picks the right sequence, then closes the pay dialog and goes. */
+function dsPostPayEnter(){
+  agCheckReady();
+  const next = function(){
+    try{ const m = document.getElementById('dsPayModal'); if(m) m.style.display = 'none'; const p = document.getElementById('dsPay20'); if(p) p.style.display = 'none'; }catch(e){}
+    try{ spLog('launch_flow', AG_READY ? 'team' : 'classic'); spLog('fastpay', 'on'); }catch(e){}
+    try{ lsApplyNames(); initAudio(); playTada(); confettiBurst(window.innerWidth/2, 140, 90); }catch(e){}
+    go(AG_READY ? 's-agents' : 's-seo');
+  };
+  Promise.resolve(agReadyP).then(next, next);
+}
+function dsPay20Landed(cs, j, back){
+  try{
+    window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs }, 'purchase_' + (j.project_id || cs));
+    spLog('paid_20', j.project_id || '');
+    spLog('paid_20_inplace', j.project_id || '');
+    spLead('unlocked', j.email || null, cs);
+    dsPaidCs = cs;
+    try{ localStorage.setItem('spai_cs20', cs); }catch(e){}
+    if(!dsBuild && j.project_id) dsBuild = { ok:true, project_id: Number(j.project_id) };
+    if(_dsPay20Element){ try{ _dsPay20Element.destroy(); }catch(e){} _dsPay20Element = null; }
+    _dsCheckout20 = null;
+    if(UPSELL_ADS){ dsPostPayEnter(); }   // closes the pay dialog itself, once the next screen is known
+    else{ document.getElementById('dsPayModal').style.display = 'none'; document.getElementById('dsPay20').style.display = 'none'; go('s-upsell'); }
+  }catch(e){
+    try{ spLog('inplace_err', String(e && e.message || e).slice(0, 80)); }catch(_){}
+    back();
+  }
+}
+
 /* Confirm the $20 — Stripe then redirects to ?paid20=1&cs=… where the bump
    (if ticked) is charged one-click and the flow continues to the upsell. */
 async function dsPay20Go(){
@@ -3182,14 +3241,20 @@ async function dsPay20Go(){
     const la = await _dsCheckout20.loadActions();
     if(la && la.type === 'error') throw new Error((la.error && la.error.message) || 'load_actions');
     const actions = (la && la.actions) || la; // dahlia: {type:'success', actions}
-    const r = await actions.confirm();
+    // In-place finish (TG19006): with redirect:'if_required' cards and wallets complete inside this dialog and confirm() RETURNS, so the page does
+    // not reload. Redirect-only methods still leave the page and come back through ?paid20=1 (the handler below), exactly as before.
+    // Only when the flag is on AND the session id could be read from the client secret; otherwise the old always-redirect behaviour.
+    const inPlace = FASTPAY && !!_dsCs20;
+    const r = await actions.confirm(inPlace ? { redirect: 'if_required' } : undefined);
     const rerr = r && (r.error || (r.type === 'error' && r.error) || (r.type === 'error' ? {} : null));
     if(rerr){
       err.textContent = rerr.message || 'Payment didn’t go through — try again.';
       err.style.display = 'block';
       btn.textContent = label;
+    } else if(inPlace){
+      dsPay20InPlace(_dsCs20);   // paid, nothing redirected: verify and carry on right here
     }
-    // success → Stripe redirects; leave the button in Processing state
+    // else success → Stripe redirects; leave the button in Processing state
   }catch(e2){
     err.textContent = 'Payment didn’t go through — try again.';
     err.style.display = 'block';
@@ -3243,7 +3308,15 @@ function setBar(id){
   document.getElementById('bar').style.width = (PROGRESS[id]||4)+'%';
 }
 
+/* FASTPAY: the "your store is ready" screen is skipped — the buyer goes straight to the go-live link (dsResumeUrl, set by finalize). Kept only when
+   there is no link yet, or when the buyer bought the image-ads / emails pack (that screen shows their durable download links). */
+function dsHasDeliverables(){ try{ return !!(localStorage.getItem('spai_ads_cs') || localStorage.getItem('spai_emails_cs')); }catch(e){ return false; } }
 function go(id, opts={}){
+  if(id === 's-done' && FASTPAY && dsResumeUrl && !dsHasDeliverables()){
+    try{ spLog('handoff_direct', (dsBuild && dsBuild.project_id) || ''); }catch(e){}
+    window.location.href = dsResumeUrl;
+    return;
+  }
   if(id === current) return;
   const from = document.getElementById(current);
   const to = document.getElementById(id);
@@ -5828,7 +5901,7 @@ function upsellNo(e){
 
 /* Settle a completed purchase: unlock the store, record the sale (+ the $299 if
    upsell_cs is passed), get the sell-domain go-live link, and land on s-done. */
-function dsFinalize(extra){
+function dsFinalize(extra, attempt){
   const body = Object.assign({ cs: dsPaidCs || '' }, extra || {});
   if(DS_TEST) body.test = DS_TEST;
   if(!body.cs){
@@ -5845,21 +5918,24 @@ function dsFinalize(extra){
     body: JSON.stringify(body)
   })
   .then(r=>r.json())
-  .then(j=>{
-    if(j && j.ok && j.resume_url){ dsResumeUrl = j.resume_url; }
-    else{
-      // Finalize refused (e.g. a session it didn't create) — the buyer still
-      // paid, so route go-live through the direct hand-off and raise a flag.
-      spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
-      if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
-    }
-    agGate();
-  })
-  .catch(()=>{
-    spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
-    if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
-    agGate();
-  });
+  .then(function(j){
+    if(j && j.ok && j.resume_url){ dsResumeUrl = j.resume_url; agGate(); }
+    else dsFinalizeFailed(extra, attempt);
+  }, function(){ dsFinalizeFailed(extra, attempt); });
+}
+/* One automatic retry before giving up (finalize can be repeated safely). Only the second failure logs finalize_fail and takes the direct hand-off
+   fallback; a single hiccup no longer sends the buyer there (Nov 23: a failed finalize ended on /start for one buyer). */
+function dsFinalizeFailed(extra, attempt){
+  if(!attempt){
+    try{ spLog('finalize_retry', (dsBuild && dsBuild.project_id) || ''); }catch(e){}
+    setTimeout(function(){ dsFinalize(extra, 1); }, 1500);
+    return;
+  }
+  // Finalize refused twice (e.g. a session it didn't create) — the buyer still
+  // paid, so route go-live through the direct hand-off and raise a flag.
+  spLog('finalize_fail', (dsBuild && dsBuild.project_id) || '');
+  if(dsBuild && dsBuild.project_id) dsResumeUrl = DS_HANDOFF + '?store=' + encodeURIComponent(dsBuild.project_id) + (DS_TEST ? '&test=' + encodeURIComponent(DS_TEST) : '');
+  agGate();
 }
 
 /* ============================================================
@@ -5898,12 +5974,13 @@ function lsApplyNames(){
 /* Which launch sequence: the AI team when /api/hire says a hire can go through (hiring open and the
    DropStart side configured), otherwise the previous SEO → video → ads sequence. Asked the moment the
    launch screen opens; an unanswered or failed check keeps the previous sequence. */
-let AG_READY = false, agReadyAsked = false;
+let AG_READY = false, agReadyAsked = false, agReadyP = null;
 function agCheckReady(){
-  if(agReadyAsked) return; agReadyAsked = true;
+  if(agReadyAsked) return agReadyP; agReadyAsked = true;
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
-  fetch('/api/hire', { credentials:'same-origin', signal: ctl.signal }).then(r => r.json())
+  agReadyP = fetch('/api/hire', { credentials:'same-origin', signal: ctl.signal }).then(r => r.json())
     .then(j => { AG_READY = !!(j && j.ok && j.funnel_ready); }).catch(() => {}).finally(() => clearTimeout(t));
+  return agReadyP;
 }
 function lsBegin(){ try{ spLog('launch_flow', AG_READY ? 'team' : 'classic'); }catch(e){} go(AG_READY ? 's-agents' : 's-seo'); }
 function lsEnterLaunch(){
@@ -6223,6 +6300,7 @@ function dsResumeAfterPayment20(){
       if(!dsBuild && j.project_id) dsBuild = { ok:true, project_id: Number(j.project_id) };
       if(!chosen){ try{ chosen = JSON.parse(localStorage.getItem('spai_chosen') || 'null'); }catch(e){} }
       // Launch sequence entry: "you're not done yet" screen first.
+      if(FASTPAY && UPSELL_ADS){ dsPostPayEnter(); return; }   // no "Begin Launch Sequence" screen (go() runs from s-paywait)
       const upScreen = UPSELL_ADS ? 's-launch1' : 's-upsell';
       document.getElementById('s-paywait').classList.remove('active');
       document.getElementById('s-landing').classList.remove('active');
@@ -6743,8 +6821,25 @@ const AG_LIVE = true; // one-click hire through /api/hire on the card saved by t
 const AG = { i:0, timers:[], prepped:false, loop:null, hired:{}, done:false };
 function agProduct(){ return chosen || PRODUCTS[0] || FALLBACK_PRODUCTS[0]; }
 function agBrand(){ const p = agProduct(); return (typeof dsStatus !== 'undefined' && dsStatus && dsStatus.store_name) || (dsBuild && dsBuild.store_name) || BX.realName || BX.brand || bxBrand(p.name); }
-function agLeave(e){ if(e && e.preventDefault) e.preventDefault(); agStopLoop(); try{ spLog('agent_leave', Object.keys(AG.hired).join(',') || 'none'); }catch(e2){}
-  if(upsellPreviewMode){ go('s-done'); return false; }
+/* Leaving the offers = finalize the store, then hand off to DropStart (about a second). Until now nothing on screen changed while that ran, so buyers tapped
+   again and again (Nov 23: 4 taps in 3 s, each running finalize once more; one logged finalize_fail). Now: the first tap wins, the buttons say what is
+   happening, and the offer screens ignore further taps. If nothing has happened after 12 s everything is given back so the buyer can try again. */
+let agLeaving = false;
+function agLeavingUi(on){
+  try{
+    ['s-agents','s-agent'].forEach(function(id){ const sec = document.getElementById(id); if(sec) sec.style.pointerEvents = on ? 'none' : ''; });
+    document.querySelectorAll('#s-agents .oto-decline, #agSkip').forEach(function(el){
+      if(on){ if(el.dataset.t0 === undefined) el.dataset.t0 = el.textContent; el.textContent = 'Opening your Shopify account… ⏳'; el.style.opacity = '.8'; }
+      else { if(el.dataset.t0 !== undefined){ el.textContent = el.dataset.t0; delete el.dataset.t0; } el.style.opacity = ''; }
+    });
+  }catch(e){}
+}
+function agLeave(e){ if(e && e.preventDefault) e.preventDefault();
+  if(agLeaving) return false;   // already on its way
+  agLeaving = true; agStopLoop(); try{ spLog('agent_leave', Object.keys(AG.hired).join(',') || 'none'); }catch(e2){}
+  if(upsellPreviewMode){ agLeaving = false; go('s-done'); return false; }
+  agLeavingUi(true);
+  setTimeout(function(){ if(agLeaving){ agLeaving = false; agLeavingUi(false); } }, 12000);
   dsFinalize({}); return false; }
 /* after the ads decision and the hand-off the team is offered once; then the done screen */
 
@@ -6862,7 +6957,7 @@ function agShow(i, swap){
   document.getElementById('agStackPrice').textContent = '$' + a.price + ' once';
   const hb = document.getElementById('agHire'); hb.disabled = !!AG.hired[a.key]; hb.textContent = AG.hired[a.key] ? a.name + ' is hired ✓' : 'Hire ' + a.name + ' — $' + a.price;
   document.getElementById('agNotePrice').textContent = '$' + a.price;
-  document.getElementById('agSkip').textContent = AG.hired[a.key] ? (i < AGENTS.length - 1 ? 'Next →' : 'Take me to my store →') : (i < AGENTS.length - 1 ? 'No thanks, show me the next one →' : 'No thanks, take me to my store →');
+  document.getElementById('agSkip').textContent = AG.hired[a.key] ? (i < AGENTS.length - 1 ? 'Next →' : 'Take me to my store →') : (i < AGENTS.length - 1 ? 'No thanks, show me the next one →' : 'No thanks, activate my Shopify account →');
   document.getElementById('agDots').innerHTML = 'Employee ' + (i + 1) + ' of ' + AGENTS.length + ' ' + AGENTS.map((_, j)=>'<i class="' + (j === i ? 'on' : '') + '"></i>').join('');
   try{ spLog('agent_view', a.key); }catch(e){}
   agStopLoop();
