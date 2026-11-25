@@ -22,6 +22,14 @@ const RETURN_URL = 'https://www.sellproducts.ai/?paid20=1&cs={CHECKOUT_SESSION_I
 const SKU_NAME = 'AI Store Unlock';
 const SKU_DESC = 'One-time unlock of your AI-built dropshipping store. Full store access, supplier connected, ready to launch on Shopify. No subscription.';
 const AMOUNT = 2000; // cents
+/* Black Friday 2026: the /black-friday page sends promo:'bf' and pays $10 while the
+   window is open (preview from Nov 25; sale Fri Nov 27 through Sun Nov 29, 11:59pm PT).
+   Enforced here, never trusted from the client: outside the window it is $20. */
+const BF_AMOUNT = 1000;
+const BF_START = Date.UTC(2026, 10, 25, 0, 0, 0);
+const BF_END   = Date.UTC(2026, 10, 30, 7, 59, 59); // Sun Nov 29 23:59:59 PST
+const BF_RETURN_URL = 'https://www.sellproducts.ai/black-friday?paid20=1&cs={CHECKOUT_SESSION_ID}';
+function bfActive(){ const t = Date.now(); return t >= BF_START && t <= BF_END; }
 const STRIPE_VERSION = '2026-03-25.dahlia'; // ui_mode:'elements' (renamed from 'custom' in dahlia)
 const tax = require('../lib/tax');
 const dealfuel = require('../lib/dealfuel');
@@ -81,16 +89,17 @@ function leadMeta(body){
   return out;
 }
 
-function sessionParams(projectId, email, product, uiMode, utm){
+function sessionParams(projectId, email, product, uiMode, utm, promo){
+  const bf = promo === 'bf';
   const params = {
     'mode': 'payment',
     'ui_mode': uiMode,
-    'return_url': RETURN_URL,
+    'return_url': bf ? BF_RETURN_URL : RETURN_URL,
     'customer_creation': 'always',
     'payment_intent_data[setup_future_usage]': 'off_session',
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': 'usd',
-    'line_items[0][price_data][unit_amount]': String(AMOUNT),
+    'line_items[0][price_data][unit_amount]': String(bf ? BF_AMOUNT : AMOUNT),
     // TAX-INCLUSIVE by owner decision (2026-09-09): the buyer always pays a
     // flat $20.00; in states with an active Stripe Tax registration the tax
     // is carved OUT of the $20 and remitted. Chosen over tax-on-top because
@@ -106,6 +115,7 @@ function sessionParams(projectId, email, product, uiMode, utm){
     'metadata[project_id]': String(projectId || ''),
     'metadata[product]': String(product || '').slice(0, 120)
   };
+  if(bf) params['metadata[promo]'] = 'bf';
   if(utm) Object.assign(params, utm);
   if(email) params['customer_email'] = String(email).slice(0, 120);
   return params;
@@ -115,18 +125,18 @@ function sessionParams(projectId, email, product, uiMode, utm){
    dahlia release renamed 'custom' to 'elements'). If the account/API rejects
    it for any reason, fall back to the embedded checkout that ran the price
    flip — checkout must never be down over UI mode. */
-async function createSession(projectId, email, product, forceEmbedded, utm){
+async function createSession(projectId, email, product, forceEmbedded, utm, promo){
   if(!forceEmbedded){
     try{
       const s = await stripe('checkout/sessions', 'POST',
-        sessionParams(projectId, email, product, 'elements', utm), null, STRIPE_VERSION);
+        sessionParams(projectId, email, product, 'elements', utm, promo), null, STRIPE_VERSION);
       return { s, ui: 'custom' };
     }catch(e){
       var customErr = String(e && e.message || e).slice(0, 200);
     }
   }
   const s = await stripe('checkout/sessions', 'POST',
-    sessionParams(projectId, email, product, 'embedded', utm));
+    sessionParams(projectId, email, product, 'embedded', utm, promo));
   return { s, ui: 'embedded', custom_error: customErr || '' };
 }
 
@@ -421,10 +431,11 @@ module.exports = async (req, res) => {
     //   if(owned) return res.status(200).json({ ok:true, unlimited:true, cs: owned });
     // }
 
+    const promo = (body.promo === 'bf' && bfActive()) ? 'bf' : '';
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
-      Object.assign({}, utmFromBody(body), leadMeta(body)));   // utmFromBody() is null for visitors without a UTM: Object.assign(null, …) threw and broke their checkout
+      Object.assign({}, utmFromBody(body), leadMeta(body)), promo);   // utmFromBody() is null for visitors without a UTM: Object.assign(null, …) threw and broke their checkout
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
-      ui: c.ui, custom_error: c.custom_error || '' });
+      ui: c.ui, custom_error: c.custom_error || '', promo, amount: promo ? BF_AMOUNT : AMOUNT });
   }catch(e){
     return res.status(200).json({ ok:false, status:'error', detail: String(e && e.message || e).slice(0, 300) });
   }
