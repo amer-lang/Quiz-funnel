@@ -2200,8 +2200,13 @@ window.SP_LEAD_PIXEL_ID = '1119152171132330';
    idle animations, no backdrop blur. */
 window.SP_FAST = true;
 if(window.SP_FAST) document.documentElement.classList.add('sp-fast');
-if(window.SP_VARIANT === 'lead' && window.SP_LEAD_PIXEL_ID){ fbq('init', window.SP_LEAD_PIXEL_ID); }
-else { fbq('init', window.DS_PIXEL_ID); if(window.SP_VARIANT === 'lead') try{ console.warn('SP_LEAD_PIXEL_ID not set; /go is using the main pixel'); }catch(e){} }
+/* Each page has one "own" pixel that receives its normal events (via trackSingle):
+   the test pixel on /go, the main pixel everywhere else. Main pages also
+   initialize the test pixel but send it exactly one thing, Lead on the store
+   unlock (spBuyLead), so it learns from every SPAI buyer. */
+window.SP_OWN_PIXEL = (window.SP_VARIANT === 'lead' && window.SP_LEAD_PIXEL_ID) ? window.SP_LEAD_PIXEL_ID : window.DS_PIXEL_ID;
+fbq('init', window.SP_OWN_PIXEL);
+if(window.SP_LEAD_PIXEL_ID && window.SP_OWN_PIXEL !== window.SP_LEAD_PIXEL_ID) fbq('init', window.SP_LEAD_PIXEL_ID);
 // Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
 // with DropStart's dsFire (ds_<onceKey>) so funnel-side + /store-side dedupe.
 window.dsFire = window.dsFire || function(name, params, onceKey){
@@ -2217,7 +2222,7 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   }
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
-  (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
+  (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('trackSingle', window.SP_OWN_PIXEL, name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
 window.dsFire('PageView');
 /* Warm the sound engine on the first touch anywhere so the first button tap
@@ -2226,8 +2231,11 @@ document.addEventListener('pointerdown', function(){ try{ if(typeof initAudio ==
 /* On the /go variant a paid $20 store also fires "Lead" (the optimization event
    of the test campaign). Purchase still fires for value reporting. */
 window.spBuyLead = function(txid, key){
-  if(window.SP_VARIANT !== 'lead') return;
-  window.dsFire('Lead', { txid: txid }, 'leadbuy_' + key);
+  if(window.SP_VARIANT === 'lead'){ window.dsFire('Lead', { txid: txid }, 'leadbuy_' + key); return; }
+  // main pages: seed the test pixel with this store unlock and nothing else
+  if(!window.SP_LEAD_PIXEL_ID) return;
+  try{ window.__dsFired = window.__dsFired || {}; if(window.__dsFired['seedlead_' + key]) return; window.__dsFired['seedlead_' + key] = 1; }catch(e){}
+  (function go(n){ try{ if(typeof window.fbq === 'function'){ window.fbq('trackSingle', window.SP_LEAD_PIXEL_ID, 'Lead', { txid: txid }, { eventID: 'ds_leadbuy_' + key }); return; } }catch(e){} if(n < 40){ try{ setTimeout(function(){ go(n + 1); }, 250); }catch(e){} } })(0);
 };
 </script>
 </head>

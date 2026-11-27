@@ -2187,7 +2187,13 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <script>
 (function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
-fbq('init', window.DS_PIXEL_ID);
+/* This page's own pixel is the main one (all normal events go there via
+   trackSingle). The test pixel is also initialized and receives exactly one
+   thing: Lead on the store unlock (spBuyLead), to learn from every SPAI buyer. */
+window.SP_LEAD_PIXEL_ID = '1119152171132330';
+window.SP_OWN_PIXEL = window.DS_PIXEL_ID;
+fbq('init', window.SP_OWN_PIXEL);
+fbq('init', window.SP_LEAD_PIXEL_ID);
 /* Fast mode (all visitors): shorter waits between taps and screens, GPU-only
    idle animations, no backdrop blur. */
 window.SP_FAST = true;
@@ -2198,9 +2204,15 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
-  (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
+  (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('trackSingle', window.SP_OWN_PIXEL, name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
 window.dsFire('PageView');
+/* Seed the test pixel with this store unlock and nothing else. */
+window.spBuyLead = function(txid, key){
+  if(!window.SP_LEAD_PIXEL_ID) return;
+  try{ window.__dsFired = window.__dsFired || {}; if(window.__dsFired['seedlead_' + key]) return; window.__dsFired['seedlead_' + key] = 1; }catch(e){}
+  (function go(n){ try{ if(typeof window.fbq === 'function'){ window.fbq('trackSingle', window.SP_LEAD_PIXEL_ID, 'Lead', { txid: txid }, { eventID: 'ds_leadbuy_' + key }); return; } }catch(e){} if(n < 40){ try{ setTimeout(function(){ go(n + 1); }, 250); }catch(e){} } })(0);
+};
 /* Warm the sound engine on the first touch anywhere so the first button tap
    does not pay for creating it. */
 document.addEventListener('pointerdown', function(){ try{ if(typeof initAudio === 'function'){ initAudio(); if(window.AC && window.AC.state === 'suspended') window.AC.resume(); } }catch(e){} }, { once:true, passive:true });
@@ -3383,6 +3395,7 @@ function dsPostPayEnter(){
 function dsPay20Landed(cs, j, back){
   try{
     window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs }, 'purchase_' + (j.project_id || cs));
+    window.spBuyLead && window.spBuyLead(cs, j.project_id || cs);
     spLog('paid_20', j.project_id || '');
     spLog('paid_20_inplace', j.project_id || '');
     spLead('unlocked', j.email || null, cs);
@@ -6477,6 +6490,7 @@ function dsResumeAfterPayment20(){
     function(j){
       window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs },
         'purchase_' + (j.project_id || cs));
+      window.spBuyLead && window.spBuyLead(cs, j.project_id || cs);
       spLog('paid_20', j.project_id || '');
       spLead('unlocked', j.email || null, cs); // → AC list 6 + SPAI Subscribers (bridge verifies via Stripe)
       dsPaidCs = cs;
@@ -6524,6 +6538,7 @@ function dsResumeAfterPayment(){
       // whichever the buyer reaches, Meta counts it once. Fired here off the
       // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
       window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD', txid: cs }, 'purchase_' + j.project_id);
+      window.spBuyLead && window.spBuyLead(cs, j.project_id);
       spLog('paid_1dollar', j.project_id);
       spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
       if(j.unlocked){ /* already fully done — nothing to upsell */ }
