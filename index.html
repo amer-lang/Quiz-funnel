@@ -7208,6 +7208,8 @@ try{
   const utm = ((P.get('utm_source') || '') + '/' + (P.get('utm_campaign') || '')).slice(0, 28);
   const ref = (document.referrer || '').replace(/^https?:\/\//, '').split('/')[0].slice(0, 20);
   spLog('land_meta', [dev, app, click, utm, ref, navigator.webdriver ? 'wd' : '', screen.width + 'x' + screen.height].join('|'));
+  const adId = (P.get('utm_content') || '').replace(/\D/g, '').slice(0, 20);   // Meta ad id from utm_content={{ad.id}}
+  if(adId) spLog('ad_id', adId);
   if(window.SP_VARIANT) spLog('variant', window.SP_VARIANT);
 }catch(e){}
 /* Dwell pings: how long a visitor who never taps actually stays on the landing. */

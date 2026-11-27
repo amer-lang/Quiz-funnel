@@ -28,7 +28,7 @@ const LEGACY_INDEX = '019fec64-66e4-7f84-a403-a0ee20137ede';
 
 const EV_OK = new Set([
   // journey
-  'screen','answer','product_view','product_choose','email_submitted','pick_link',
+  'screen','answer','product_view','product_choose','email_submitted','pick_link','ad_id',
   // money moments (beacon-side; Stripe is the source of truth for revenue)
   'claim_click','paid_1dollar','paid_20','upsell_click','upsell_decline','paid_upsell',
   'seo_click','paid_seo','seo_skip','addons_skip','paid_addons','claim_unlimited',
@@ -39,6 +39,7 @@ const EV_OK = new Set([
   'seo_fail','addons_fail','custom_mode_err','custom_mount_err',
   // AI employees offer
   'launch_flow','agent_team','agent_view','agent_skip','agent_leave','agent_hire_click','agent_hired','agent_hired_already','agent_hire_fail',
+  'hire_page_view','late_hire',
   'agent_confirm_open','agent_confirm_close','agent_confirm_other','agent_confirm_ok','agent_confirm_fail',
   // fast post-pay path (FASTPAY): finished in place, on the new path, straight hand-off, and its error beacons
   'paid_20_inplace','fastpay','handoff_direct','inplace_err','verify_onpaid_err','finalize_retry'
@@ -214,8 +215,9 @@ function adJoinDay(day, evs){
   const by = new Map();
   for(const e of evs){
     let s = by.get(e.sid);
-    if(!s){ s = { land: null, t: Infinity, shown: 0, hidden: 0, intro: 0, pick: 0, email: 0, claim: 0, paid: 0 }; by.set(e.sid, s); }
+    if(!s){ s = { land: null, t: Infinity, adid: '', shown: 0, hidden: 0, intro: 0, pick: 0, email: 0, claim: 0, paid: 0 }; by.set(e.sid, s); }
     if(e.e === 'land_meta'){ if(e.t < s.t){ s.t = e.t; s.land = String(e.v || ''); } }
+    else if(e.e === 'ad_id'){ if(!s.adid) s.adid = String(e.v || '').replace(/\D/g, '').slice(0, 20); }
     else if(e.e === 'screen' && e.v === 's-landing') s.shown = 1;
     else if(e.e === 'hidden_load') s.hidden = 1;
     else if(e.e === 'screen' && e.v === 's-intro') s.intro = 1;
@@ -241,12 +243,13 @@ function adJoinDay(day, evs){
     const device = p[0] || 'unknown', app = p[1] || 'unknown';
     const click = s.land ? (p[2] || 'none') : 'unknown';
     const utm = p[3] || '';
-    const m = /^(fb|ig)\/(\d{6,})$/.exec(utm);
+    const m = /^(fb|ig|meta)\/(\d{6,})$/.exec(utm);
     const ad = m ? m[2] : (!s.land ? 'unknown' : (utm && utm !== '/' ? 'utm:' + utm.slice(0, 28) : 'none'));
     const ref = s.land ? refBucket(p[4]) : '';
-    const k = [ad, app, device, click, ref].join('|');
+    const adid = s.adid || '';
+    const k = [ad, adid, app, device, click, ref].join('|');
     let r = g.get(k);
-    if(!r){ r = { day, ad, app, device, click, ref, visitors: 0, shown: 0, hidden: 0, intro: 0, pick: 0, emails: 0, claims: 0, paid: 0 }; g.set(k, r); }
+    if(!r){ r = { day, ad, adid, app, device, click, ref, visitors: 0, shown: 0, hidden: 0, intro: 0, pick: 0, emails: 0, claims: 0, paid: 0 }; g.set(k, r); }
     r.visitors++; r.shown += s.shown; r.hidden += s.hidden; r.intro += s.intro; r.pick += s.pick; r.emails += s.email; r.claims += s.claim; r.paid += s.paid;
   }
   return [...g.values()];
