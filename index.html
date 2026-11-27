@@ -1733,12 +1733,13 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .oto-trust span{display:inline-flex;align-items:center;gap:6px}
 .oto-trust span::before{content:'';width:5px;height:5px;border-radius:50%;background:#22C55E}
 .oto-decline{
-  display:block;margin:18px auto 0;max-width:420px;text-align:center;
-  font-size:.76rem;line-height:1.5;color:#94A3B8;   /* slate-400: same as the digital funnel's "No thanks" link (was white at 38%) */
-  text-decoration:underline;text-decoration-color:rgba(148,163,184,.6);text-underline-offset:4px;
-  transition:color .15s;
+  display:block;margin:16px auto 0;max-width:440px;text-align:center;
+  font-size:.92rem;line-height:1.45;font-weight:600;color:#CBD5E1;   /* slate-300, larger: the "no" must be easy to find */
+  text-decoration:underline;text-decoration-color:rgba(203,213,225,.75);text-decoration-thickness:1.5px;text-underline-offset:5px;
+  padding:10px 12px;border-radius:12px;
+  transition:color .15s,background .15s;
 }
-.oto-decline:hover{color:#CBD5E1;text-decoration-color:#CBD5E1}
+.oto-decline:hover,.oto-decline:active{color:#fff;text-decoration-color:#fff;background:rgba(255,255,255,.05)}
 
 /* ---- image-ads upsell ($49 · 10 ad mockups built from their product) ---- */
 .ads-hello{display:flex;align-items:flex-start;gap:9px;background:rgba(255,201,60,.09);border:1px solid rgba(255,201,60,.4);border-radius:13px;padding:11px 14px;font-size:.8rem;color:#C6D2EA;line-height:1.5;animation:helloPulse 2.2s ease-in-out infinite}
