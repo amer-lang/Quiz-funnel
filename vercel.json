@@ -77,6 +77,10 @@
   ],
   "rewrites": [
     {
+      "source": "/go",
+      "destination": "/"
+    },
+    {
       "source": "/api/ds/:path*",
       "destination": "/api/ds?p=:path*"
     }

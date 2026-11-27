@@ -40,9 +40,8 @@
 <link rel="preconnect" href="https://img.dropstartcdn.com">
 <title>Sell Products AI — Launch Your eCommerce Store</title>
 <meta name="description" content="Our AI finds you a trending winning product, connects the supplier, and builds you a one-product store built to convert. See it before you pay.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:200 800;font-display:swap;src:url(/fonts/plus-jakarta-sans-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}</style>
 <style>
 /* ============================================================
    BRAND TOKENS — Sell Products AI
@@ -2166,6 +2165,19 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 .flash.go{animation:flashGo .5s ease}
 @keyframes flashGo{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
 
+
+/* ---- fast mode (html.sp-fast): GPU-only motion, shorter transitions ---- */
+.sp-fast .screen.active{animation:screenInFast .3s cubic-bezier(.22,1,.36,1)}
+@keyframes screenInFast{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.sp-fast .cta.pulse{animation:ctaBreath 1.9s ease-in-out infinite;will-change:transform}
+@keyframes ctaBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.022)}}
+.sp-fast .act-blue{animation:ctaBreath 1.9s ease-in-out infinite;will-change:transform}
+.sp-fast .eq-tile.gold,.sp-fast .ads-hello{animation:none}
+.sp-fast .badge-sup,.sp-fast .badge-match,.sp-fast .scroll-hint,.sp-fast .tour-chip{backdrop-filter:none;-webkit-backdrop-filter:none}
+.sp-fast .badge-sup{background:rgba(7,11,21,.92)}
+.sp-fast .badge-match{background:rgba(7,11,21,.93)}
+.sp-fast #agPayModal,.sp-fast #dsPayModal{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(7,11,21,.86)!important}
+.sp-fast .logo-hero,.sp-fast .pick-img .emoji,.sp-fast .dev-phone{will-change:transform}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.15s !important}
 }
@@ -2175,16 +2187,42 @@ h2.one-line{font-size:clamp(1.15rem,5.2vw,1.6rem);white-space:nowrap}
 <script>
 (function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)})(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
 window.DS_PIXEL_ID = '2291464791591164';
-fbq('init', window.DS_PIXEL_ID);
+/* Lead-optimization test: the same funnel served at /go reports to a separate,
+   fresh pixel and fires Meta "Lead" at the $20 purchase (email capture becomes
+   CompleteRegistration there). Ads for it run from a separate ad account, so
+   the main pixel and campaigns are untouched. Set SP_LEAD_PIXEL_ID to the new
+   pixel's id; while it is empty /go falls back to the main pixel. */
+window.SP_VARIANT = (/^\/go\/?$/.test(location.pathname)) ? 'lead' : '';
+window.SP_HOME = window.SP_VARIANT === 'lead' ? '/go' : '/';
+window.SP_LEAD_PIXEL_ID = '1119152171132330';
+/* Fast mode (currently /go only): shorter waits between taps and screens, GPU-only
+   idle animations, no backdrop blur. Flip SP_FAST to true for everyone once approved. */
+window.SP_FAST = window.SP_VARIANT === 'lead';
+if(window.SP_FAST) document.documentElement.classList.add('sp-fast');
+if(window.SP_VARIANT === 'lead' && window.SP_LEAD_PIXEL_ID){ fbq('init', window.SP_LEAD_PIXEL_ID); }
+else { fbq('init', window.DS_PIXEL_ID); if(window.SP_VARIANT === 'lead') try{ console.warn('SP_LEAD_PIXEL_ID not set; /go is using the main pixel'); }catch(e){} }
 // Bulletproof dispatcher: retries until fbq loads, once-guarded, shared eventID
 // with DropStart's dsFire (ds_<onceKey>) so funnel-side + /store-side dedupe.
 window.dsFire = window.dsFire || function(name, params, onceKey){
   params = params || {};
+  // On the /go pixel nothing is ever reported as a Purchase: the $20 store unlock
+  // fires Lead (spBuyLead) and upsells fire nothing, so the test campaign
+  // optimizes for a single store purchase only.
+  if(window.SP_VARIANT === 'lead' && name === 'Purchase') return;
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
 };
 window.dsFire('PageView');
+/* Warm the sound engine on the first touch anywhere so the first button tap
+   does not pay for creating it. */
+document.addEventListener('pointerdown', function(){ try{ if(typeof initAudio === 'function'){ initAudio(); if(window.AC && window.AC.state === 'suspended') window.AC.resume(); } }catch(e){} }, { once:true, passive:true });
+/* On the /go variant a paid $20 store also fires "Lead" (the optimization event
+   of the test campaign). Purchase still fires for value reporting. */
+window.spBuyLead = function(txid, key){
+  if(window.SP_VARIANT !== 'lead') return;
+  window.dsFire('Lead', { txid: txid }, 'leadbuy_' + key);
+};
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=2291464791591164&ev=PageView&noscript=1"/></noscript>
 </head>
@@ -3163,7 +3201,7 @@ async function dsOpenPay20(clientSecret, pubKey){
       const j = await fetch('/api/unlock20', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(Object.assign({ embedded: 1, project_id: (dsBuild && dsBuild.project_id) || '',
-          email: userEmail || '', product: (chosen && chosen.name) || '' }, dsUtm(), dsLeadBits()))
+          email: userEmail || '', product: (chosen && chosen.name) || '', variant: window.SP_VARIANT || '' }, dsUtm(), dsLeadBits()))
       }).then(r=>r.json());
       if(j && j.ok && j.client_secret) return dsOpenPay(j.client_secret, j.publishable_key, false);
     }catch(e2){}
@@ -3186,7 +3224,7 @@ const FASTPAY = (function(){
 let _dsCs20 = '';
 function dsCsFromSecret(sec){ const m = /^(cs_(?:test|live)_[A-Za-z0-9]+)_secret_/.exec(String(sec || '')); return m ? m[1] : ''; }
 function dsPay20InPlace(cs){
-  const back = function(){ try{ window.location.href = '/?paid20=1&cs=' + encodeURIComponent(cs); }catch(e){} };
+  const back = function(){ try{ window.location.href = (window.SP_HOME || '/') + '?paid20=1&cs=' + encodeURIComponent(cs); }catch(e){} };
   const t0 = Date.now(); let handled = false;
   const btn = document.getElementById('dsPay20Btn'); if(btn) btn.textContent = 'Payment received ✓';
   (function poll(){
@@ -3214,6 +3252,7 @@ function dsPostPayEnter(){
 function dsPay20Landed(cs, j, back){
   try{
     window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs }, 'purchase_' + (j.project_id || cs));
+    window.spBuyLead && window.spBuyLead(cs, j.project_id || cs);
     spLog('paid_20', j.project_id || '');
     spLog('paid_20_inplace', j.project_id || '');
     spLead('unlocked', j.email || null, cs);
@@ -3336,6 +3375,20 @@ function go(id, opts={}){
     setTimeout(()=>{ from.classList.remove('active','fading'); }, 420);   // 'soft' stays: dropping it would replay the slide-in
     return;
   }
+  if(window.SP_FAST){
+    // no exit animation: the old screen goes, the new one is already sliding in
+    playWhoosh();
+    from.classList.remove('active','leaving');
+    to.classList.add('active');
+    current = id;
+    setBar(id);
+    window.scrollTo({top:0,behavior:'instant'});
+    updateBack();
+    onEnter(id);
+    if(opts.fx==='ripple') flashPulse();
+    if(opts.fx==='brain') emojiBurst('💡', window.innerWidth/2, window.innerHeight/3, 14);
+    return;
+  }
   from.classList.add('leaving');
   playWhoosh();
   setTimeout(()=>{
@@ -3399,7 +3452,7 @@ function fromLanding(e){
   coinCannon(e.clientX||window.innerWidth/2, e.clientY||window.innerHeight*0.6);
   flashPulse();
   vibrate(18);
-  setTimeout(()=>go('s-intro'),420);
+  setTimeout(()=>go('s-intro'), window.SP_FAST ? 170 : 420);
 }
 
 /* ============================================================
@@ -3455,7 +3508,7 @@ function answer(el, key, val, emoji, opts={}){
   showToast(t[0], t[1]+' ✓');
 
   const nxt = opts.next || NEXT_MAP[key];
-  setTimeout(()=>{ answering=false; go(nxt); }, 780);
+  setTimeout(()=>{ answering=false; go(nxt); }, window.SP_FAST ? 360 : 780);
 }
 
 function bumpStreak(){
@@ -4189,7 +4242,7 @@ function startBuild(e){
   };
   if(smsExtra) Object.assign(lead, smsExtra);
   try{ localStorage.setItem('spai_lead', JSON.stringify(lead)); }catch(err){}
-  window.dsFire && window.dsFire('Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured
+  window.dsFire && window.dsFire(window.SP_VARIANT === 'lead' ? 'CompleteRegistration' : 'Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured (CompleteRegistration on /go, where Lead means a purchase)
   spLead('optin', userEmail, null, leadExtra); // → ActiveCampaign list 5 (+ first name, SMS consent record)
   if(smsExtra) spLog('sms_optin');
   if(EMAIL_ENDPOINT){
@@ -5612,7 +5665,7 @@ function dsPaidClaim(btn){
     fetch('/api/unlock20', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(Object.assign({ project_id: dsBuild.project_id, email: userEmail || '',
-        product: (chosen && chosen.name) || '' }, dsUtm(), dsLeadBits()))
+        product: (chosen && chosen.name) || '', variant: window.SP_VARIANT || '' }, dsUtm(), dsLeadBits()))
     })
     .then(r=>r.json())
     .then(j=>{
@@ -6294,6 +6347,7 @@ function dsResumeAfterPayment20(){
     function(j){
       window.dsFire && window.dsFire('Purchase', { value: (j.amount ? j.amount / 100 : 20), currency: 'USD', txid: cs },
         'purchase_' + (j.project_id || cs));
+      window.spBuyLead && window.spBuyLead(cs, j.project_id || cs);
       spLog('paid_20', j.project_id || '');
       spLead('unlocked', j.email || null, cs); // → AC list 6 + SPAI Subscribers (bridge verifies via Stripe)
       dsPaidCs = cs;
@@ -6341,6 +6395,7 @@ function dsResumeAfterPayment(){
       // whichever the buyer reaches, Meta counts it once. Fired here off the
       // server-VERIFIED paid session (bulletproof, tied to the Stripe event).
       window.dsFire && window.dsFire('Purchase', { value: 20, currency: 'USD', txid: cs }, 'purchase_' + j.project_id);
+      window.spBuyLead && window.spBuyLead(cs, j.project_id);
       spLog('paid_1dollar', j.project_id);
       spLead('unlocked', null, cs); // → AC list 6 (bridge re-verifies the session server-side)
       if(j.unlocked){ /* already fully done — nothing to upsell */ }
@@ -7148,6 +7203,7 @@ try{
   const utm = ((P.get('utm_source') || '') + '/' + (P.get('utm_campaign') || '')).slice(0, 28);
   const ref = (document.referrer || '').replace(/^https?:\/\//, '').split('/')[0].slice(0, 20);
   spLog('land_meta', [dev, app, click, utm, ref, navigator.webdriver ? 'wd' : '', screen.width + 'x' + screen.height].join('|'));
+  if(window.SP_VARIANT) spLog('variant', window.SP_VARIANT);
 }catch(e){}
 /* Dwell pings: how long a visitor who never taps actually stays on the landing. */
 [3, 10, 30].forEach(sec => setTimeout(() => { if(current === 's-landing' && document.visibilityState === 'visible') spLog('dwell', sec); }, sec * 1000));

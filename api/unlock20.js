@@ -29,6 +29,8 @@ const BF_AMOUNT = 1000;
 const BF_START = Date.UTC(2026, 10, 25, 0, 0, 0);
 const BF_END   = Date.UTC(2026, 10, 30, 7, 59, 59); // Sun Nov 29 23:59:59 PST
 const BF_RETURN_URL = 'https://www.sellproducts.ai/black-friday?paid20=1&cs={CHECKOUT_SESSION_ID}';
+/* Lead-optimization test: the funnel served at /go returns there after checkout. */
+const LEAD_RETURN_URL = 'https://www.sellproducts.ai/go?paid20=1&cs={CHECKOUT_SESSION_ID}';
 function bfActive(){ const t = Date.now(); return t >= BF_START && t <= BF_END; }
 const STRIPE_VERSION = '2026-03-25.dahlia'; // ui_mode:'elements' (renamed from 'custom' in dahlia)
 const tax = require('../lib/tax');
@@ -89,12 +91,12 @@ function leadMeta(body){
   return out;
 }
 
-function sessionParams(projectId, email, product, uiMode, utm, promo){
+function sessionParams(projectId, email, product, uiMode, utm, promo, variant){
   const bf = promo === 'bf';
   const params = {
     'mode': 'payment',
     'ui_mode': uiMode,
-    'return_url': bf ? BF_RETURN_URL : RETURN_URL,
+    'return_url': bf ? BF_RETURN_URL : (variant === 'lead' ? LEAD_RETURN_URL : RETURN_URL),
     'customer_creation': 'always',
     'payment_intent_data[setup_future_usage]': 'off_session',
     'line_items[0][quantity]': '1',
@@ -116,6 +118,7 @@ function sessionParams(projectId, email, product, uiMode, utm, promo){
     'metadata[product]': String(product || '').slice(0, 120)
   };
   if(bf) params['metadata[promo]'] = 'bf';
+  if(variant) params['metadata[variant]'] = variant;
   if(utm) Object.assign(params, utm);
   if(email) params['customer_email'] = String(email).slice(0, 120);
   return params;
@@ -125,18 +128,18 @@ function sessionParams(projectId, email, product, uiMode, utm, promo){
    dahlia release renamed 'custom' to 'elements'). If the account/API rejects
    it for any reason, fall back to the embedded checkout that ran the price
    flip — checkout must never be down over UI mode. */
-async function createSession(projectId, email, product, forceEmbedded, utm, promo){
+async function createSession(projectId, email, product, forceEmbedded, utm, promo, variant){
   if(!forceEmbedded){
     try{
       const s = await stripe('checkout/sessions', 'POST',
-        sessionParams(projectId, email, product, 'elements', utm, promo), null, STRIPE_VERSION);
+        sessionParams(projectId, email, product, 'elements', utm, promo, variant), null, STRIPE_VERSION);
       return { s, ui: 'custom' };
     }catch(e){
       var customErr = String(e && e.message || e).slice(0, 200);
     }
   }
   const s = await stripe('checkout/sessions', 'POST',
-    sessionParams(projectId, email, product, 'embedded', utm, promo));
+    sessionParams(projectId, email, product, 'embedded', utm, promo, variant));
   return { s, ui: 'embedded', custom_error: customErr || '' };
 }
 
@@ -432,8 +435,9 @@ module.exports = async (req, res) => {
     // }
 
     const promo = (body.promo === 'bf' && bfActive()) ? 'bf' : '';
+    const variant = body.variant === 'lead' ? 'lead' : '';
     const c = await createSession(projectId, email, String(body.product || ''), !!body.embedded,
-      Object.assign({}, utmFromBody(body), leadMeta(body)), promo);   // utmFromBody() is null for visitors without a UTM: Object.assign(null, …) threw and broke their checkout
+      Object.assign({}, utmFromBody(body), leadMeta(body)), promo, variant);   // utmFromBody() is null for visitors without a UTM: Object.assign(null, …) threw and broke their checkout
     return res.status(200).json({ ok:true, client_secret: c.s.client_secret, publishable_key: pk,
       ui: c.ui, custom_error: c.custom_error || '', promo, amount: promo ? BF_AMOUNT : AMOUNT });
   }catch(e){
