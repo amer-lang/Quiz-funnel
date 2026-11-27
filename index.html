@@ -2209,6 +2209,8 @@ window.dsFire = window.dsFire || function(name, params, onceKey){
   // fires Lead (spBuyLead) and upsells fire nothing, so the test campaign
   // optimizes for a single store purchase only.
   if(window.SP_VARIANT === 'lead' && name === 'Purchase') return;
+  // ...and the only Lead that pixel ever receives is the $20 store unlock (spBuyLead).
+  if(window.SP_VARIANT === 'lead' && name === 'Lead' && !/^leadbuy_/.test(String(onceKey || ''))) return;
   var eid = 'ds_' + (onceKey || (name + '_' + (window.__dsSeq = (window.__dsSeq||0)+1)));
   try { if(onceKey){ window.__dsFired = window.__dsFired || {}; if(window.__dsFired[onceKey]) return; window.__dsFired[onceKey]=1; } } catch(e){}
   (function go(n){ try{ if(typeof window.fbq==='function'){ window.fbq('track', name, params, { eventID: eid }); return; } }catch(e){} if(n<40){ try{ setTimeout(function(){ go(n+1); }, 250); }catch(e){} } })(0);
@@ -4242,7 +4244,7 @@ function startBuild(e){
   };
   if(smsExtra) Object.assign(lead, smsExtra);
   try{ localStorage.setItem('spai_lead', JSON.stringify(lead)); }catch(err){}
-  window.dsFire && window.dsFire(window.SP_VARIANT === 'lead' ? 'CompleteRegistration' : 'Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured (CompleteRegistration on /go, where Lead means a purchase)
+  if(window.SP_VARIANT !== 'lead') window.dsFire && window.dsFire('Lead', {}, 'lead_' + dsCid()); // Meta Lead — email captured (nothing on /go, where Lead means a paid store)
   spLead('optin', userEmail, null, leadExtra); // → ActiveCampaign list 5 (+ first name, SMS consent record)
   if(smsExtra) spLog('sms_optin');
   if(EMAIL_ENDPOINT){
